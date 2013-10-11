@@ -21,7 +21,7 @@
 // This function should be embedded in a try/catch block in case of
 // an exception.  It offers the user a choice of MIDI ports to open.
 // It returns false if there are no ports available.
-bool chooseMidiPort( RtMidi *rtmidi );
+bool chooseMidiPort( RtMidiOut *rtmidi );
 
 int main(int argc, char *argv[])
 {
@@ -89,16 +89,9 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-bool chooseMidiPort( RtMidi *rtmidi )
+bool chooseMidiPort( RtMidiOut *rtmidi )
 {
-  bool isInput = false;
-  if ( typeid( *rtmidi ) == typeid( RtMidiIn ) )
-    isInput = true;
-
-  if ( isInput )
-    std::cout << "\nWould you like to open a virtual input port? [y/N] ";
-  else
-    std::cout << "\nWould you like to open a virtual output port? [y/N] ";
+  std::cout << "\nWould you like to open a virtual output port? [y/N] ";
 
   std::string keyHit;
   std::getline( std::cin, keyHit );
@@ -110,10 +103,7 @@ bool chooseMidiPort( RtMidi *rtmidi )
   std::string portName;
   unsigned int i = 0, nPorts = rtmidi->getPortCount();
   if ( nPorts == 0 ) {
-    if ( isInput )
-      std::cout << "No input ports available!" << std::endl;
-    else
-      std::cout << "No output ports available!" << std::endl;
+    std::cout << "No output ports available!" << std::endl;
     return false;
   }
 
@@ -123,10 +113,7 @@ bool chooseMidiPort( RtMidi *rtmidi )
   else {
     for ( i=0; i<nPorts; i++ ) {
       portName = rtmidi->getPortName(i);
-      if ( isInput )
-        std::cout << "  Input port #" << i << ": " << portName << '\n';
-      else
-        std::cout << "  Output port #" << i << ": " << portName << '\n';
+      std::cout << "  Output port #" << i << ": " << portName << '\n';
     }
 
     do {

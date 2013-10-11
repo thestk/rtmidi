@@ -1,10 +1,10 @@
 /*! \mainpage The RtMidi Tutorial
 
-<CENTER>\ref intro &nbsp;&nbsp; \ref download &nbsp;&nbsp; \ref start &nbsp;&nbsp; \ref error &nbsp;&nbsp; \ref probing &nbsp;&nbsp; \ref output &nbsp;&nbsp; \ref input &nbsp;&nbsp; \ref virtual &nbsp;&nbsp; \ref compiling &nbsp;&nbsp; \ref debug &nbsp;&nbsp; \ref apinotes &nbsp;&nbsp; \ref acknowledge &nbsp;&nbsp; \ref license</CENTER>
+<CENTER>\ref intro &nbsp;&nbsp; \ref download &nbsp;&nbsp; \ref start &nbsp;&nbsp; \ref error &nbsp;&nbsp; \ref probing &nbsp;&nbsp; \ref output &nbsp;&nbsp; \ref input &nbsp;&nbsp; \ref virtual &nbsp;&nbsp; \ref compiling &nbsp;&nbsp; \ref debug &nbsp;&nbsp; \ref multi &nbsp;&nbsp; \ref apinotes &nbsp;&nbsp; \ref acknowledge &nbsp;&nbsp; \ref license</CENTER>
 
 \section intro Introduction
 
-RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X, Windows (Multimedia Library), and SGI operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X (CoreMidi & Jack), and Windows (Multimedia Library & Kernel Streaming) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
 <UL>
   <LI>object oriented C++ design</LI>
@@ -13,11 +13,17 @@ RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provides a common A
   <LI>MIDI device enumeration</LI>
 </UL>
 
+Where applicable, multiple API support can be compiled and a particular API specified when creating an RtAudio instance.
+
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
+
+\section whatsnew What's New (Version 2.0)
+
+No incompatable API changes were made in version 2.0, however, support for multiple compiled APIs (where available) was added (see \ref multi).  Other changes include: 1. Added Windows Kernel Streaming support (thanks to Sebastien Alaiwan), though not tested in Visual Studio (and timestamping is not implemented); and 2. Support for the IRIX (SGI) operating system was discontinued.
 
 \section download Download
 
-Latest Release (11 August 2011): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.15.tar.gz">Version 1.0.15</A>
+Latest Release (18 June 2012): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.0.0.tar.gz">Version 2.0.0</A>
 
 \section start Getting Started
 
@@ -349,11 +355,11 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD><TT>g++ -Wall -D__LINUX_ALSASEQ__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
 </TR>
 <TR>
-  <TD>Linux</TD>
+  <TD>Linux or Mac</TD>
   <TD>Jack MIDI</TD>
-  <TD>__LINUX_JACK__</TD>
+  <TD>__UNIX_JACK__</TD>
   <TD><TT>jack</TT></TD>
-  <TD><TT>g++ -Wall -D__LINUX_JACK__ -o midiprobe midiprobe.cpp RtMidi.cpp -ljack</TT></TD>
+  <TD><TT>g++ -Wall -D__UNIX_JACK__ -o midiprobe midiprobe.cpp RtMidi.cpp -ljack</TT></TD>
 </TR>
 <TR>
   <TD>Macintosh OS X</TD>
@@ -363,17 +369,17 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMidi -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
-  <TD>Irix</TD>
-  <TD>MD</TD>
-  <TD>__IRIX_MD__</TD>
-  <TD><TT>md, pthread</TT></TD>
-  <TD><TT>CC -Wall -D__IRIX_MD__ -o midiprobe midiprobe.cpp RtMidi.cpp -laudio -lpthread</TT></TD>
-</TR>
-<TR>
   <TD>Windows</TD>
   <TD>Multimedia Library</TD>
   <TD>__WINDOWS_MM__</TD>
   <TD><TT>winmm.lib, multithreaded</TT></TD>
+  <TD><I>compiler specific</I></TD>
+</TR>
+<TR>
+  <TD>Windows</TD>
+  <TD>Kernel Streaming</TD>
+  <TD>__WINDOWS_KS__</TD>
+  <TD><TT>ks.h, ksmedia.h, setupapi.lib, ksuser.lib, multithreaded</TT></TD>
   <TD><I>compiler specific</I></TD>
 </TR>
 </TABLE>
@@ -385,21 +391,25 @@ The example compiler statements above could be used to compile the <TT>midiprobe
 
 If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or define it in RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
 
+\section multi Using Simultaneous Multiple APIs
+
+Support for each MIDI API is encapsulated in specific MidiInApi or MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both the CoreMIDI and Jack support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any Jack ports are available.  This can be done by specifying the api argument RtMidi::UNIX_JACK when attempting to create an instance of RtMidiIn or RtMidiOut.  If no available ports are found, then an instance of RtMidi with the api argument RtMidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for CoreMIDI ports and if none are found, then Jack ports (in linux, the search order is ALSA and then Jack; in windows, the search order is WinMM and then WinKS).  In theory, it should also be possible to have separate instances of RtMidi open at the same time with different underlying API support, though this has not been tested.
+
+The static function RtMidi::getCompiledApi() is provided to determine the available compiled API support.  The function RtMidi::getCurrentApi() indicates the API selected for a given RtMidi instance.
+
 \section apinotes API Notes
 
 RtMidi is designed to provide a common API across the various supported operating systems and audio libraries.  Despite that, some issues should be mentioned with regard to each.
 
 \subsection linux Linux:
 
-RtMidi for Linux was developed using the Fedora distribution.  A decision was made to not include support for the OSS API because the OSS API provides such limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is now incorporated in the Linux kernel.  RtMidi uses the ALSA sequencer API, which allows for virtual software input and output ports. 
+RtMidi for Linux was developed using the Fedora distribution.  Two different MIDI APIs are supported on Linux platforms: <A href="http://www.alsa-project.org/">ALSA</A> and <A href="http://jackit.sourceforge.net/">Jack</A>. A decision was made to not include support for the OSS API because the OSS API provides such limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is now incorporated in the Linux kernel.  The ALSA sequencer and Jack APIs allows for virtual software input and output ports. 
 
 \subsection macosx Macintosh OS X (CoreAudio):
 
 The Apple CoreMidi API allows for the establishment of virtual input and output ports to which other software applications can connect.
 
-\subsection irix Irix (SGI):
-
-The Irix version of RtMidi was written and tested on an SGI Indy running Irix version 6.5.4 and the MD audio library.
+The RtMidi Jack support can be compiled on Macintosh OS-X systems, as well as in Linux.
 
 \subsection windowsds Windows (Multimedia Library):
 
@@ -415,25 +425,29 @@ The \c configure script provides support for the MinGW compiler.
 
 Many thanks to the following people for providing bug fixes and improvements:
 <UL>
+<LI>Sebastien Alaiwan (Jack memory leaks, Windows kernel streaming)</LI>
 <LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
 <LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
 <LI>Jason Champion (MSW project file for library build)</LI>
 <LI>Eduardo Coutinho (Windows device names)</LI>
 <LI>Paul Dean (increment optimization)</LI>
+<LI>Luc Deschenaux (sysex issues)</LI>
 <LI>John Dey (OS-X timestamps)</LI>
 <LI>Christoph Eckert (ALSA sysex fixes)</LI>
+<LI>Martin Koegler (various fixes)</LI>
 <LI>Immanuel Litzroth (OS-X sysex fix)</LI>
 <LI>Jon McCormack (Snow Leopard updates)</LI>
 <LI>Axel Schmidt (client naming)</LI>
 <LI>Alexander Svetalkin (Jack MIDI)</LI>
 <LI>Casey Tucker (OS-X driver information, sysex sending)</LI>
 <LI>Bastiaan Verreijt (Windows sysex multi-buffer code)</LI>
+<LI>Dan Wilcox</LI>
 </UL>
 
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2011 Gary P. Scavone
+    Copyright (c) 2003-2012 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
@@ -447,8 +461,9 @@ Many thanks to the following people for providing bug fixes and improvements:
     included in all copies or substantial portions of the Software.
 
     Any person wishing to distribute modifications to the Software is
-    requested to send the modifications to the original developer so that
-    they can be incorporated into the canonical version.
+    asked to send the modifications to the original developer so that
+    they can be incorporated into the canonical version.  This is,
+    however, not a binding provision of this license.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF

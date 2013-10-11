@@ -23,7 +23,7 @@ No incompatable API changes were made in version 2.0, however, support for multi
 
 \section download Download
 
-Latest Release (18 June 2012): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.0.0.tar.gz">Version 2.0.0</A>
+Latest Release (26 July 2012): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.0.1.tar.gz">Version 2.0.1</A>
 
 \section start Getting Started
 
@@ -350,9 +350,9 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 <TR>
   <TD>Linux</TD>
   <TD>ALSA Sequencer</TD>
-  <TD>__LINUX_ALSASEQ__</TD>
+  <TD>__LINUX_ALSA__</TD>
   <TD><TT>asound, pthread</TT></TD>
-  <TD><TT>g++ -Wall -D__LINUX_ALSASEQ__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
+  <TD><TT>g++ -Wall -D__LINUX_ALSA__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
 </TR>
 <TR>
   <TD>Linux or Mac</TD>
@@ -366,7 +366,7 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD>CoreMidi</TD>
   <TD>__MACOSX_CORE__</TD>
   <TD><TT>CoreMidi, CoreAudio, CoreFoundation</TT></TD>
-  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMidi -framework CoreAudio -framework CoreFoundation</TT></TD>
+  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
   <TD>Windows</TD>

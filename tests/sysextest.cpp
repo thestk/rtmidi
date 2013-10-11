@@ -31,12 +31,20 @@ void usage( void ) {
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidi *rtmidi );
 
+void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
+{
+  unsigned int nBytes = message->size();
+  for ( unsigned int i=0; i<nBytes; i++ )
+    std::cout << "Byte " << i << " = " << (int)message->at(i) << ", ";
+  if ( nBytes > 0 )
+    std::cout << "stamp = " << deltatime << std::endl;
+}
+
 int main( int argc, char *argv[] )
 {
   RtMidiOut *midiout = 0;
   RtMidiIn *midiin = 0;
   std::vector<unsigned char> message;
-  double stamp;
   unsigned int i, nBytes;
 
   // Minimal command-line check.
@@ -66,21 +74,24 @@ int main( int argc, char *argv[] )
     goto cleanup;
   }
 
+  midiin->setCallback( &mycallback );
+
+  message.push_back( 0xF6 );
+  midiout->sendMessage( &message );
+  SLEEP( 500 ); // pause a little
+
   // Create a long sysex messages of numbered bytes and send it out.
+  for ( int n=0; n<2; n++ ) {
+  message.clear();
   message.push_back( 240 );
   for ( i=0; i<nBytes; i++ )
     message.push_back( i % 128 );
   message.push_back( 247 );
   midiout->sendMessage( &message );
 
-  SLEEP( 50 ); // pause a little
+  SLEEP( 500 ); // pause a little
 
-  // Look for one message (hopefully the previously sent sysex if the
-  // ports were connected together) and print out the values.
-  stamp = midiin->getMessage( &message );
-  nBytes = message.size();
-  for ( i=0; i<nBytes; i++ )
-    std::cout << "Byte " << i << " = " << (int)message[i] << std::endl;
+}
 
   // Clean up
  cleanup:

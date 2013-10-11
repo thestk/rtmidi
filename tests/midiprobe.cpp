@@ -2,14 +2,31 @@
 //
 // Simple program to check MIDI inputs and outputs.
 //
-// by Gary Scavone, 2003-2004.
+// by Gary Scavone, 2003-2012.
 
 #include <iostream>
 #include <cstdlib>
+#include <map>
 #include "RtMidi.h"
 
 int main()
 {
+  // Create an api map.
+  std::map<int, std::string> apiMap;
+  apiMap[RtMidi::MACOSX_CORE] = "OS-X CoreMidi";
+  apiMap[RtMidi::WINDOWS_MM] = "Windows MultiMedia";
+  apiMap[RtMidi::WINDOWS_KS] = "Windows Kernel Straming";
+  apiMap[RtMidi::UNIX_JACK] = "Jack Client";
+  apiMap[RtMidi::LINUX_ALSA] = "Linux ALSA";
+  apiMap[RtMidi::RTMIDI_DUMMY] = "RtMidi Dummy";
+
+  std::vector< RtMidi::Api > apis;
+  RtMidi :: getCompiledApi( apis );
+
+  std::cout << "\nCompiled APIs:\n";
+  for ( unsigned int i=0; i<apis.size(); i++ )
+    std::cout << "  " << apiMap[ apis[i] ] << std::endl;
+
   RtMidiIn  *midiin = 0;
   RtMidiOut *midiout = 0;
 
@@ -17,6 +34,8 @@ int main()
 
     // RtMidiIn constructor ... exception possible
     midiin = new RtMidiIn();
+
+    std::cout << "\nCurrent input API: " << apiMap[ midiin->getCurrentApi() ] << std::endl;
 
     // Check inputs.
     unsigned int nPorts = midiin->getPortCount();
@@ -29,6 +48,8 @@ int main()
 
     // RtMidiOut constructor ... exception possible
     midiout = new RtMidiOut();
+
+    std::cout << "\nCurrent output API: " << apiMap[ midiout->getCurrentApi() ] << std::endl;
 
     // Check outputs.
     nPorts = midiout->getPortCount();

@@ -1,6 +1,6 @@
-RtMidi - a set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X (CoreMidi), Windows (Multimedia) and SGI operating systems.
+RtMidi - a set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X (CoreMidi) and Windows (Multimedia & Kernel Streaming).
 
-By Gary P. Scavone, 2003-2011.
+By Gary P. Scavone, 2003-2012.
 
 This distribution of RtMidi contains the following:
 
@@ -11,7 +11,7 @@ On unix systems, type "./configure" in the top level directory, then "make" in t
 
 OVERVIEW:
 
-RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut, and API specific classes) that provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA, Jack), Macintosh OS X (CoreMidi, Jack), SGI, and Windows (Multimedia Library, Kernel Streming) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
   - object oriented C++ design
   - simple, common API across all supported platforms
@@ -30,7 +30,7 @@ LEGAL AND ETHICAL:
 The RtMidi license is similar to the the MIT License, with the added "feature" that modifications be sent to the developer.
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2011 Gary P. Scavone
+    Copyright (c) 2003-2012 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
@@ -44,8 +44,9 @@ The RtMidi license is similar to the the MIT License, with the added "feature" t
     included in all copies or substantial portions of the Software.
 
     Any person wishing to distribute modifications to the Software is
-    requested to send the modifications to the original developer so that
-    they can be incorporated into the canonical version.
+    asked to send the modifications to the original developer so that
+    they can be incorporated into the canonical version.  This is,
+    however, not a binding provision of this license.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF

@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.12
+// RtMidi: Version 1.0.13
 
 #ifndef RTMIDI_H
 #define RTMIDI_H

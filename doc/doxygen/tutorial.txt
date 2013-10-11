@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (9 March 2006): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.6.tar.gz">Version 1.0.6</A>
+Latest Release (7 December 2007): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.7.tar.gz">Version 1.0.7</A>
 
 \section start Getting Started
 
@@ -58,7 +58,7 @@ RtMidi uses a C++ exception handler called RtError, which is declared and define
 A programmer may wish to query the available MIDI ports before deciding which to use.  The following example outlines how this can be done.
 
 \code
-// midiinfo.cpp
+// midiprobe.cpp
 
 #include <iostream>
 #include "RtMidi.h"
@@ -72,9 +72,9 @@ int main()
   try {
     midiin = new RtMidiIn();
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
-    exit(EXIT_FAILURE);
+    exit( EXIT_FAILURE );
   }
 
   // Check inputs.
@@ -85,7 +85,7 @@ int main()
     try {
       portName = midiin->getPortName(i);
     }
-    catch (RtError &error) {
+    catch ( RtError &error ) {
       error.printMessage();
       goto cleanup;
     }
@@ -96,9 +96,9 @@ int main()
   try {
     midiout = new RtMidiOut();
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
-    exit(EXIT_FAILURE);
+    exit( EXIT_FAILURE );
   }
 
   // Check outputs.
@@ -330,21 +330,21 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD>ALSA Sequencer</TD>
   <TD>__LINUX_ALSASEQ__</TD>
   <TD><TT>asound, pthread</TT></TD>
-  <TD><TT>g++ -Wall -D__LINUX_ALSASEQ__ -o midiinfo midiinfo.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
+  <TD><TT>g++ -Wall -D__LINUX_ALSASEQ__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
 </TR>
 <TR>
   <TD>Macintosh OS X</TD>
   <TD>CoreMidi</TD>
   <TD>__MACOSX_CORE__</TD>
   <TD><TT>CoreMidi, CoreAudio, CoreFoundation</TT></TD>
-  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiinfo midiinfo.cpp RtMidi.cpp -framework CoreMidi -framework CoreAudio -framework CoreFoundation</TT></TD>
+  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMidi -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
   <TD>Irix</TD>
   <TD>MD</TD>
   <TD>__IRIX_MD__</TD>
   <TD><TT>md, pthread</TT></TD>
-  <TD><TT>CC -Wall -D__IRIX_MD__ -o midiinfo midiinfo.cpp RtMidi.cpp -laudio -lpthread</TT></TD>
+  <TD><TT>CC -Wall -D__IRIX_MD__ -o midiprobe midiprobe.cpp RtMidi.cpp -laudio -lpthread</TT></TD>
 </TR>
 <TR>
   <TD>Windows</TD>
@@ -356,11 +356,11 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 </TABLE>
 <P>
 
-The example compiler statements above could be used to compile the <TT>probe.cpp</TT> example file, assuming that <TT>midiinfo.cpp</TT>, <TT>RtMidi.h</TT>, <tt>RtError.h</tt>, and <TT>RtMidi.cpp</TT> all exist in the same directory.
+The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT>, <tt>RtError.h</tt>, and <TT>RtMidi.cpp</TT> all exist in the same directory.
 
 \section debug Debugging
 
-If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or uncomment the definition at the bottom of RtMidi.h).  A variety of warning messages will be displayed which may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiinfo</tt> displays the queried capabilities of all MIDI ports found.
+If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or uncomment the definition at the bottom of RtMidi.h).  A variety of warning messages will be displayed which may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
 
 \section apinotes API Notes
 
@@ -382,6 +382,8 @@ The Irix version of RtMidi was written and tested on an SGI Indy running Irix ve
 
 The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.  RtMidi was originally developed with Visual C++ version 6.0.
 
+The \c configure script provides support for the MinGW compiler.
+
 \section acknowledge Acknowledgements
 
 Many thanks to the following people for providing bug fixes:
@@ -394,7 +396,7 @@ Many thanks to the following people for providing bug fixes:
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2006 Gary P. Scavone
+    Copyright (c) 2003-2007 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

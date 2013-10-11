@@ -8,7 +8,7 @@
     RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2006 Gary P. Scavone
+    Copyright (c) 2003-2007 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.6
+// RtMidi: Version 1.0.7
 
 #include "RtMidi.h"
 #include <sstream>
@@ -1923,7 +1923,7 @@ std::string RtMidiIn :: getPortName( unsigned int portNumber )
   }
 
   MIDIINCAPS deviceCaps;
-  MMRESULT result = midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
+  midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
 
   // For some reason, we need to copy character by character with
   // UNICODE (thanks to Eduardo Coutinho!).
@@ -1957,7 +1957,7 @@ std::string RtMidiOut :: getPortName( unsigned int portNumber )
   }
 
   MIDIOUTCAPS deviceCaps;
-  MMRESULT result = midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
+  midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
 
   // For some reason, we need to copy character by character with
   // UNICODE (thanks to Eduardo Coutinho!).

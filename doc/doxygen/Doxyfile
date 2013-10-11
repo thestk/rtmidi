@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = RtMidi
-PROJECT_NUMBER         = 
+PROJECT_NUMBER         = 1.0.7
 OUTPUT_DIRECTORY       = .
 OUTPUT_LANGUAGE        = English
 USE_WINDOWS_ENCODING   = NO

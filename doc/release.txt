@@ -2,6 +2,9 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2009.
 
+v1.0.10: (3 June 2009)
+- fix adding timestamp to OS-X sendMessage() function (thanks to John Dey)
+
 v1.0.9: (30 April 2009)
 - added #ifdef AVOID_TIMESTAMPING to conditionally compile support for event timestamping of ALSA sequencer events. This is useful for programs not needing timestamps, saving valuable system resources.
 - updated functionality in OSX_CORE for getting driver name (thanks to Casey Tucker)

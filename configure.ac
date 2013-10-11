@@ -8,7 +8,7 @@ AC_CONFIG_FILES(tests/Makefile)
 AC_SUBST( GXX, ["no"] )
 
 # Checks for programs.
-AC_PROG_CXX
+AC_PROG_CXX(g++ CC c++ cxx)
 
 # Checks for header files.
 AC_HEADER_STDC

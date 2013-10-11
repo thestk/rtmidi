@@ -3311,7 +3311,7 @@ echo "$as_me:$LINENO: checking for MIDI API" >&5
 echo $ECHO_N "checking for MIDI API... $ECHO_C" >&6
 case $host in
   *-*-linux*)
-  midi_api=_D__LINUX_ALSA__
+  midi_api=-D__LINUX_ALSASEQ__
 
 
 echo "$as_me:$LINENO: checking for snd_seq_open in -lasound" >&5

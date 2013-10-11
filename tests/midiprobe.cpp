@@ -13,57 +13,37 @@ int main()
   RtMidiIn  *midiin = 0;
   RtMidiOut *midiout = 0;
 
-  // RtMidiIn constructor
   try {
+
+    // RtMidiIn constructor ... exception possible
     midiin = new RtMidiIn();
-  }
-  catch ( RtError &error ) {
-    error.printMessage();
-    exit( EXIT_FAILURE );
-  }
 
-  // Check inputs.
-  unsigned int nPorts = midiin->getPortCount();
-  std::cout << "\nThere are " << nPorts << " MIDI input sources available.\n";
-  std::string portName;
-  unsigned int i;
-  for ( i=0; i<nPorts; i++ ) {
-    try {
-      portName = midiin->getPortName(i);
-    }
-    catch ( RtError &error ) {
-      error.printMessage();
-      goto cleanup;
-    }
-    std::cout << "  Input Port #" << i+1 << ": " << portName << '\n';
-  }
+    // Check inputs.
+    unsigned int nPorts = midiin->getPortCount();
+    std::cout << "\nThere are " << nPorts << " MIDI input sources available.\n";
 
-  // RtMidiOut constructor
-  try {
+    for ( unsigned i=0; i<nPorts; i++ ) {
+      std::string portName = midiin->getPortName(i);
+      std::cout << "  Input Port #" << i+1 << ": " << portName << '\n';
+    }
+
+    // RtMidiOut constructor ... exception possible
     midiout = new RtMidiOut();
-  }
-  catch ( RtError &error ) {
+
+    // Check outputs.
+    nPorts = midiout->getPortCount();
+    std::cout << "\nThere are " << nPorts << " MIDI output ports available.\n";
+
+    for ( unsigned i=0; i<nPorts; i++ ) {
+      std::string portName = midiout->getPortName(i);
+      std::cout << "  Output Port #" << i+1 << ": " << portName << std::endl;
+    }
+    std::cout << std::endl;
+
+  } catch ( RtError &error ) {
     error.printMessage();
-    exit( EXIT_FAILURE );
   }
 
-  // Check outputs.
-  nPorts = midiout->getPortCount();
-  std::cout << "\nThere are " << nPorts << " MIDI output ports available.\n";
-  for ( i=0; i<nPorts; i++ ) {
-    try {
-      portName = midiout->getPortName(i);
-    }
-    catch ( RtError &error ) {
-      error.printMessage();
-      goto cleanup;
-    }
-    std::cout << "  Output Port #" << i+1 << ": " << portName << '\n';
-  }
-  std::cout << '\n';
-
-  // Clean up
- cleanup:
   delete midiin;
   delete midiout;
 

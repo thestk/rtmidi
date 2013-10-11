@@ -54,6 +54,12 @@ int main( int argc, char *argv[] )
   message.push_back( 5 );
   midiout->sendMessage( &message );
 
+  SLEEP( 500 );
+
+  message[0] = 0xF1;
+  message[1] = 60;
+  midiout->sendMessage( &message );
+
   // Control Change: 176, 7, 100 (volume)
   message[0] = 176;
   message[1] = 7;
@@ -74,7 +80,17 @@ int main( int argc, char *argv[] )
   message[2] = 40;
   midiout->sendMessage( &message );
 
-  // Sysex: 240, 67, 16, 4, 3, 2, 247
+  SLEEP( 500 );
+
+  // Control Change: 176, 7, 40
+  message[0] = 176;
+  message[1] = 7;
+  message[2] = 40;
+  midiout->sendMessage( &message );
+
+  SLEEP( 500 );
+
+  // Sysex: 240, 67, 4, 3, 2, 247
   message[0] = 240;
   message[1] = 67;
   message[2] = 4;

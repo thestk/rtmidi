@@ -8,7 +8,7 @@
     RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2010 Gary P. Scavone
+    Copyright (c) 2003-2011 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.11
+// RtMidi: Version 1.0.12
 
 #ifndef RTMIDI_H
 #define RTMIDI_H
@@ -154,7 +154,7 @@ class RtMidiIn : public RtMidi
 
   //! Return a string identifier for the specified MIDI input port number.
   /*!
-      An exception is thrown if an invalid port specifier is provided.
+      An empty string is returned if an invalid port specifier is provided.
   */
   std::string getPortName( unsigned int portNumber = 0 );
 
@@ -280,7 +280,7 @@ class RtMidiOut : public RtMidi
 
   //! Return a string identifier for the specified MIDI port type and number.
   /*!
-      An exception is thrown if an invalid port specifier is provided.
+      An empty string is returned if an invalid port specifier is provided.
   */
   std::string getPortName( unsigned int portNumber = 0 );
 

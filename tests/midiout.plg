@@ -1,0 +1,33 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: midiout - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "c:\windows\TEMP\RSP5250.TMP" with contents
+[
+/nologo /ML /W3 /GX /O2 /I "../" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "__WINDOWS_MM__" /Fp"Release/midiout.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
+"C:\gary\rtmidi\tests\midiout.cpp"
+]
+Creating command line "cl.exe @c:\windows\TEMP\RSP5250.TMP" 
+Creating temporary file "c:\windows\TEMP\RSP5251.TMP" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib winmm.lib /nologo /subsystem:console /incremental:no /pdb:"midiout.pdb" /machine:I386 /out:"midiout.exe" 
+.\Release\RtMidi.obj
+.\Release\midiout.obj
+]
+Creating command line "link.exe @c:\windows\TEMP\RSP5251.TMP"
+<h3>Output Window</h3>
+Compiling...
+midiout.cpp
+Linking...
+
+
+
+<h3>Results</h3>
+midiout.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

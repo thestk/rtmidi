@@ -1,0 +1,415 @@
+/*! \mainpage The RtMidi Tutorial
+
+<BODY BGCOLOR="white">
+
+<CENTER>\ref intro &nbsp;&nbsp; \ref download &nbsp;&nbsp; \ref start &nbsp;&nbsp; \ref error &nbsp;&nbsp; \ref probing &nbsp;&nbsp; \ref output &nbsp;&nbsp; \ref input &nbsp;&nbsp; \ref virtual &nbsp;&nbsp; \ref compiling &nbsp;&nbsp; \ref debug &nbsp;&nbsp; \ref apinotes &nbsp;&nbsp; \ref license</CENTER>
+
+\section intro Introduction
+
+RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) which provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+
+<UL>
+  <LI>object oriented C++ design</LI>
+  <LI>simple, common API across all supported platforms</LI>
+  <LI>only two header files and one source file for easy inclusion in programming projects</LI>
+  <LI>MIDI device enumeration</LI>
+</UL>
+
+MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
+
+\section download Download
+
+Latest Release (17 September 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.0.tar.gz">Version 1.0.0 (154 kB tar/gzipped)</A>
+
+\section start Getting Started
+
+The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it is possible to connect or start MIDI devices after the classes have been instantiated.  The following code example demonstrates default object construction and destruction:
+
+\code
+
+#include "RtMidi.h"
+
+int main()
+{
+  RtMidiIn *midiin = 0;
+
+  // RtMidiIn constructor
+  try {
+    midiin = new RtMidiIn();
+  }
+  catch (RtError &error) {
+    // Handle the exception here
+    error.printMessage();
+  }
+
+  // Clean up
+  delete midiin;
+}
+\endcode
+
+Obviously, this example doesn't demonstrate any of the real functionality of RtMidi.  However, all uses of RtMidi must begin with construction and must end with class destruction.  Further, it is necessary that all class methods which can throw a C++ exception be called within a try/catch block.
+
+
+\section error Error Handling
+
+RtMidi uses a C++ exception handler called RtError, which is declared and defined in RtError.h.  The RtError class is quite simple but it does allow errors to be "caught" by RtError::Type.  Many RtMidi methods can "throw" an RtError, most typically if a driver error occurs or an invalid function argument is specified.  There are a number of cases within RtMidi where warning messages may be displayed but an exception is not thrown.  There is a protected RtMidi method, error(), which can be modified to globally control how these messages are handled and reported.  By default, error messages are not automatically displayed in RtMidi unless the preprocessor definition __RTMIDI_DEBUG__ is defined.  Messages associated with caught exceptions can be displayed with, for example, the RtError::printMessage() function.
+
+
+\section probing Probing Ports
+
+A programmer may wish to query the available MIDI ports before deciding which to use.  The following example outlines how this can be done.
+
+\code
+// midiinfo.cpp
+
+#include <iostream>
+#include "RtMidi.h"
+
+int main()
+{
+  RtMidiIn  *midiin = 0;
+  RtMidiOut *midiout = 0;
+
+  // RtMidiIn constructor
+  try {
+    midiin = new RtMidiIn();
+  }
+  catch (RtError &error) {
+    error.printMessage();
+    exit(EXIT_FAILURE);
+  }
+
+  // Check inputs.
+  unsigned int nPorts = midiin->getPortCount();
+  std::cout << "\nThere are " << nPorts << " MIDI input sources available.\n";
+  std::string portName;
+  for ( unsigned int i=0; i<nPorts; i++ ) {
+    try {
+      portName = midiin->getPortName(i);
+    }
+    catch (RtError &error) {
+      error.printMessage();
+      goto cleanup;
+    }
+    std::cout << "  Input Port #" << i+1 << ": " << portName << '\n';
+  }
+
+  // RtMidiOut constructor
+  try {
+    midiout = new RtMidiOut();
+  }
+  catch (RtError &error) {
+    error.printMessage();
+    exit(EXIT_FAILURE);
+  }
+
+  // Check outputs.
+  nPorts = midiout->getPortCount();
+  std::cout << "\nThere are " << nPorts << " MIDI output ports available.\n";
+  for ( unsigned int i=0; i<nPorts; i++ ) {
+    try {
+      portName = midiout->getPortName(i);
+    }
+    catch (RtError &error) {
+      error.printMessage();
+      goto cleanup;
+    }
+    std::cout << "  Output Port #" << i+1 << ": " << portName << '\n';
+  }
+  std::cout << '\n';
+
+  // Clean up
+ cleanup:
+  delete midiin;
+  delete midiout;
+
+  return 0;
+}
+\endcode
+
+\section output MIDI Output
+
+The RtMidiOut class provides simple functionality to immediately send messages over a MIDI connection.  No timing functionality is provided.
+
+In the following example, we omit necessary error checking and details regarding OS-dependent sleep functions.  For a complete example, see the \c midiout.cpp program in the \c tests directory.
+
+\code
+// midiout.cpp
+
+#include <iostream>
+#include "RtMidi.h"
+
+int main()
+{
+  RtMidiOut *midiout = new RtMidiOut();
+  std::vector<unsigned char> message;
+
+  // Check available ports.
+  unsigned int nPorts = midiout->getPortCount();
+  if ( nPorts == 0 ) {
+    std::cout << "No ports available!\n";
+    goto cleanup;
+  }
+
+  // Open first available port.
+  midiout->openPort( 0 );
+
+  // Send out a series of MIDI messages.
+
+  // Program change: 192, 5
+  message.push_back( 192 );
+  message.push_back( 5 );
+  midiout->sendMessage( &message );
+
+  // Control Change: 176, 7, 100 (volume)
+  message[0] = 176;
+  message[1] = 7;
+  message.push_back( 100 );
+  midiout->sendMessage( &message );
+
+  // Note On: 144, 64, 90
+  message[0] = 144;
+  message[1] = 64;
+  message[2] = 90;
+  midiout->sendMessage( &message );
+
+  SLEEP( 500 ); // Platform-dependent ... see example in tests directory.
+
+  // Note Off: 128, 64, 40
+  message[0] = 128;
+  message[1] = 64;
+  message[2] = 40;
+  midiout->sendMessage( &message );
+
+  // Clean up
+ cleanup:
+  delete midiout;
+
+  return 0;
+}
+\endcode
+
+
+\section input MIDI Input
+
+The RtMidiIn class uses an internal callback function or thread to receive incoming MIDI messages from a port or device.  These messages are then either queued and read by the user via calls to the RtMidiIn::getMessage() function or immediately passed to a user-specified callback function (which must be "registered" using the RtMidiIn::setCallback() function).  We'll provide examples of both usages.
+
+The RtMidiIn class provides the RtMidiIn::ignoreTypes() function to specify that certain MIDI message types be ignored.  By default, sysem exclusive, timing, and active sensing messages are ignored.
+
+\subsection qmidiin Queued MIDI Input
+
+The RtMidiIn::getMessage() function does not block.  If a MIDI message is available in the queue, it is copied to the user-provided \c std::vector<unsigned char> container.  When no MIDI message is available, the function returns an empty container.  The default maximum MIDI queue size is 1024 messages.  This value may be modified with the RtMidiIn::setQueueSizeLimit() function.  If the maximum queue size limit is reached, subsequent MIDI messages are discarded until the queue size is reduced.
+
+In the following example, we omit some necessary error checking and details regarding OS-dependent sleep functions.  For a more complete example, see the \c qmidiin.cpp program in the \c tests directory.
+
+\code
+// qmidiin.cpp
+
+#include <iostream>
+#include <signal.h>
+#include "RtMidi.h"
+
+bool done;
+static void finish(int ignore){ done = true; }
+
+int main()
+{
+  RtMidiIn *midiin = new RtMidiIn();
+  std::vector<unsigned char> message;
+  int nBytes, i;
+  double stamp;
+
+  // Check available ports.
+  unsigned int nPorts = midiin->getPortCount();
+  if ( nPorts == 0 ) {
+    std::cout << "No ports available!\n";
+    goto cleanup;
+  }
+  midiin->openPort( 0 );
+
+  // Don't ignore sysex, timing, or active sensing messages.
+  midiin->ignoreTypes( false, false, false );
+
+  // Install an interrupt handler function.
+  done = false;
+  (void) signal(SIGINT, finish);
+
+  // Periodically check input queue.
+  std::cout << "Reading MIDI from port ... quit with Ctrl-C.\n";
+  while ( !done ) {
+    stamp = midiin->getMessage( &message );
+    nBytes = message.size();
+    for ( i=0; i<nBytes; i++ )
+      std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+    if ( nBytes > 0 )
+      std::cout << "stamp = " << stamp << '\n';
+
+    // Sleep for 10 milliseconds ... platform-dependent.
+    SLEEP( 10 );
+  }
+
+  // Clean up
+ cleanup:
+  delete midiin;
+
+  return 0;
+}
+\endcode
+
+\subsection cmidiin MIDI Input with User Callback
+
+When set, a user-provided callback function will be invoked after the input of a complete MIDI message.  It is possible to provide a pointer to user data which can be accessed in the callback function (not shown here).  It is necessary to set the callback function immediately after opening the port to avoid having incoming messages written to the queue (which is not emptied when a callback function is set).  If you are worried about this happening, you can check the queue using the RtMidi::getMessage() function to verify it is empty (after the callback function is set).
+
+In the following example, we omit some necessary error checking.  For a more complete example, see the \c cmidiin.cpp program in the \c tests directory.
+
+\code
+// cmidiin.cpp
+
+#include <iostream>
+#include "RtMidi.h"
+
+void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
+{
+  unsigned int nBytes = message->size();
+  for ( unsigned int i=0; i<nBytes; i++ )
+    std::cout << "Byte " << i << " = " << (int)message->at(i) << ", ";
+  if ( nBytes > 0 )
+    std::cout << "stamp = " << deltatime << '\n';
+}
+
+int main()
+{
+  RtMidiIn *midiin = new RtMidiIn();
+
+  // Check available ports.
+  unsigned int nPorts = midiin->getPortCount();
+  if ( nPorts == 0 ) {
+    std::cout << "No ports available!\n";
+    goto cleanup;
+  }
+
+  midiin->openPort( 0 );
+
+  // Set our callback function.  This should be done immediately after
+  // opening the port to avoid having incoming messages written to the
+  // queue.
+  midiin->setCallback( &mycallback );
+
+  // Don't ignore sysex, timing, or active sensing messages.
+  midiin->ignoreTypes( false, false, false );
+
+  std::cout << "\nReading MIDI input ... press <enter> to quit.\n";
+  char input;
+  std::cin.get(input);
+
+  // Clean up
+ cleanup:
+  delete midiin;
+
+  return 0;
+}
+\endcode
+
+\section virtual Virtual Ports
+
+The Linux ALSA and Macintosh CoreMIDI APIs allow for the establishment of virtual input and output MIDI ports to which other software clients can connect.  RtMidi incorporates this functionality with the RtMidiIn::openVirtualPort() and RtMidiOut::openVirtualPort() functions.  Any messages sent with the RtMidiOut::sendMessage() function will also be transmitted through an open virtual output port.  If a virtual input port is open and a user callback function is set, the callback function will be invoked when messages arrive via that port.  If a callback function is not set, the user must poll the input queue to check whether messages have arrived.  No notification is provided for the establishment of a client connection via a virtual port.
+
+\section compiling Compiling
+
+In order to compile RtMidi for a specific OS and API, it is necessary to supply the appropriate preprocessor definition and library within the compiler statement:
+<P>
+
+<TABLE BORDER=2 COLS=5 WIDTH="100%">
+<TR BGCOLOR="beige">
+  <TD WIDTH="5%"><B>OS:</B></TD>
+  <TD WIDTH="5%"><B>Audio API:</B></TD>
+  <TD WIDTH="5%"><B>Preprocessor Definition:</B></TD>
+  <TD WIDTH="5%"><B>Library or Framework:</B></TD>
+  <TD><B>Example Compiler Statement:</B></TD>
+</TR>
+<TR>
+  <TD>Linux</TD>
+  <TD>ALSA</TD>
+  <TD>__LINUX_ALSA__</TD>
+  <TD><TT>asound, pthread</TT></TD>
+  <TD><TT>g++ -Wall -D__LINUX_ALSA__ -o midiinfo midiinfo.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
+</TR>
+<TR>
+  <TD>Macintosh OS X</TD>
+  <TD>CoreAudio</TD>
+  <TD>__MACOSX_CORE__</TD>
+  <TD><TT>pthread, stdc++, CoreAudio</TT></TD>
+  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiinfo midiinfo.cpp RtMidi.cpp -framework CoreMidi -lpthread</TT></TD>
+</TR>
+<TR>
+  <TD>Irix</TD>
+  <TD>MD</TD>
+  <TD>__IRIX_MD__</TD>
+  <TD><TT>md, pthread</TT></TD>
+  <TD><TT>CC -Wall -D__IRIX_MD__ -o midiinfo midiinfo.cpp RtMidi.cpp -laudio -lpthread</TT></TD>
+</TR>
+<TR>
+  <TD>Windows</TD>
+  <TD>Multimedia Library</TD>
+  <TD>__WINDOWS_MM__</TD>
+  <TD><TT>winmm.lib, multithreaded</TT></TD>
+  <TD><I>compiler specific</I></TD>
+</TR>
+</TABLE>
+<P>
+
+The example compiler statements above could be used to compile the <TT>probe.cpp</TT> example file, assuming that <TT>midiinfo.cpp</TT>, <TT>RtMidi.h</TT>, <tt>RtError.h</tt>, and <TT>RtMidi.cpp</TT> all exist in the same directory.
+
+\section debug Debugging
+
+If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or uncomment the definition at the bottom of RtMidi.h).  A variety of warning messages will be displayed which may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiinfo</tt> displays the queried capabilities of all MIDI ports found.
+
+\section apinotes API Notes
+
+RtMidi is designed to provide a common API across the various supported operating systems and audio libraries.  Despite that, some issues should be mentioned with regard to each.
+
+\subsection linux Linux:
+
+RtMidi for Linux was developed using the Fedora distribution.  A decision was made to not include support for the OSS API because the OSS API provides such limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is now incorporated in the Linux kernel.  RtMidi uses the ALSA sequencer API, which allows for virtual software input and output ports. 
+
+\subsection macosx Macintosh OS X (CoreAudio):
+
+The Apple CoreMidi API allows for the establishment of virtual input and output ports to which other software applications can connect.
+
+\subsection irix Irix (SGI):
+
+The Irix version of RtMidi was written and tested on an SGI Indy running Irix version 6.5.4 and the MD audio library.
+
+\subsection windowsds Windows (Multimedia Library):
+
+The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.  RtMidi was originally developed with Visual C++ version 6.0.
+
+\section license License
+
+    RtMidi: realtime MIDI i/o C++ classes<BR>
+    Copyright (c) 2003-2004 Gary P. Scavone
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation files
+    (the "Software"), to deal in the Software without restriction,
+    including without limitation the rights to use, copy, modify, merge,
+    publish, distribute, sublicense, and/or sell copies of the Software,
+    and to permit persons to whom the Software is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    Any person wishing to distribute modifications to the Software is
+    requested to send the modifications to the original developer so that
+    they can be incorporated into the canonical version.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+    ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+    CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/

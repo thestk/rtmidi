@@ -1,0 +1,7 @@
+RtMidi - a set of C++ classes which provide a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
+
+By Gary P. Scavone, 2003-2004.
+
+v1.0.0: (17 September 2004)
+- first release of new independent class with both input and output functionality
+

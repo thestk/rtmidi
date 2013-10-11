@@ -26,7 +26,7 @@ MIDI device enumeration </li>
 <p>
 MIDI input and output functionality are separated into two classes, <a class="el" href="classRtMidiIn.html">RtMidiIn</a> and <a class="el" href="classRtMidiOut.html">RtMidiOut</a>. Each class instance supports only a single MIDI connection. <a class="el" href="classRtMidi.html">RtMidi</a> does not provide timing functionality (i.e., output messages are sent immediately). Input messages are timestamped with delta times in seconds (via a <code>double</code> floating point type). MIDI data is passed to the user as raw bytes using an std::vector&lt;unsigned char&gt;.<h2><a class="anchor" name="download">
 Download</a></h2>
-Latest Release (14 October 2005): <a href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.4.tar.gz">Version 1.0.4</a><h2><a class="anchor" name="start">
+Latest Release (18 November 2005): <a href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.5.tar.gz">Version 1.0.5</a><h2><a class="anchor" name="start">
 Getting Started</a></h2>
 The first thing that must be done when using <a class="el" href="classRtMidi.html">RtMidi</a> is to create an instance of the <a class="el" href="classRtMidiIn.html">RtMidiIn</a> or <a class="el" href="classRtMidiOut.html">RtMidiOut</a> subclasses. <a class="el" href="classRtMidi.html">RtMidi</a> is an abstract base class, which itself cannot be instantiated. Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system. <a class="el" href="classRtMidi.html">RtMidi</a> uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions. An <a class="el" href="classRtError.html">RtError</a> can be thrown during instantiation in some circumstances. A warning message may also be reported if no MIDI devices are found during instantiation. The <a class="el" href="classRtMidi.html">RtMidi</a> classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated. The following code example demonstrates default object construction and destruction:<p>
 <div class="fragment"><pre class="fragment"><span class="preprocessor">#include "RtMidi.h"</span>
@@ -48,7 +48,7 @@ The first thing that must be done when using <a class="el" href="classRtMidi.htm
   <span class="keyword">delete</span> midiin;
 }
 </pre></div><p>
-Obviously, this example doesn't demonstrate any of the real functionality of <a class="el" href="classRtMidi.html">RtMidi</a>. However, all uses of <a class="el" href="classRtMidi.html">RtMidi</a> must begin with construction and must end with class destruction. Further, it is necessary that all class methods which can throw a C++ exception be called within a try/catch block.<h2><a class="anchor" name="error">
+Obviously, this example doesn't demonstrate any of the real functionality of <a class="el" href="classRtMidi.html">RtMidi</a>. However, all uses of <a class="el" href="classRtMidi.html">RtMidi</a> must begin with construction and must end with class destruction. Further, it is necessary that all class methods that can throw a C++ exception be called within a try/catch block.<h2><a class="anchor" name="error">
 Error Handling</a></h2>
 <a class="el" href="classRtMidi.html">RtMidi</a> uses a C++ exception handler called <a class="el" href="classRtError.html">RtError</a>, which is declared and defined in <a class="el" href="RtError_8h-source.html">RtError.h</a>. The <a class="el" href="classRtError.html">RtError</a> class is quite simple but it does allow errors to be "caught" by <a class="el" href="classRtError.html#w11">RtError::Type</a>. Many <a class="el" href="classRtMidi.html">RtMidi</a> methods can "throw" an <a class="el" href="classRtError.html">RtError</a>, most typically if a driver error occurs or an invalid function argument is specified. There are a number of cases within <a class="el" href="classRtMidi.html">RtMidi</a> where warning messages may be displayed but an exception is not thrown. There is a protected <a class="el" href="classRtMidi.html">RtMidi</a> method, error(), which can be modified to globally control how these messages are handled and reported. By default, error messages are not automatically displayed in <a class="el" href="classRtMidi.html">RtMidi</a> unless the preprocessor definition __RTMIDI_DEBUG__ is defined. Messages associated with caught exceptions can be displayed with, for example, the <a class="el" href="classRtError.html#a2">RtError::printMessage()</a> function.<h2><a class="anchor" name="probing">
 Probing Ports</a></h2>
@@ -289,11 +289,11 @@ Compiling</a></h2>
 In order to compile <a class="el" href="classRtMidi.html">RtMidi</a> for a specific OS and API, it is necessary to supply the appropriate preprocessor definition and library within the compiler statement: <p>
 <table border="2" cols="5" width="100%" cellspacing="3" cellpadding="3">
 <tr bgcolor="beige">
-<td width="5%"><b>OS:</b> </td><td width="5%"><b>Audio API:</b> </td><td width="5%"><b>Preprocessor Definition:</b> </td><td width="5%"><b>Library or Framework:</b> </td><td><b>Example Compiler Statement:</b>  </td></tr>
+<td width="5%"><b>OS:</b> </td><td width="5%"><b>MIDI API:</b> </td><td width="5%"><b>Preprocessor Definition:</b> </td><td width="5%"><b>Library or Framework:</b> </td><td><b>Example Compiler Statement:</b>  </td></tr>
 <tr>
 <td>Linux </td><td>ALSA Sequencer </td><td>__LINUX_ALSASEQ__ </td><td><code>asound, pthread</code> </td><td><code>g++ -Wall -D__LINUX_ALSASEQ__ -o midiinfo midiinfo.cpp RtMidi.cpp -lasound -lpthread</code>  </td></tr>
 <tr>
-<td>Macintosh OS X </td><td>CoreAudio </td><td>__MACOSX_CORE__ </td><td><code>pthread, stdc++, CoreAudio</code> </td><td><code>g++ -Wall -D__MACOSX_CORE__ -o midiinfo midiinfo.cpp RtMidi.cpp -framework CoreMidi -lpthread</code>  </td></tr>
+<td>Macintosh OS X </td><td>CoreMidi </td><td>__MACOSX_CORE__ </td><td><code>CoreMidi, CoreAudio, CoreFoundation</code> </td><td><code>g++ -Wall -D__MACOSX_CORE__ -o midiinfo midiinfo.cpp RtMidi.cpp -framework CoreMidi -framework CoreAudio -framework CoreFoundation</code>  </td></tr>
 <tr>
 <td>Irix </td><td>MD </td><td>__IRIX_MD__ </td><td><code>md, pthread</code> </td><td><code>CC -Wall -D__IRIX_MD__ -o midiinfo midiinfo.cpp RtMidi.cpp -laudio -lpthread</code>  </td></tr>
 <tr>
@@ -314,7 +314,15 @@ The Irix version of <a class="el" href="classRtMidi.html">RtMidi</a> was written
 Windows (Multimedia Library):</a></h3>
 The Windows Multimedia library MIDI calls used in <a class="el" href="classRtMidi.html">RtMidi</a> do not make use of streaming functionality. <a class="el" href="classRtMidi.html">RtMidi</a> was originally developed with Visual C++ version 6.0.<h2><a class="anchor" name="acknowledge">
 Acknowledgements</a></h2>
-Many thanks to Pedro Lopez-Cabanillas for his help with the ALSA sequencer API!<h2><a class="anchor" name="license">
+Many thanks to the following people for providing bug fixes: <ul>
+<li>
+Pedro Lopez-Cabanillas (ALSA sequencer API) </li>
+<li>
+Eduardo Coutinho (Windows device names) </li>
+<li>
+Jean-Baptiste Berruchon (Windows sysex code) </li>
+</ul>
+<h2><a class="anchor" name="license">
 License</a></h2>
 <a class="el" href="classRtMidi.html">RtMidi</a>: realtime MIDI i/o C++ classes<br>
  Copyright (c) 2003-2005 Gary P. Scavone<p>

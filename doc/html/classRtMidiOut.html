@@ -35,14 +35,14 @@
 void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a3">closePort</a> ()</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Close an open MIDI connection (if one exists). <br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a4">openVirtualPort</a> ()</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a4">openVirtualPort</a> (const std::string portName=std::string(&quot;RtMidi Output&quot;))</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a virtual output port to allow software connections (OS X and ALSA only).  <a href="#a4"></a><br></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a virtual output port, with optional name, to allow software connections (OS X and ALSA only).  <a href="#a4"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="a5"></a><!-- doxytag: member="RtMidiOut::getPortCount" ref="a5" args="()" -->
 unsigned int&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a5">getPortCount</a> ()</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of available MIDI output ports. <br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">std::string&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a6">getPortName</a> (unsigned int portNumber)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">std::string&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a6">getPortName</a> (unsigned int portNumber=0)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return a string identifier for the specified MIDI port type and number.  <a href="#a6"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiOut.html#a7">sendMessage</a> (std::vector&lt; unsigned char &gt; *message)</td></tr>
@@ -118,7 +118,7 @@ An optional port number greater than 0 can be specified. Otherwise, the default 
 Implements <a class="el" href="classRtMidi.html#a0">RtMidi</a>.    </td>
   </tr>
 </table>
-<a class="anchor" name="a4"></a><!-- doxytag: member="RtMidiOut::openVirtualPort" ref="a4" args="()" --><p>
+<a class="anchor" name="a4"></a><!-- doxytag: member="RtMidiOut::openVirtualPort" ref="a4" args="(const std::string portName=std::string(&quot;RtMidi Output&quot;))" --><p>
 <table class="mdTable" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -126,7 +126,8 @@ Implements <a class="el" href="classRtMidi.html#a0">RtMidi</a>.    </td>
         <tr>
           <td class="md" nowrap valign="top">void RtMidiOut::openVirtualPort           </td>
           <td class="md" valign="top">(&nbsp;</td>
-          <td class="mdname1" valign="top" nowrap>          </td>
+          <td class="md" nowrap valign="top">const std::string&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>portName</em> = <code>std::string(&quot;RtMidi&nbsp;Output&quot;)</code>          </td>
           <td class="md" valign="top">&nbsp;)&nbsp;</td>
           <td class="md" nowrap><code> [virtual]</code></td>
         </tr>
@@ -142,14 +143,14 @@ Implements <a class="el" href="classRtMidi.html#a0">RtMidi</a>.    </td>
     <td>
 
 <p>
-Create a virtual output port to allow software connections (OS X and ALSA only). 
+Create a virtual output port, with optional name, to allow software connections (OS X and ALSA only). 
 <p>
 This function creates a virtual MIDI output port to which other software applications can connect. This type of functionality is currently only supported by the Macintosh OS-X and Linux ALSA APIs (the function does nothing with the other APIs). An exception is thrown if an error occurs while attempting to create the virtual port.
 <p>
 Implements <a class="el" href="classRtMidi.html#a1">RtMidi</a>.    </td>
   </tr>
 </table>
-<a class="anchor" name="a6"></a><!-- doxytag: member="RtMidiOut::getPortName" ref="a6" args="(unsigned int portNumber)" --><p>
+<a class="anchor" name="a6"></a><!-- doxytag: member="RtMidiOut::getPortName" ref="a6" args="(unsigned int portNumber=0)" --><p>
 <table class="mdTable" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -158,7 +159,7 @@ Implements <a class="el" href="classRtMidi.html#a1">RtMidi</a>.    </td>
           <td class="md" nowrap valign="top">std::string RtMidiOut::getPortName           </td>
           <td class="md" valign="top">(&nbsp;</td>
           <td class="md" nowrap valign="top">unsigned int&nbsp;</td>
-          <td class="mdname1" valign="top" nowrap> <em>portNumber</em>          </td>
+          <td class="mdname1" valign="top" nowrap> <em>portNumber</em> = <code>0</code>          </td>
           <td class="md" valign="top">&nbsp;)&nbsp;</td>
           <td class="md" nowrap><code> [virtual]</code></td>
         </tr>

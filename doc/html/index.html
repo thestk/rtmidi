@@ -26,7 +26,7 @@ MIDI device enumeration </li>
 <p>
 MIDI input and output functionality are separated into two classes, <a class="el" href="classRtMidiIn.html">RtMidiIn</a> and <a class="el" href="classRtMidiOut.html">RtMidiOut</a>. Each class instance supports only a single MIDI connection. <a class="el" href="classRtMidi.html">RtMidi</a> does not provide timing functionality (i.e., output messages are sent immediately). Input messages are timestamped with delta times in seconds (via a <code>double</code> floating point type). MIDI data is passed to the user as raw bytes using an std::vector&lt;unsigned char&gt;.<h2><a class="anchor" name="download">
 Download</a></h2>
-Latest Release (18 November 2005): <a href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.5.tar.gz">Version 1.0.5</a><h2><a class="anchor" name="start">
+Latest Release (9 March 2006): <a href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.6.tar.gz">Version 1.0.6</a><h2><a class="anchor" name="start">
 Getting Started</a></h2>
 The first thing that must be done when using <a class="el" href="classRtMidi.html">RtMidi</a> is to create an instance of the <a class="el" href="classRtMidiIn.html">RtMidiIn</a> or <a class="el" href="classRtMidiOut.html">RtMidiOut</a> subclasses. <a class="el" href="classRtMidi.html">RtMidi</a> is an abstract base class, which itself cannot be instantiated. Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system. <a class="el" href="classRtMidi.html">RtMidi</a> uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions. An <a class="el" href="classRtError.html">RtError</a> can be thrown during instantiation in some circumstances. A warning message may also be reported if no MIDI devices are found during instantiation. The <a class="el" href="classRtMidi.html">RtMidi</a> classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated. The following code example demonstrates default object construction and destruction:<p>
 <div class="fragment"><pre class="fragment"><span class="preprocessor">#include "RtMidi.h"</span>
@@ -325,14 +325,14 @@ Jean-Baptiste Berruchon (Windows sysex code) </li>
 <h2><a class="anchor" name="license">
 License</a></h2>
 <a class="el" href="classRtMidi.html">RtMidi</a>: realtime MIDI i/o C++ classes<br>
- Copyright (c) 2003-2005 Gary P. Scavone<p>
+ Copyright (c) 2003-2006 Gary P. Scavone<p>
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:<p>
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.<p>
 Any person wishing to distribute modifications to the Software is requested to send the modifications to the original developer so that they can be incorporated into the canonical version.<p>
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. <HR>
 
 <table><tr><td><img src="../images/mcgill.gif" width=165></td>
-  <td>&copy;2003-2005 Gary P. Scavone, McGill University. All Rights Reserved.<br>
+  <td>&copy;2003-2006 Gary P. Scavone, McGill University. All Rights Reserved.<br>
   Maintained by Gary P. Scavone, gary at music.mcgill.ca</td></tr>
 </table>
 

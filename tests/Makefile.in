@@ -13,7 +13,7 @@ OBJECTS	=	RtMidi.o
 CC       = @CXX@
 DEFS     = @CPPFLAGS@
 CFLAGS   = @CXXFLAGS@
-CFLAGS  += -I$(INCLUDE)
+CFLAGS  += -I$(INCLUDE) -I$(INCLUDE)/include
 LIBRARY  = @LIBS@
 
 %.o : $(SRC_PATH)/%.cpp

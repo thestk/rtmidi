@@ -40,7 +40,7 @@
   \file RtMidi.h
  */
 
-// RtMidi: Version 2.0.0
+// RtMidi: Version 2.0.1
 
 #ifndef RTMIDI_H
 #define RTMIDI_H

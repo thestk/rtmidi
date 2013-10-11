@@ -37,9 +37,12 @@ sysextest : sysextest.cpp $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEFS) -o sysextest sysextest.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
 
 clean : 
-	-rm $(OBJECT_PATH)/*.o
-	-rm $(PROGRAMS) *.exe
-	-rm -f *~
+	$(RM) -f $(OBJECT_PATH)/*.o
+	$(RM) -f $(PROGRAMS) *.exe
+	$(RM) -f *~
+
+distclean: clean
+	$(RM) -f Makefile
 
 strip : 
 	strip $(PROGRAMS)

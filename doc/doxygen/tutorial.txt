@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (29 January 2010): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.11.tar.gz">Version 1.0.11</A>
+Latest Release (17 February 2011): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.12.tar.gz">Version 1.0.12</A>
 
 \section start Getting Started
 
@@ -408,23 +408,24 @@ The \c configure script provides support for the MinGW compiler.
 
 Many thanks to the following people for providing bug fixes and improvements:
 <UL>
-<LI>John Dey (OS-X timestamps)</LI>
-<LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
-<LI>Casey Tucker (OS-X driver information)</LI>
-<LI>Eduardo Coutinho (Windows device names)</LI>
 <LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
+<LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
+<LI>Jason Champion (MSW project file for library build)</LI>
+<LI>Eduardo Coutinho (Windows device names)</LI>
+<LI>Paul Dean (increment optimization)</LI>
+<LI>John Dey (OS-X timestamps)</LI>
 <LI>Christoph Eckert (ALSA sysex fixes)</LI>
 <LI>Immanuel Litzroth (OS-X sysex fix)</LI>
-<LI>Axel Schmidt (client naming)</LI>
-<LI>Bastiaan Verreijt (Windows sysex multi-buffer code)</LI>
 <LI>Jon McCormack (Snow Leopard updates)</LI>
-<LI>Paul Dean (increment optimization)</LI>
+<LI>Axel Schmidt (client naming)</LI>
+<LI>Casey Tucker (OS-X driver information, sysex sending)</LI>
+<LI>Bastiaan Verreijt (Windows sysex multi-buffer code)</LI>
 </UL>
 
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2010 Gary P. Scavone
+    Copyright (c) 2003-2011 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

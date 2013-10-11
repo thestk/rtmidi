@@ -25,9 +25,9 @@
 <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903acaf267eb2d710f33d649ba840eeab6ff82">NO_DEVICES_FOUND</a>, 
 <br/>
 &nbsp;&nbsp;<a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903acad6064062066fffdba258237a7c2159b1">INVALID_DEVICE</a>, 
-<a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903acae49e244b799da3bed7b327dbed4bee85">INVALID_STREAM</a>, 
 <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903acab4f813e5a36905c89d4081a59497432e">MEMORY_ERROR</a>, 
 <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903acaa3eabf0f71120beaba94148a1b78fed6">INVALID_PARAMETER</a>, 
+<a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903aca8e65f51a3fbdc1a4a1552b3260df36bc">INVALID_USE</a>, 
 <br/>
 &nbsp;&nbsp;<a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903aca995e97ecf6beeedaba525022a63aec6b">DRIVER_ERROR</a>, 
 <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903aca8947d0a2e2a84ecf3646271844e06a6b">SYSTEM_ERROR</a>, 
@@ -38,23 +38,23 @@
  <a href="classRtError.html#ab04667aae01bffc354a9ac6bda6903ac">More...</a><br/></td></tr>
 <tr><td colspan="2"><h2>Public Member Functions</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa479a305ccbe56be0fd9137b9b405a37"></a><!-- doxytag: member="RtError::RtError" ref="aa479a305ccbe56be0fd9137b9b405a37" args="(const std::string &amp;message, Type type=RtError::UNSPECIFIED)" -->
-&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#aa479a305ccbe56be0fd9137b9b405a37">RtError</a> (const std::string &amp;message, <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903ac">Type</a> type=RtError::UNSPECIFIED)</td></tr>
+&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#aa479a305ccbe56be0fd9137b9b405a37">RtError</a> (const std::string &amp;message, <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903ac">Type</a> type=RtError::UNSPECIFIED)  throw ()</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">The constructor. <br/></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6793e03386e7e69ffafb65a296dfa48c"></a><!-- doxytag: member="RtError::~RtError" ref="a6793e03386e7e69ffafb65a296dfa48c" args="(void)" -->
-virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#a6793e03386e7e69ffafb65a296dfa48c">~RtError</a> (void)</td></tr>
+virtual&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#a6793e03386e7e69ffafb65a296dfa48c">~RtError</a> (void)  throw ()</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">The destructor. <br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ada41f7472122f45bc5b4677f066e0943"></a><!-- doxytag: member="RtError::printMessage" ref="ada41f7472122f45bc5b4677f066e0943" args="(void)" -->
-virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#ada41f7472122f45bc5b4677f066e0943">printMessage</a> (void)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a251dcdac396c998c91706dd2dd3b8bfc"></a><!-- doxytag: member="RtError::printMessage" ref="a251dcdac396c998c91706dd2dd3b8bfc" args="(void) const " -->
+virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#a251dcdac396c998c91706dd2dd3b8bfc">printMessage</a> (void) const   throw ()</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Prints thrown error message to stderr. <br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4ee7df9728d73f533afbaddcd9ca4d9c"></a><!-- doxytag: member="RtError::getType" ref="a4ee7df9728d73f533afbaddcd9ca4d9c" args="(void)" -->
-virtual const <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903ac">Type</a> &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#a4ee7df9728d73f533afbaddcd9ca4d9c">getType</a> (void)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3e316dc9b9b41fe2f64cabf34beb4fe7"></a><!-- doxytag: member="RtError::getType" ref="a3e316dc9b9b41fe2f64cabf34beb4fe7" args="(void) const " -->
+virtual const <a class="el" href="classRtError.html#ab04667aae01bffc354a9ac6bda6903ac">Type</a> &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#a3e316dc9b9b41fe2f64cabf34beb4fe7">getType</a> (void) const   throw ()</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns the thrown error message type. <br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac7f467788e29d246333d7af050801164"></a><!-- doxytag: member="RtError::getMessage" ref="ac7f467788e29d246333d7af050801164" args="(void)" -->
-virtual const std::string &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#ac7f467788e29d246333d7af050801164">getMessage</a> (void)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afd067ba6b46edd37f989cad02cd70b50"></a><!-- doxytag: member="RtError::getMessage" ref="afd067ba6b46edd37f989cad02cd70b50" args="(void) const " -->
+virtual const std::string &amp;&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#afd067ba6b46edd37f989cad02cd70b50">getMessage</a> (void) const   throw ()</td></tr>
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns the thrown error message string. <br/></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a45783a02453ae08821d0fb531d6b86b5"></a><!-- doxytag: member="RtError::getMessageString" ref="a45783a02453ae08821d0fb531d6b86b5" args="(void)" -->
-virtual const char *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#a45783a02453ae08821d0fb531d6b86b5">getMessageString</a> (void)</td></tr>
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns the thrown error message as a C string. <br/></td></tr>
+<tr><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aeb843b7a7785d66061c61ebfc29e7e9d"></a><!-- doxytag: member="RtError::what" ref="aeb843b7a7785d66061c61ebfc29e7e9d" args="(void) const " -->
+virtual const char *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtError.html#aeb843b7a7785d66061c61ebfc29e7e9d">what</a> (void) const   throw ()</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns the thrown error message as a c-style string. <br/></td></tr>
 </table>
 <hr/><a name="_details"></a><h2>Detailed Description</h2>
 <p>Exception handling class for RtAudio &amp; <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a>. </p>
@@ -88,14 +88,14 @@ virtual const char *&nbsp;</td><td class="memItemRight" valign="bottom"><a class
 <tr><td valign="top"><em><a class="anchor" id="ab04667aae01bffc354a9ac6bda6903acad6064062066fffdba258237a7c2159b1"></a><!-- doxytag: member="INVALID_DEVICE" ref="ab04667aae01bffc354a9ac6bda6903acad6064062066fffdba258237a7c2159b1" args="" -->INVALID_DEVICE</em>&nbsp;</td><td>
 <p>An invalid device ID was specified. </p>
 </td></tr>
-<tr><td valign="top"><em><a class="anchor" id="ab04667aae01bffc354a9ac6bda6903acae49e244b799da3bed7b327dbed4bee85"></a><!-- doxytag: member="INVALID_STREAM" ref="ab04667aae01bffc354a9ac6bda6903acae49e244b799da3bed7b327dbed4bee85" args="" -->INVALID_STREAM</em>&nbsp;</td><td>
-<p>An invalid stream ID was specified. </p>
-</td></tr>
 <tr><td valign="top"><em><a class="anchor" id="ab04667aae01bffc354a9ac6bda6903acab4f813e5a36905c89d4081a59497432e"></a><!-- doxytag: member="MEMORY_ERROR" ref="ab04667aae01bffc354a9ac6bda6903acab4f813e5a36905c89d4081a59497432e" args="" -->MEMORY_ERROR</em>&nbsp;</td><td>
 <p>An error occured during memory allocation. </p>
 </td></tr>
 <tr><td valign="top"><em><a class="anchor" id="ab04667aae01bffc354a9ac6bda6903acaa3eabf0f71120beaba94148a1b78fed6"></a><!-- doxytag: member="INVALID_PARAMETER" ref="ab04667aae01bffc354a9ac6bda6903acaa3eabf0f71120beaba94148a1b78fed6" args="" -->INVALID_PARAMETER</em>&nbsp;</td><td>
 <p>An invalid parameter was specified to a function. </p>
+</td></tr>
+<tr><td valign="top"><em><a class="anchor" id="ab04667aae01bffc354a9ac6bda6903aca8e65f51a3fbdc1a4a1552b3260df36bc"></a><!-- doxytag: member="INVALID_USE" ref="ab04667aae01bffc354a9ac6bda6903aca8e65f51a3fbdc1a4a1552b3260df36bc" args="" -->INVALID_USE</em>&nbsp;</td><td>
+<p>The function was called incorrectly. </p>
 </td></tr>
 <tr><td valign="top"><em><a class="anchor" id="ab04667aae01bffc354a9ac6bda6903aca995e97ecf6beeedaba525022a63aec6b"></a><!-- doxytag: member="DRIVER_ERROR" ref="ab04667aae01bffc354a9ac6bda6903aca995e97ecf6beeedaba525022a63aec6b" args="" -->DRIVER_ERROR</em>&nbsp;</td><td>
 <p>A system driver error occured. </p>

@@ -2,7 +2,7 @@
 AC_INIT(RtMidi, 2.0, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES(rtmidi-config Makefile tests/Makefile)
+AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
 
 # Fill GXX with something before test.
 AC_SUBST( GXX, ["no"] )
@@ -54,6 +54,7 @@ case $host in
 esac
 
 AC_SUBST( api, [""] )
+AC_SUBST( req, [""] )
 AC_MSG_CHECKING(for MIDI API)
 case $host in
   *-*-linux*)
@@ -65,12 +66,14 @@ case $host in
   # Look for ALSA flag
   AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)], [
     api="$api -D__LINUX_ALSA__"
+    req="$req alsa"
     AC_MSG_RESULT(using ALSA)
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))], )
 
   if [test "$api" == "";] then
     AC_MSG_RESULT(using ALSA)
     AC_SUBST( api, [-D__LINUX_ALSA__] )
+    req="$req alsa"
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA sequencer support requires the asound library!))
   fi
 

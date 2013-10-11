@@ -8,6 +8,7 @@
 //*****************************************//
 
 #include <iostream>
+#include <cstdlib>
 #include <signal.h>
 #include "RtMidi.h"
 
@@ -83,7 +84,7 @@ int main( int argc, char *argv[] )
     for ( i=0; i<nBytes; i++ )
       std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
     if ( nBytes > 0 )
-      std::cout << "stamp = " << stamp << '\n';
+      std::cout << "stamp = " << stamp << std::endl;
 
     // Sleep for 10 milliseconds.
     SLEEP( 10 );

@@ -1,6 +1,6 @@
-RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
+RtMidi - a set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
 
-By Gary P. Scavone, 2003-2006.
+By Gary P. Scavone, 2003-2009.
 
 This distribution of RtMidi contains the following:
 
@@ -11,7 +11,7 @@ On unix systems, type "./configure" in the top level directory, then "make" in t
 
 OVERVIEW:
 
-RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) which provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
   - object oriented C++ design
   - simple, common API across all supported platforms
@@ -30,7 +30,7 @@ LEGAL AND ETHICAL:
 The RtMidi license is similar to the the MIT License, with the added "feature" that modifications be sent to the developer.
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2006 Gary P. Scavone
+    Copyright (c) 2003-2009 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

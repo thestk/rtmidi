@@ -7,6 +7,7 @@
 //*****************************************//
 
 #include <iostream>
+#include <cstdlib>
 #include "RtMidi.h"
 
 // Platform-dependent sleep routines.

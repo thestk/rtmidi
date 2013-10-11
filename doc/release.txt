@@ -1,6 +1,13 @@
 RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
 
-By Gary P. Scavone, 2003-2007.
+By Gary P. Scavone, 2003-2009.
+
+v1.0.8: (29 January 2009)
+- bug fixes for concatenating segmented sysex messages in ALSA (thanks to Christoph Eckert)
+- update to ALSA sequencer port enumeration (thanks to Pedro Lopez-Cabonillas)
+- bug fixes for concatenating segmented sysex messages in OS-X (thanks to Emmanuel Litzroth)
+- added functionality for naming clients (thanks to Pedro Lopez-Cabonillas and Axel Schmidt)
+- bug fix in Windows when receiving sysex messages if the ignore flag was set (thanks to Pedro Lopez-Cabonillas)
 
 v1.0.7: (7 December 2007)
 - configure and Makefile changes for MinGW

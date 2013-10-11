@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.1, 20 September 2004
+// RtMidi: Version 1.0.2, 21 September 2004
 
 #include "RtMidi.h"
 #include <sstream>
@@ -1409,6 +1409,8 @@ void RtMidiIn :: openPort( unsigned int portNumber )
 void RtMidiIn :: openVirtualPort()
 {
   // This function cannot be implemented for the Irix MIDI API.
+  errorString_ = "RtMidiIn::openVirtualPort: cannot be implemented in Irix MIDI API!";
+  error( RtError::WARNING );
 }
 
 void RtMidiIn :: closePort( void )
@@ -1540,6 +1542,8 @@ void RtMidiOut :: closePort( void )
 void RtMidiOut :: openVirtualPort()
 {
   // This function cannot be implemented for the Irix MIDI API.
+  errorString_ = "RtMidiOut::openVirtualPort: cannot be implemented in Irix MIDI API!";
+  error( RtError::WARNING );
 }
 
 RtMidiOut :: ~RtMidiOut()
@@ -1749,6 +1753,8 @@ void RtMidiIn :: openPort( unsigned int portNumber )
 void RtMidiIn :: openVirtualPort()
 {
   // This function cannot be implemented for the Windows MM MIDI API.
+  errorString_ = "RtMidiIn::openVirtualPort: cannot be implemented in Windows MM MIDI API!";
+  error( RtError::WARNING );
 }
 
 void RtMidiIn :: closePort( void )
@@ -1884,6 +1890,8 @@ void RtMidiOut :: closePort( void )
 void RtMidiOut :: openVirtualPort()
 {
   // This function cannot be implemented for the Windows MM MIDI API.
+  errorString_ = "RtMidiOut::openVirtualPort: cannot be implemented in Windows MM MIDI API!";
+  error( RtError::WARNING );
 }
 
 RtMidiOut :: ~RtMidiOut()

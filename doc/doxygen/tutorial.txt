@@ -19,7 +19,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (20 September 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.1.tar.gz">Version 1.0.1 (111 kB tar/gzipped)</A>
+Latest Release (21 September 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.2.tar.gz">Version 1.0.2 (111 kB tar/gzipped)</A>
 
 \section start Getting Started
 

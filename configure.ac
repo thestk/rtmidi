@@ -40,10 +40,19 @@ AC_CANONICAL_HOST
 AC_MSG_CHECKING(for MIDI API)
 case $host in
   *-*-linux*)
-  AC_SUBST( api, [-D__LINUX_ALSASEQ__] )
-  AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(RtMidi in Linux requires the ALSA asound library!))
-  # Checks for pthread library.
-  AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
+  AC_SUBST( api, [""] )
+  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (linux only)], [
+  AC_SUBST( api, [-D__LINUX_JACK__] )
+  AC_MSG_RESULT(using JACK)
+  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
+
+  if [test "$api" == "";] then
+    AC_SUBST( api, [-D__LINUX_ALSASEQ__] )
+    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(RtMidi in Linux requires the ALSA asound library!))
+    # Checks for pthread library.
+    AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
+  fi
+
   ;;
 
   *-sgi*)

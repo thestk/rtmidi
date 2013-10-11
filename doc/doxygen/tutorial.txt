@@ -4,7 +4,7 @@
 
 \section intro Introduction
 
-RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X, Windows (Multimedia Library), and SGI operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
 <UL>
   <LI>object oriented C++ design</LI>
@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (17 February 2011): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.12.tar.gz">Version 1.0.12</A>
+Latest Release (7 April 2011): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.13.tar.gz">Version 1.0.13</A>
 
 \section start Getting Started
 
@@ -349,6 +349,13 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD><TT>g++ -Wall -D__LINUX_ALSASEQ__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
 </TR>
 <TR>
+  <TD>Linux</TD>
+  <TD>Jack MIDI</TD>
+  <TD>__LINUX_JACK__</TD>
+  <TD><TT>jack</TT></TD>
+  <TD><TT>g++ -Wall -D__LINUX_JACK__ -o midiprobe midiprobe.cpp RtMidi.cpp -ljack</TT></TD>
+</TR>
+<TR>
   <TD>Macintosh OS X</TD>
   <TD>CoreMidi</TD>
   <TD>__MACOSX_CORE__</TD>
@@ -418,6 +425,7 @@ Many thanks to the following people for providing bug fixes and improvements:
 <LI>Immanuel Litzroth (OS-X sysex fix)</LI>
 <LI>Jon McCormack (Snow Leopard updates)</LI>
 <LI>Axel Schmidt (client naming)</LI>
+<LI>Alexander Svetalkin (Jack MIDI)</LI>
 <LI>Casey Tucker (OS-X driver information, sysex sending)</LI>
 <LI>Bastiaan Verreijt (Windows sysex multi-buffer code)</LI>
 </UL>

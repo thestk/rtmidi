@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(RtMidi, 2.0, gary@music.mcgill.ca, rtmidi)
+AC_INIT(RtMidi, 2.0.1, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])

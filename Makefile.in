@@ -8,8 +8,8 @@ OBJECTS	= RtMidi.o
 
 STATIC = librtmidi.a
 SHARED = @sharedlib@
-RELEASE = 2.0.0
-MAJOR = 1
+RELEASE = 2.0.1
+MAJOR = 2
 LIBRARIES = $(STATIC) $(SHARED)
 
 CC       = @CXX@

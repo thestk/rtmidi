@@ -34,7 +34,7 @@ AC_CANONICAL_HOST
 AC_MSG_CHECKING(for MIDI API)
 case $host in
   *-*-linux*)
-  AC_SUBST( midi_api, [_D__LINUX_ALSA__] )
+  AC_SUBST( midi_api, [-D__LINUX_ALSASEQ__] )
   AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(RtMidi in Linux requires the ALSA asound library!))
   # Checks for pthread library.
   AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))

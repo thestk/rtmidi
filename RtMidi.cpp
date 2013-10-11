@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.0, 17 September 2004
+// RtMidi: Version 1.0.1, 20 September 2004
 
 #include "RtMidi.h"
 #include <sstream>
@@ -611,13 +611,13 @@ void RtMidiOut :: sendMessage( std::vector<unsigned char> *message )
 
 
 //*********************************************************************//
-//  API: LINUX ALSA
+//  API: LINUX ALSA SEQUENCER
 //*********************************************************************//
 
 // API information found at:
 //   - http://www.alsa-project.org/documentation.php#Library
 
-#if defined(__LINUX_ALSA__)
+#if defined(__LINUX_ALSASEQ__)
 
 // The ALSA Sequencer API is based on the use of a callback function for
 // MIDI input.  We convert the system specific time stamps to delta

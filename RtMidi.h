@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.0, 17 September 2004
+// RtMidi: Version 1.0.1, 20 September 2004
 
 #ifndef RTMIDI_H
 #define RTMIDI_H

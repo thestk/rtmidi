@@ -2,6 +2,9 @@ RtMidi - a set of C++ classes which provide a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2004.
 
+v1.0.1: (20 September 2004)
+- changed ALSA preprocessor definition to __LINUX_ALSASEQ__
+
 v1.0.0: (17 September 2004)
 - first release of new independent class with both input and output functionality
 

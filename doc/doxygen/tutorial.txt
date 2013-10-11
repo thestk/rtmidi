@@ -19,7 +19,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (17 September 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.0.tar.gz">Version 1.0.0 (154 kB tar/gzipped)</A>
+Latest Release (20 September 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.1.tar.gz">Version 1.0.1 (111 kB tar/gzipped)</A>
 
 \section start Getting Started
 
@@ -329,10 +329,10 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 </TR>
 <TR>
   <TD>Linux</TD>
-  <TD>ALSA</TD>
-  <TD>__LINUX_ALSA__</TD>
+  <TD>ALSA Sequencer</TD>
+  <TD>__LINUX_ALSASEQ__</TD>
   <TD><TT>asound, pthread</TT></TD>
-  <TD><TT>g++ -Wall -D__LINUX_ALSA__ -o midiinfo midiinfo.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
+  <TD><TT>g++ -Wall -D__LINUX_ALSASEQ__ -o midiinfo midiinfo.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
 </TR>
 <TR>
   <TD>Macintosh OS X</TD>

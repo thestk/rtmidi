@@ -1,6 +1,6 @@
 ### RtMidi tests Makefile - for various flavors of unix
 
-PROGRAMS = midiinfo midiout qmidiin cmidiin
+PROGRAMS = midiinfo midiout qmidiin cmidiin sysextest
 RM = /bin/rm
 SRC_PATH = ../
 INCLUDE = ../
@@ -33,6 +33,9 @@ qmidiin : qmidiin.cpp $(OBJECTS)
 
 cmidiin : cmidiin.cpp $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEFS) -o cmidiin cmidiin.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+
+sysextest : sysextest.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o sysextest sysextest.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
 
 clean : 
 	-rm $(OBJECT_PATH)/*.o

@@ -1,6 +1,13 @@
-RtMidi - a set of C++ classes which provide a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
+RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
 
-By Gary P. Scavone, 2003-2004.
+By Gary P. Scavone, 2003-2005.
+
+v1.0.4: (14 October 2005)
+- added check for status byte == 0xF8 if ignoring timing messages
+- changed pthread attribute to SCHED_OTHER (from SCHED_RR) to avoid thread problem when realtime cababilities are not enabled.
+- now using ALSA sequencer time stamp information (thanks to Pedro Lopez-Cabanillas)
+- fixed memory leak in ALSA implementation
+- now concatenate segmented sysex messages in ALSA
 
 v1.0.3: (22 November 2004)
 - added common pure virtual functions to RtMidi abstract base class

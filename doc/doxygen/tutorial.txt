@@ -1,12 +1,10 @@
 /*! \mainpage The RtMidi Tutorial
 
-<BODY BGCOLOR="white">
-
-<CENTER>\ref intro &nbsp;&nbsp; \ref download &nbsp;&nbsp; \ref start &nbsp;&nbsp; \ref error &nbsp;&nbsp; \ref probing &nbsp;&nbsp; \ref output &nbsp;&nbsp; \ref input &nbsp;&nbsp; \ref virtual &nbsp;&nbsp; \ref compiling &nbsp;&nbsp; \ref debug &nbsp;&nbsp; \ref apinotes &nbsp;&nbsp; \ref license</CENTER>
+<CENTER>\ref intro &nbsp;&nbsp; \ref download &nbsp;&nbsp; \ref start &nbsp;&nbsp; \ref error &nbsp;&nbsp; \ref probing &nbsp;&nbsp; \ref output &nbsp;&nbsp; \ref input &nbsp;&nbsp; \ref virtual &nbsp;&nbsp; \ref compiling &nbsp;&nbsp; \ref debug &nbsp;&nbsp; \ref apinotes &nbsp;&nbsp; \ref acknowledge &nbsp;&nbsp; \ref license</CENTER>
 
 \section intro Introduction
 
-RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) which provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn and RtMidiOut) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA), Macintosh OS X, SGI, and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
 <UL>
   <LI>object oriented C++ design</LI>
@@ -19,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (22 November 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.3.tar.gz">Version 1.0.3</A>
+Latest Release (14 October 2005): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.4.tar.gz">Version 1.0.4</A>
 
 \section start Getting Started
 
@@ -384,10 +382,14 @@ The Irix version of RtMidi was written and tested on an SGI Indy running Irix ve
 
 The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.  RtMidi was originally developed with Visual C++ version 6.0.
 
+\section acknowledge Acknowledgements
+
+Many thanks to Pedro Lopez-Cabanillas for his help with the ALSA sequencer API!
+
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2004 Gary P. Scavone
+    Copyright (c) 2003-2005 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

@@ -19,11 +19,11 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (21 September 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.2.tar.gz">Version 1.0.2 (111 kB tar/gzipped)</A>
+Latest Release (22 November 2004): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.3.tar.gz">Version 1.0.3</A>
 
 \section start Getting Started
 
-The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it is possible to connect or start MIDI devices after the classes have been instantiated.  The following code example demonstrates default object construction and destruction:
+The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated.  The following code example demonstrates default object construction and destruction:
 
 \code
 
@@ -198,7 +198,7 @@ The RtMidiIn class provides the RtMidiIn::ignoreTypes() function to specify that
 
 \subsection qmidiin Queued MIDI Input
 
-The RtMidiIn::getMessage() function does not block.  If a MIDI message is available in the queue, it is copied to the user-provided \c std::vector<unsigned char> container.  When no MIDI message is available, the function returns an empty container.  The default maximum MIDI queue size is 1024 messages.  This value may be modified with the RtMidiIn::setQueueSizeLimit() function.  If the maximum queue size limit is reached, subsequent MIDI messages are discarded until the queue size is reduced.
+The RtMidiIn::getMessage() function does not block.  If a MIDI message is available in the queue, it is copied to the user-provided \c std::vector<unsigned char> container.  When no MIDI message is available, the function returns an empty container.  The default maximum MIDI queue size is 1024 messages.  This value may be modified with the RtMidiIn::setQueueSizeLimit() function.  If the maximum queue size limit is reached, subsequent incoming MIDI messages are discarded until the queue size is reduced.
 
 In the following example, we omit some necessary error checking and details regarding OS-dependent sleep functions.  For a more complete example, see the \c qmidiin.cpp program in the \c tests directory.
 

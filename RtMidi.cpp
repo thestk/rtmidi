@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.2, 21 September 2004
+// RtMidi: Version 1.0.3, 22 November 2004
 
 #include "RtMidi.h"
 #include <sstream>

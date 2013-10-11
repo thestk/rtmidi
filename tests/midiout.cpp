@@ -18,21 +18,15 @@
   #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )
 #endif
 
-void usage(void) {
-  // Error function in case of incorrect command-line
-  // argument specifications.
-  std::cout << "\nuseage: midiout <port>\n";
-  std::cout << "    where port = the device to use (default = 0).\n\n";
-  exit(0);
-}
+// This function should be embedded in a try/catch block in case of
+// an exception.  It offers the user a choice of MIDI ports to open.
+// It returns false if there are no ports available.
+bool chooseMidiPort( RtMidi *rtmidi );
 
 int main(int argc, char *argv[])
 {
   RtMidiOut *midiout = 0;
   std::vector<unsigned char> message;
-
-  // Minimal command-line check.
-  if ( argc > 2 ) usage();
 
   // RtMidiOut constructor
   try {
@@ -43,19 +37,9 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  // Check available ports vs. specified.
-  unsigned int port = 0;
-  unsigned int nPorts = midiout->getPortCount();
-  if ( argc == 2 ) port = (unsigned int) atoi( argv[1] );
-  if ( port >= nPorts ) {
-    delete midiout;
-    std::cout << "Invalid port specifier!\n";
-    usage();
-  }
-
+  // Call function to select port.
   try {
-    midiout->openPort( port );
-    //midiout->openVirtualPort();
+    if ( chooseMidiPort( midiout ) == false ) goto cleanup;
   }
   catch (RtError &error) {
     error.printMessage();
@@ -103,4 +87,56 @@ int main(int argc, char *argv[])
   delete midiout;
 
   return 0;
+}
+
+bool chooseMidiPort( RtMidi *rtmidi )
+{
+  bool isInput = false;
+  if ( typeid( *rtmidi ) == typeid( RtMidiIn ) )
+    isInput = true;
+
+  if ( isInput )
+    std::cout << "\nWould you like to open a virtual input port? [y/N] ";
+  else
+    std::cout << "\nWould you like to open a virtual output port? [y/N] ";
+
+  std::string keyHit;
+  std::getline( std::cin, keyHit );
+  if ( keyHit == "y" ) {
+    rtmidi->openVirtualPort();
+    return true;
+  }
+
+  std::string portName;
+  unsigned int i = 0, nPorts = rtmidi->getPortCount();
+  if ( nPorts == 0 ) {
+    if ( isInput )
+      std::cout << "No input ports available!" << std::endl;
+    else
+      std::cout << "No output ports available!" << std::endl;
+    return false;
+  }
+
+  if ( nPorts == 1 ) {
+    std::cout << "\nOpening " << rtmidi->getPortName() << std::endl;
+  }
+  else {
+    for ( i=0; i<nPorts; i++ ) {
+      portName = rtmidi->getPortName(i);
+      if ( isInput )
+        std::cout << "  Input port #" << i << ": " << portName << '\n';
+      else
+        std::cout << "  Output port #" << i << ": " << portName << '\n';
+    }
+
+    do {
+      std::cout << "\nChoose a port number: ";
+      std::cin >> i;
+    } while ( i >= nPorts );
+  }
+
+  std::cout << "\n";
+  rtmidi->openPort( i );
+
+  return true;
 }

@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.2, 21 September 2004
+// RtMidi: Version 1.0.3, 22 November 2004
 
 #ifndef RTMIDI_H
 #define RTMIDI_H
@@ -45,18 +45,32 @@
 
 class RtMidi
 {
+ public:
+
+  //! Pure virtual openPort() function.
+  virtual void openPort( unsigned int portNumber = 0 ) = 0;
+
+  //! Pure virtual openVirtualPort() function.
+  virtual void openVirtualPort() = 0;
+
+  //! Pure virtual getPortCount() function.
+  virtual unsigned int getPortCount() = 0;
+
+  //! Pure virtual getPortName() function.
+  virtual std::string getPortName( unsigned int portNumber = 0 ) = 0;
+
+  //! Pure virtual closePort() function.
+  virtual void closePort( void ) = 0;
+
  protected:
 
   RtMidi();
-
   virtual ~RtMidi() {};
 
   // A basic error reporting function for internal use in the RtMidi
   // subclasses.  The behavior of this function can be modified to
   // suit specific needs.
   void error( RtError::Type type );
-
-  virtual void openPort( unsigned int portNumber = 0 ) = 0;
 
   void *apiData_;
   bool connected_;

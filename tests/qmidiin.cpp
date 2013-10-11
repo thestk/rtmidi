@@ -26,7 +26,7 @@ static void finish(int ignore){ done = true; }
 void usage(void) {
   // Error function in case of incorrect command-line
   // argument specifications.
-  std::cout << "\nuseage: qmidiin <port>\n";
+  std::cout << "\nusage: qmidiin <port>\n";
   std::cout << "    where port = the device to use (default = 0).\n\n";
   exit(0);
 }

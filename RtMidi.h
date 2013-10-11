@@ -8,7 +8,7 @@
     RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2004 Gary P. Scavone
+    Copyright (c) 2003-2005 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.3, 22 November 2004
+// RtMidi: Version 1.0.4, 14 October 2005
 
 #ifndef RTMIDI_H
 #define RTMIDI_H

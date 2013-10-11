@@ -8,7 +8,7 @@
     RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2005 Gary P. Scavone
+    Copyright (c) 2003-2006 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.5, in development
+// RtMidi: Version 1.0.6
 
 #include "RtMidi.h"
 #include <sstream>
@@ -768,12 +768,9 @@ extern "C" void *alsaMidiHandler( void *ptr )
       else
         message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
 
-      if ( ev->type == SND_SEQ_EVENT_SYSEX && message.bytes.back() == 0xF7 )
-        continueSysex = false;
-      else {
-        continueSysex = true;
+      continueSysex = ( ev->type == SND_SEQ_EVENT_SYSEX && message.bytes.back() != 0xF7 );
+      if ( continueSysex )
         break;
-      }
 
       // Calculate the time stamp:
       message.timeStamp = 0.0;

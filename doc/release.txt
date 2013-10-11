@@ -2,6 +2,11 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2005.
 
+v1.0.5: (18 November 2005)
+- added optional port name to openVirtualPort() functions
+- fixed UNICODE problem in Windows getting device names (thanks Eduardo Coutinho!).
+- fixed bug in Windows with respect to getting Sysex data (thanks Jean-Baptiste Berruchon!)
+
 v1.0.4: (14 October 2005)
 - added check for status byte == 0xF8 if ignoring timing messages
 - changed pthread attribute to SCHED_OTHER (from SCHED_RR) to avoid thread problem when realtime cababilities are not enabled.

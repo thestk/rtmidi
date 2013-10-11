@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (14 October 2005): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.4.tar.gz">Version 1.0.4</A>
+Latest Release (18 November 2005): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.5.tar.gz">Version 1.0.5</A>
 
 \section start Getting Started
 
@@ -45,7 +45,7 @@ int main()
 }
 \endcode
 
-Obviously, this example doesn't demonstrate any of the real functionality of RtMidi.  However, all uses of RtMidi must begin with construction and must end with class destruction.  Further, it is necessary that all class methods which can throw a C++ exception be called within a try/catch block.
+Obviously, this example doesn't demonstrate any of the real functionality of RtMidi.  However, all uses of RtMidi must begin with construction and must end with class destruction.  Further, it is necessary that all class methods that can throw a C++ exception be called within a try/catch block.
 
 
 \section error Error Handling
@@ -320,7 +320,7 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 <TABLE BORDER=2 COLS=5 WIDTH="100%">
 <TR BGCOLOR="beige">
   <TD WIDTH="5%"><B>OS:</B></TD>
-  <TD WIDTH="5%"><B>Audio API:</B></TD>
+  <TD WIDTH="5%"><B>MIDI API:</B></TD>
   <TD WIDTH="5%"><B>Preprocessor Definition:</B></TD>
   <TD WIDTH="5%"><B>Library or Framework:</B></TD>
   <TD><B>Example Compiler Statement:</B></TD>
@@ -334,10 +334,10 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 </TR>
 <TR>
   <TD>Macintosh OS X</TD>
-  <TD>CoreAudio</TD>
+  <TD>CoreMidi</TD>
   <TD>__MACOSX_CORE__</TD>
-  <TD><TT>pthread, stdc++, CoreAudio</TT></TD>
-  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiinfo midiinfo.cpp RtMidi.cpp -framework CoreMidi -lpthread</TT></TD>
+  <TD><TT>CoreMidi, CoreAudio, CoreFoundation</TT></TD>
+  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiinfo midiinfo.cpp RtMidi.cpp -framework CoreMidi -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
   <TD>Irix</TD>
@@ -384,7 +384,12 @@ The Windows Multimedia library MIDI calls used in RtMidi do not make use of stre
 
 \section acknowledge Acknowledgements
 
-Many thanks to Pedro Lopez-Cabanillas for his help with the ALSA sequencer API!
+Many thanks to the following people for providing bug fixes:
+<UL>
+<LI>Pedro Lopez-Cabanillas (ALSA sequencer API)</LI>
+<LI>Eduardo Coutinho (Windows device names)</LI>
+<LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
+</UL>
 
 \section license License
 

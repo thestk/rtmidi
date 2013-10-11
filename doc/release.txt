@@ -1,6 +1,12 @@
 RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA), SGI, Macintosh OS X (CoreMidi), and Windows (Multimedia) operating systems.
 
-By Gary P. Scavone, 2003-2009.
+By Gary P. Scavone, 2003-2010.
+
+v1.0.11: (29 January 2010)
+- added CoreServices/CoreServices.h include for OS-X 10.6 and gcc4.2 compile (thanks to Jon McCormack)
+- various increment optimizations (thanks to Paul Dean)
+- fixed incorrectly located snd_seq_close() function in ALSA API (thanks to Pedro Lopez-Cabanillas)
+- updates to Windows sysex code to better deal with possible delivery problems (thanks to Bastiaan Verreijt)
 
 v1.0.10: (3 June 2009)
 - fix adding timestamp to OS-X sendMessage() function (thanks to John Dey)

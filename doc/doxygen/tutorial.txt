@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (30 April 2009): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.9.tar.gz">Version 1.0.9</A>
+Latest Release (3 June 2009): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.10.tar.gz">Version 1.0.10</A>
 
 \section start Getting Started
 
@@ -408,6 +408,7 @@ The \c configure script provides support for the MinGW compiler.
 
 Many thanks to the following people for providing bug fixes and improvements:
 <UL>
+<LI>John Dey (OS-X timestamps)</LI>
 <LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
 <LI>Casey Tucker (OS-X driver information)</LI>
 <LI>Eduardo Coutinho (Windows device names)</LI>

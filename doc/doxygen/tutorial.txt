@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (7 December 2007): <A href="http://music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.7.tar.gz">Version 1.0.7</A>
+Latest Release (29 January 2009): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.8.tar.gz">Version 1.0.8</A>
 
 \section start Getting Started
 
@@ -50,7 +50,7 @@ Obviously, this example doesn't demonstrate any of the real functionality of RtM
 
 \section error Error Handling
 
-RtMidi uses a C++ exception handler called RtError, which is declared and defined in RtError.h.  The RtError class is quite simple but it does allow errors to be "caught" by RtError::Type.  Many RtMidi methods can "throw" an RtError, most typically if a driver error occurs or an invalid function argument is specified.  There are a number of cases within RtMidi where warning messages may be displayed but an exception is not thrown.  There is a protected RtMidi method, error(), which can be modified to globally control how these messages are handled and reported.  By default, error messages are not automatically displayed in RtMidi unless the preprocessor definition __RTMIDI_DEBUG__ is defined.  Messages associated with caught exceptions can be displayed with, for example, the RtError::printMessage() function.
+RtMidi uses a C++ exception handler called RtError, which is declared and defined in RtError.h.  The RtError class is quite simple but it does allow errors to be "caught" by RtError::Type.  Many RtMidi methods can "throw" an RtError, most typically if a driver error occurs or an invalid function argument is specified.  There are a number of cases within RtMidi where warning messages may be displayed but an exception is not thrown.  There is a protected RtMidi method, error(), that can be modified to globally control how these messages are handled and reported.  By default, error messages are not automatically displayed in RtMidi unless the preprocessor definition __RTMIDI_DEBUG__ is defined.  Messages associated with caught exceptions can be displayed with, for example, the RtError::printMessage() function.
 
 
 \section probing Probing Ports
@@ -61,6 +61,7 @@ A programmer may wish to query the available MIDI ports before deciding which to
 // midiprobe.cpp
 
 #include <iostream>
+#include <cstdlib>
 #include "RtMidi.h"
 
 int main()
@@ -135,6 +136,7 @@ In the following example, we omit necessary error checking and details regarding
 // midiout.cpp
 
 #include <iostream>
+#include <cstdlib>
 #include "RtMidi.h"
 
 int main()
@@ -204,6 +206,7 @@ In the following example, we omit some necessary error checking and details rega
 // qmidiin.cpp
 
 #include <iostream>
+#include <cstdlib>
 #include <signal.h>
 #include "RtMidi.h"
 
@@ -240,7 +243,7 @@ int main()
     for ( i=0; i<nBytes; i++ )
       std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
     if ( nBytes > 0 )
-      std::cout << "stamp = " << stamp << '\n';
+      std::cout << "stamp = " << stamp << std::endl;
 
     // Sleep for 10 milliseconds ... platform-dependent.
     SLEEP( 10 );
@@ -256,7 +259,7 @@ int main()
 
 \subsection cmidiin MIDI Input with User Callback
 
-When set, a user-provided callback function will be invoked after the input of a complete MIDI message.  It is possible to provide a pointer to user data which can be accessed in the callback function (not shown here).  It is necessary to set the callback function immediately after opening the port to avoid having incoming messages written to the queue (which is not emptied when a callback function is set).  If you are worried about this happening, you can check the queue using the RtMidi::getMessage() function to verify it is empty (after the callback function is set).
+When set, a user-provided callback function will be invoked after the input of a complete MIDI message.  It is possible to provide a pointer to user data that can be accessed in the callback function (not shown here).  It is necessary to set the callback function immediately after opening the port to avoid having incoming messages written to the queue (which is not emptied when a callback function is set).  If you are worried about this happening, you can check the queue using the RtMidi::getMessage() function to verify it is empty (after the callback function is set).
 
 In the following example, we omit some necessary error checking.  For a more complete example, see the \c cmidiin.cpp program in the \c tests directory.
 
@@ -264,6 +267,7 @@ In the following example, we omit some necessary error checking.  For a more com
 // cmidiin.cpp
 
 #include <iostream>
+#include <cstdlib>
 #include "RtMidi.h"
 
 void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
@@ -272,7 +276,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
   for ( unsigned int i=0; i<nBytes; i++ )
     std::cout << "Byte " << i << " = " << (int)message->at(i) << ", ";
   if ( nBytes > 0 )
-    std::cout << "stamp = " << deltatime << '\n';
+    std::cout << "stamp = " << deltatime << std::endl;
 }
 
 int main()
@@ -360,7 +364,7 @@ The example compiler statements above could be used to compile the <TT>midiprobe
 
 \section debug Debugging
 
-If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or uncomment the definition at the bottom of RtMidi.h).  A variety of warning messages will be displayed which may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
+If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or uncomment the definition at the bottom of RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
 
 \section apinotes API Notes
 
@@ -380,23 +384,30 @@ The Irix version of RtMidi was written and tested on an SGI Indy running Irix ve
 
 \subsection windowsds Windows (Multimedia Library):
 
-The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.  RtMidi was originally developed with Visual C++ version 6.0.
+The \c configure script provides support for the MinGW compiler.
+
+The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.   Incoming system exclusive messages read by RtMidiIn are limited to a length as defined by the preprocessor definition RT_SYSEX_BUFFER_SIZE (set in RtMidi.cpp).  The default value is 1024.  There is no such limit for outgoing sysex messages via RtMidiOut.
+
+RtMidi was originally developed with Visual C++ version 6.0.
 
 The \c configure script provides support for the MinGW compiler.
 
 \section acknowledge Acknowledgements
 
-Many thanks to the following people for providing bug fixes:
+Many thanks to the following people for providing bug fixes and improvements:
 <UL>
-<LI>Pedro Lopez-Cabanillas (ALSA sequencer API)</LI>
+<LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
 <LI>Eduardo Coutinho (Windows device names)</LI>
 <LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
+<LI>Christoph Eckert (ALSA sysex fixes)</LI>
+<LI>Immanuel Litzroth (OS-X sysex fix)</LI>
+<LI>Axel Schmidt (client naming)</LI>
 </UL>
 
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2007 Gary P. Scavone
+    Copyright (c) 2003-2009 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

@@ -7,6 +7,8 @@
 //*****************************************//
 
 #include <iostream>
+#include <cstdlib>
+#include <typeinfo>
 #include "RtMidi.h"
 
 void usage( void ) {
@@ -134,7 +136,7 @@ bool chooseMidiPort( RtMidi *rtmidi )
     } while ( i >= nPorts );
   }
 
-  std::cout << "\n";
+  std::cout << std::endl;
   rtmidi->openPort( i );
 
   return true;

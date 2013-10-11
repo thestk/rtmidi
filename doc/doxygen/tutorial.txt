@@ -17,7 +17,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section download Download
 
-Latest Release (29 January 2009): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.8.tar.gz">Version 1.0.8</A>
+Latest Release (30 April 2009): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-1.0.9.tar.gz">Version 1.0.9</A>
 
 \section start Getting Started
 
@@ -50,7 +50,19 @@ Obviously, this example doesn't demonstrate any of the real functionality of RtM
 
 \section error Error Handling
 
-RtMidi uses a C++ exception handler called RtError, which is declared and defined in RtError.h.  The RtError class is quite simple but it does allow errors to be "caught" by RtError::Type.  Many RtMidi methods can "throw" an RtError, most typically if a driver error occurs or an invalid function argument is specified.  There are a number of cases within RtMidi where warning messages may be displayed but an exception is not thrown.  There is a protected RtMidi method, error(), that can be modified to globally control how these messages are handled and reported.  By default, error messages are not automatically displayed in RtMidi unless the preprocessor definition __RTMIDI_DEBUG__ is defined.  Messages associated with caught exceptions can be displayed with, for example, the RtError::printMessage() function.
+RtMidi uses a C++ exception handler called RtError, which is declared
+and defined in RtError.h.  The RtError class is quite simple but it
+does allow errors to be "caught" by RtError::Type.  Many RtMidi
+methods can "throw" an RtError, most typically if a driver error
+occurs or an invalid function argument is specified.  There are a
+number of cases within RtMidi where warning messages may be displayed
+but an exception is not thrown.  There is a protected RtMidi method,
+error(), that can be modified to globally control how these messages
+are handled and reported.  By default, error messages are not
+automatically displayed in RtMidi unless the preprocessor definition
+__RTMIDI_DEBUG__ is defined during compilation.  Messages associated
+with caught exceptions can be displayed with, for example, the
+RtError::printMessage() function.
 
 
 \section probing Probing Ports
@@ -364,7 +376,7 @@ The example compiler statements above could be used to compile the <TT>midiprobe
 
 \section debug Debugging
 
-If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or uncomment the definition at the bottom of RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
+If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or define it in RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
 
 \section apinotes API Notes
 
@@ -397,6 +409,7 @@ The \c configure script provides support for the MinGW compiler.
 Many thanks to the following people for providing bug fixes and improvements:
 <UL>
 <LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
+<LI>Casey Tucker (OS-X driver information)</LI>
 <LI>Eduardo Coutinho (Windows device names)</LI>
 <LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
 <LI>Christoph Eckert (ALSA sysex fixes)</LI>

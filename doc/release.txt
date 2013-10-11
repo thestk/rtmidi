@@ -2,6 +2,10 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2009.
 
+v1.0.9: (30 April 2009)
+- added #ifdef AVOID_TIMESTAMPING to conditionally compile support for event timestamping of ALSA sequencer events. This is useful for programs not needing timestamps, saving valuable system resources.
+- updated functionality in OSX_CORE for getting driver name (thanks to Casey Tucker)
+
 v1.0.8: (29 January 2009)
 - bug fixes for concatenating segmented sysex messages in ALSA (thanks to Christoph Eckert)
 - update to ALSA sequencer port enumeration (thanks to Pedro Lopez-Cabonillas)

@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.8
+// RtMidi: Version 1.0.9
 
 #include "RtMidi.h"
 #include <sstream>
@@ -155,7 +155,7 @@ RtMidiOut :: RtMidiOut( const std::string clientName ) : RtMidi()
 //*********************************************************************//
 
 // API information found at:
-//   - http://developer. apple .com/audio/pdf/coreaudio.pdf 
+//   - http://developer.apple.com/audio/pdf/coreaudio.pdf 
 
 #if defined(__MACOSX_CORE__)
 
@@ -434,6 +434,130 @@ unsigned int RtMidiIn :: getPortCount()
   return MIDIGetNumberOfSources();
 }
 
+// This function was submitted by Douglas Casey Tucker and apparently
+// derived largely from PortMidi.
+CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
+{
+  CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
+  CFStringRef str;
+
+  // Begin with the endpoint's name.
+  str = NULL;
+  MIDIObjectGetStringProperty( endpoint, kMIDIPropertyName, &str );
+  if ( str != NULL ) {
+    CFStringAppend( result, str );
+    CFRelease( str );
+  }
+
+  MIDIEntityRef entity = NULL;
+  MIDIEndpointGetEntity( endpoint, &entity );
+  if ( entity == NULL )
+    // probably virtual
+    return result;
+
+  if ( CFStringGetLength( result ) == 0 ) {
+    // endpoint name has zero length -- try the entity
+    str = NULL;
+    MIDIObjectGetStringProperty( entity, kMIDIPropertyName, &str );
+    if ( str != NULL ) {
+      CFStringAppend( result, str );
+      CFRelease( str );
+    }
+  }
+  // now consider the device's name
+  MIDIDeviceRef device = NULL;
+  MIDIEntityGetDevice( entity, &device );
+  if ( device == NULL )
+    return result;
+
+  str = NULL;
+  MIDIObjectGetStringProperty( device, kMIDIPropertyName, &str );
+  if ( CFStringGetLength( result ) == 0 ) {
+      CFRelease( result );
+      return str;
+  }
+  if ( str != NULL ) {
+    // if an external device has only one entity, throw away
+    // the endpoint name and just use the device name
+    if ( isExternal && MIDIDeviceGetNumberOfEntities( device ) < 2 ) {
+      CFRelease( result );
+      return str;
+    } else {
+      if ( CFStringGetLength( str ) == 0 ) {
+        CFRelease( str );
+        return result;
+      }
+      // does the entity name already start with the device name?
+      // (some drivers do this though they shouldn't)
+      // if so, do not prepend
+        if ( CFStringCompareWithOptions( result, /* endpoint name */
+             str /* device name */,
+             CFRangeMake(0, CFStringGetLength( str ) ), 0 ) != kCFCompareEqualTo ) {
+        // prepend the device name to the entity name
+        if ( CFStringGetLength( result ) > 0 )
+          CFStringInsert( result, 0, CFSTR(" ") );
+        CFStringInsert( result, 0, str );
+      }
+      CFRelease( str );
+    }
+  }
+  return result;
+}
+
+// This function was submitted by Douglas Casey Tucker and apparently
+// derived largely from PortMidi.
+static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
+{
+  CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
+  CFStringRef str;
+  OSStatus err;
+  int i;
+
+  // Does the endpoint have connections?
+  CFDataRef connections = NULL;
+  int nConnected = 0;
+  bool anyStrings = false;
+  err = MIDIObjectGetDataProperty( endpoint, kMIDIPropertyConnectionUniqueID, &connections );
+  if ( connections != NULL ) {
+    // It has connections, follow them
+    // Concatenate the names of all connected devices
+    nConnected = CFDataGetLength( connections ) / sizeof(MIDIUniqueID);
+    if ( nConnected ) {
+      const SInt32 *pid = (const SInt32 *)(CFDataGetBytePtr(connections));
+      for ( i=0; i<nConnected; ++i, ++pid ) {
+        MIDIUniqueID id = EndianS32_BtoN( *pid );
+        MIDIObjectRef connObject;
+        MIDIObjectType connObjectType;
+        err = MIDIObjectFindByUniqueID( id, &connObject, &connObjectType );
+        if ( err == noErr ) {
+          if ( connObjectType == kMIDIObjectType_ExternalSource  ||
+              connObjectType == kMIDIObjectType_ExternalDestination ) {
+            // Connected to an external device's endpoint (10.3 and later).
+            str = EndpointName( (MIDIEndpointRef)(connObject), true );
+          } else {
+            // Connected to an external device (10.2) (or something else, catch-
+            str = NULL;
+            MIDIObjectGetStringProperty( connObject, kMIDIPropertyName, &str );
+          }
+          if ( str != NULL ) {
+            if ( anyStrings )
+              CFStringAppend( result, CFSTR(", ") );
+            else anyStrings = true;
+            CFStringAppend( result, str );
+            CFRelease( str );
+          }
+        }
+      }
+    }
+    CFRelease( connections );
+  }
+  if ( anyStrings )
+    return result;
+
+  // Here, either the endpoint had no connections, or we failed to obtain names 
+  return EndpointName( endpoint, false );
+}
+
 std::string RtMidiIn :: getPortName( unsigned int portNumber )
 {
   CFStringRef nameRef;
@@ -448,7 +572,10 @@ std::string RtMidiIn :: getPortName( unsigned int portNumber )
   }
   portRef = MIDIGetSource( portNumber );
 
-  MIDIObjectGetStringProperty( portRef, kMIDIPropertyName, &nameRef );
+  nameRef = ConnectedEndpointName(portRef);
+  //MIDIObjectGetStringProperty( portRef, kMIDIPropertyName, &nameRef );
+  // modified by D. Casey Tucker 2009-03-10
+
   CFStringGetCString( nameRef, name, sizeof(name), 0);
   CFRelease( nameRef );
   std::string stringName = name;
@@ -479,7 +606,8 @@ std::string RtMidiOut :: getPortName( unsigned int portNumber )
   }
   portRef = MIDIGetDestination( portNumber );
 
-  MIDIObjectGetStringProperty( portRef, kMIDIPropertyName, &nameRef );
+  nameRef = ConnectedEndpointName(portRef);
+  //MIDIObjectGetStringProperty( portRef, kMIDIPropertyName, &nameRef );
   CFStringGetCString( nameRef, name, sizeof(name), 0);
   CFRelease( nameRef );
   std::string stringName = name;
@@ -672,6 +800,10 @@ void RtMidiOut :: sendMessage( std::vector<unsigned char> *message )
 // Thanks to Pedro Lopez-Cabanillas for help with the ALSA sequencer
 // time stamps and other assorted fixes!!!
 
+// If you don't need timestamping for incoming MIDI events, define the
+// preprocessor definition AVOID_TIMESTAMPING to save resources
+// associated with the ALSA sequencer queues.
+
 #include <pthread.h>
 #include <sys/time.h>
 
@@ -762,13 +894,12 @@ extern "C" void *alsaMidiHandler( void *ptr )
 		case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
 #if defined(__RTMIDI_DEBUG__)
       std::cerr << "RtMidiIn::alsaMidiHandler: port connection has closed!\n";
-      // FIXME: this is called for all unsubscribe events, even ones
-      //not related to this particular connection.  As it stands, I
-      //see no data provided in the "source" and "dest" fields so
-      //there is nothing we can do about this at this time.
-      // std::cout << "sender = " << ev->source.client << ", dest = " << ev->dest.port << std::endl;
+      std::cout << "sender = " << (int) ev->data.connect.sender.client << ":"
+                               << (int) ev->data.connect.sender.port
+                << ", dest = " << (int) ev->data.connect.dest.client << ":"
+                               << (int) ev->data.connect.dest.port
+                << std::endl;
 #endif
-      //data->doInput = false;
       break;
 
     case SND_SEQ_EVENT_QFRAME: // MIDI time code
@@ -878,6 +1009,7 @@ void RtMidiIn :: initialize( const std::string& clientName )
   inputData_.apiData = (void *) data;
 
   // Create the input queue
+#ifndef AVOID_TIMESTAMPING
   data->queue_id = snd_seq_alloc_named_queue(seq, "RtMidi Queue");
   // Set arbitrary tempo (mm=100) and resolution (240)
   snd_seq_queue_tempo_t *qtempo;
@@ -886,6 +1018,7 @@ void RtMidiIn :: initialize( const std::string& clientName )
   snd_seq_queue_tempo_set_ppq(qtempo, 240);
   snd_seq_set_queue_tempo(data->seq, data->queue_id, qtempo);
   snd_seq_drain_output(data->seq);
+#endif
 }
 
 // This function is used to count or get the pinfo structure for a given port number.
@@ -957,9 +1090,11 @@ void RtMidiIn :: openPort( unsigned int portNumber, const std::string portName )
                                 SND_SEQ_PORT_TYPE_MIDI_GENERIC |
                                 SND_SEQ_PORT_TYPE_APPLICATION );
     snd_seq_port_info_set_midi_channels(pinfo, 16);
+#ifndef AVOID_TIMESTAMPING
     snd_seq_port_info_set_timestamping(pinfo, 1);
     snd_seq_port_info_set_timestamp_real(pinfo, 1);    
     snd_seq_port_info_set_timestamp_queue(pinfo, data->queue_id);
+#endif
     snd_seq_port_info_set_name(pinfo,  portName.c_str() );
     data->vport = snd_seq_create_port(data->seq, pinfo);
   
@@ -982,8 +1117,10 @@ void RtMidiIn :: openPort( unsigned int portNumber, const std::string portName )
 
   if ( inputData_.doInput == false ) {
     // Start the input queue
+#ifndef AVOID_TIMESTAMPING
     snd_seq_start_queue( data->seq, data->queue_id, NULL );
     snd_seq_drain_output( data->seq );
+#endif
     // Start our MIDI input thread.
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -1018,9 +1155,11 @@ void RtMidiIn :: openVirtualPort( std::string portName )
 				SND_SEQ_PORT_TYPE_MIDI_GENERIC |
 				SND_SEQ_PORT_TYPE_APPLICATION );
     snd_seq_port_info_set_midi_channels(pinfo, 16);
+#ifndef AVOID_TIMESTAMPING
     snd_seq_port_info_set_timestamping(pinfo, 1);
     snd_seq_port_info_set_timestamp_real(pinfo, 1);    
     snd_seq_port_info_set_timestamp_queue(pinfo, data->queue_id);
+#endif
     snd_seq_port_info_set_name(pinfo, portName.c_str());
     data->vport = snd_seq_create_port(data->seq, pinfo);
 
@@ -1032,8 +1171,10 @@ void RtMidiIn :: openVirtualPort( std::string portName )
 
   if ( inputData_.doInput == false ) {
     // Start the input queue
+#ifndef AVOID_TIMESTAMPING
     snd_seq_start_queue( data->seq, data->queue_id, NULL );
     snd_seq_drain_output( data->seq );
+#endif
     // Start our MIDI input thread.
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -1060,8 +1201,10 @@ void RtMidiIn :: closePort( void )
     snd_seq_unsubscribe_port( data->seq, data->subscription );
     snd_seq_port_subscribe_free( data->subscription );
     // Stop the input queue
+#ifndef AVOID_TIMESTAMPING
     snd_seq_stop_queue( data->seq, data->queue_id, NULL );
     snd_seq_drain_output( data->seq );
+#endif
     connected_ = false;
   }
 }
@@ -1080,8 +1223,10 @@ RtMidiIn :: ~RtMidiIn()
 
   // Cleanup.
   if ( data->vport >= 0 ) snd_seq_delete_port( data->seq, data->vport );
+#ifndef AVOID_TIMESTAMPING
   snd_seq_free_queue( data->seq, data->queue_id );
   snd_seq_close( data->seq );
+#endif
   delete data;
 }
 

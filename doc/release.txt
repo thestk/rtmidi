@@ -2,6 +2,9 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2011.
 
+v1.0.14: (17 April 2011)
+- bug fix to Jack MIDI support (thanks to Alexander Svetalkin and Pedro Lopez-Cabanillas)
+
 v1.0.13: (7 April 2011)
 - updated RtError.h to the same version as in RtAudio
 - new Jack MIDI support in Linux (thanks to Alexander Svetalkin)

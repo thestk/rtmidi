@@ -35,7 +35,7 @@
 */
 /**********************************************************************/
 
-// RtMidi: Version 1.0.13
+// RtMidi: Version 1.0.14
 
 #include "RtMidi.h"
 #include <sstream>
@@ -1421,7 +1421,7 @@ void RtMidiOut :: openPort( unsigned int portNumber, const std::string portName 
   if ( data->vport < 0 ) {
     data->vport = snd_seq_create_simple_port( data->seq, portName.c_str(),
                                               SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-                                              SND_SEQ_PORT_TYPE_MIDI_GENERIC );
+                                              SND_SEQ_PORT_TYPE_MIDI_GENERIC|SND_SEQ_PORT_TYPE_APPLICATION );
     if ( data->vport < 0 ) {
       errorString_ = "RtMidiOut::openPort: ALSA error creating output port.";
       error( RtError::DRIVER_ERROR );
@@ -1460,7 +1460,7 @@ void RtMidiOut :: openVirtualPort( std::string portName )
   if ( data->vport < 0 ) {
     data->vport = snd_seq_create_simple_port( data->seq, portName.c_str(),
                                               SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-                                              SND_SEQ_PORT_TYPE_MIDI_GENERIC );
+                                              SND_SEQ_PORT_TYPE_MIDI_GENERIC|SND_SEQ_PORT_TYPE_APPLICATION );
 
     if ( data->vport < 0 ) {
       errorString_ = "RtMidiOut::openVirtualPort: ALSA error creating virtual port.";
@@ -2660,9 +2660,9 @@ RtMidiOut :: ~RtMidiOut()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   // Cleanup
+  jack_client_close( data->client );
   jack_ringbuffer_free( data->buffSize );
   jack_ringbuffer_free( data->buffMessage );
-  jack_client_close( data->client );
 }
 
 void RtMidiOut :: openPort( unsigned int portNumber, const std::string portName )
@@ -2751,6 +2751,7 @@ void RtMidiOut :: closePort()
 
   if ( data->port == NULL ) return;
   jack_port_unregister( data->client, data->port );
+  data->port = NULL;
 }
 
 void RtMidiOut :: sendMessage( std::vector<unsigned char> *message )

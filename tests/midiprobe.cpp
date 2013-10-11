@@ -1,4 +1,4 @@
-// midiinfo.cpp
+// midiprobe.cpp
 //
 // Simple program to check MIDI inputs and outputs.
 //
@@ -16,9 +16,9 @@ int main()
   try {
     midiin = new RtMidiIn();
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
-    exit(EXIT_FAILURE);
+    exit( EXIT_FAILURE );
   }
 
   // Check inputs.
@@ -30,7 +30,7 @@ int main()
     try {
       portName = midiin->getPortName(i);
     }
-    catch (RtError &error) {
+    catch ( RtError &error ) {
       error.printMessage();
       goto cleanup;
     }
@@ -41,9 +41,9 @@ int main()
   try {
     midiout = new RtMidiOut();
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
-    exit(EXIT_FAILURE);
+    exit( EXIT_FAILURE );
   }
 
   // Check outputs.
@@ -53,7 +53,7 @@ int main()
     try {
       portName = midiout->getPortName(i);
     }
-    catch (RtError &error) {
+    catch ( RtError &error ) {
       error.printMessage();
       goto cleanup;
     }

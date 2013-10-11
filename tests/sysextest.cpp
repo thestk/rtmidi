@@ -9,10 +9,10 @@
 #include <iostream>
 #include "RtMidi.h"
 
-void usage(void) {
+void usage( void ) {
   std::cout << "\nuseage: sysextest N\n";
   std::cout << "    where N = length of sysex message to send / receive.\n\n";
-  exit(0);
+  exit( 0 );
 }
 
 // Platform-dependent sleep routines.
@@ -29,7 +29,7 @@ void usage(void) {
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidi *rtmidi );
 
-int main(int argc, char *argv[])
+int main( int argc, char *argv[] )
 {
   RtMidiOut *midiout = 0;
   RtMidiIn *midiin = 0;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     midiout = new RtMidiOut();
     midiin = new RtMidiIn();
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
     goto cleanup;
   }
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     if ( chooseMidiPort( midiin ) == false ) goto cleanup;
     if ( chooseMidiPort( midiout ) == false ) goto cleanup;
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
     goto cleanup;
   }

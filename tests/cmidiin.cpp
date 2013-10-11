@@ -10,12 +10,12 @@
 #include <iostream>
 #include "RtMidi.h"
 
-void usage(void) {
+void usage( void ) {
   // Error function in case of incorrect command-line
   // argument specifications.
   std::cout << "\nuseage: cmidiin <port>\n";
   std::cout << "    where port = the device to use (default = 0).\n\n";
-  exit(0);
+  exit( 0 );
 }
 
 void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
@@ -27,7 +27,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
     std::cout << "stamp = " << deltatime << '\n';
 }
 
-int main(int argc, char *argv[])
+int main( int argc, char *argv[] )
 {
   RtMidiIn *midiin = 0;
 
@@ -38,9 +38,9 @@ int main(int argc, char *argv[])
   try {
     midiin = new RtMidiIn();
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
-    exit(EXIT_FAILURE);
+    exit( EXIT_FAILURE );
   }
 
   // Check available ports vs. specified.
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   try {
     midiin->openPort( port );
   }
-  catch (RtError &error) {
+  catch ( RtError &error ) {
     error.printMessage();
     goto cleanup;
   }

@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "cmidiin"=.\cmidiin.dsp - Package Owner=<4>
+Project: "cmidiin"=".\cmidiin.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "midiinfo"=.\midiinfo.dsp - Package Owner=<4>
+Project: "midiout"=".\midiout.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "midiout"=.\midiout.dsp - Package Owner=<4>
+Project: "midiprobe"=".\midiprobe.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +39,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "qmidiin"=.\qmidiin.dsp - Package Owner=<4>
+Project: "qmidiin"=".\qmidiin.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "sysextest"=".\sysextest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

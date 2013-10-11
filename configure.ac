@@ -54,6 +54,14 @@ case $host in
   AC_SUBST( frameworks, ["-framework CoreMIDI -framework CoreFoundation -framework CoreAudio"] )
   ;;
 
+  *-mingw32*)
+  # Use WinMM library
+  AC_SUBST( midi_api, [-D__WINDOWS_MM__] )
+  # I can't get the following check to work so just manually add the library
+  # AC_CHECK_LIB(winmm, midiInGetNumDevs, , AC_MSG_ERROR(Windows MIDI support requires the winmm library!) )
+  AC_SUBST( LIBS, [-lwinmm] )
+  ;;
+
   *)
   # Default case for unknown realtime systems.
   AC_MSG_ERROR(Unknown system type for MIDI support!)

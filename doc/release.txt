@@ -2,6 +2,11 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2011.
 
+v1.0.15: (11 August 2011)
+- updates for wide character support in Windows
+- stopped using std::queue and implemented internal MIDI ring buffer (for thread safety ... thanks to Michael Behrman)
+- removal of the setQueueSizeLimit() function ... queue size limit now an optional arguement to constructor
+
 v1.0.14: (17 April 2011)
 - bug fix to Jack MIDI support (thanks to Alexander Svetalkin and Pedro Lopez-Cabanillas)
 

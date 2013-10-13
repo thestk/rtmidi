@@ -32,6 +32,7 @@ $(LIBRARIES): $(OBJECTS)
 	ranlib $(STATIC)
 	$(CC) -fPIC @libflags@ $(OBJECTS) @LIBS@
 	$(LN) -sf @sharedname@ $(SHARED)
+	$(LN) -sf @sharedname@ $(SHARED).$(MAJOR)
 
 #	$(CC) -shared $(OBJECTS) -o $(SHARED) @LIBS@
 

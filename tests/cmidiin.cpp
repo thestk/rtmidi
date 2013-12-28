@@ -102,9 +102,9 @@ bool chooseMidiPort( RtMidiIn *rtmidi )
       std::cout << "\nChoose a port number: ";
       std::cin >> i;
     } while ( i >= nPorts );
+    std::getline( std::cin, keyHit );  // used to clear out stdin
   }
 
-  std::getline( std::cin, keyHit );  // used to clear out stdin
   rtmidi->openPort( i );
 
   return true;

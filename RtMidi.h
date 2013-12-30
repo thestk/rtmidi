@@ -40,10 +40,10 @@
   \file RtMidi.h
  */
 
-// RtMidi: Version 2.1.0
-
 #ifndef RTMIDI_H
 #define RTMIDI_H
+
+#define RTMIDI_VERSION "2.1.0pre"
 
 #include <exception>
 #include <iostream>
@@ -55,9 +55,8 @@
     \brief Exception handling class for RtMidi.
 
     The RtMidiError class is quite simple but it does allow errors to be
-    "caught" by RtMidiError::Type. See the RtAudio and RtMidi
-    documentation to know which methods can throw an RtMidiError.
-
+    "caught" by RtMidiError::Type. See the RtMidi documentation to know
+    which methods can throw an RtMidiError.
 */
 /************************************************************************/
 
@@ -117,6 +116,9 @@ class RtMidi
     RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
   };
 
+  //! A static function to determine the current RtMidi version.
+  static std::string getVersion( void ) throw();
+
   //! A static function to determine the available compiled MIDI APIs.
   /*!
     The values returned in the std::vector can be compared against
@@ -141,7 +143,7 @@ class RtMidi
   virtual void closePort( void ) = 0;
 
   //! A basic error reporting function for RtMidi classes.
-  static void error( RtMidiError::Type type, std::string errorString );
+  static void error( RtMidiError::Type type, std::string &errorString );
 
  protected:
 
@@ -520,6 +522,9 @@ class MidiInCore: public MidiInApi
   std::string getPortName( unsigned int portNumber );
 
  protected:
+  std::string clientName;
+
+  void connect( void );
   void initialize( const std::string& clientName );
 };
 
@@ -537,6 +542,9 @@ class MidiOutCore: public MidiOutApi
   void sendMessage( std::vector<unsigned char> *message );
 
  protected:
+  std::string clientName;
+
+  void connect( void );
   void initialize( const std::string& clientName );
 };
 

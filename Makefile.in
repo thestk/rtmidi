@@ -66,7 +66,7 @@ distclean:
 	$(RM) -f $(LIBRARIES) @sharedname@ $(SHARED)*
 	$(RM) -f $(OBJECTS)
 	$(RM) -f *~
-	$(RM) -rf config.log config.status autom4te.cache Makefile rtmidi-config
+	$(RM) -rf config.log config.status autom4te.cache Makefile rtmidi-config $(LIBNAME).pc
 	cd tests && $(MAKE) distclean
 
 strip : 

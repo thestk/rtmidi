@@ -56,7 +56,7 @@ int main( int argc, char *argv[] )
     midiout = new RtMidiOut();
     midiin = new RtMidiIn();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
   }
@@ -69,7 +69,7 @@ int main( int argc, char *argv[] )
     if ( chooseMidiPort( midiin ) == false ) goto cleanup;
     if ( chooseMidiPort( midiout ) == false ) goto cleanup;
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
   }

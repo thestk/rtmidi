@@ -276,7 +276,7 @@ void MidiInApi :: setCallback( RtMidiIn::RtMidiCallback callback, void *userData
     return;
   }
 
-  inputData_.userCallback = (void *) callback;
+  inputData_.userCallback = callback;
   inputData_.userData = userData;
   inputData_.usingCallback = true;
 }
@@ -372,7 +372,7 @@ struct CoreMidiData {
 //  Class Definitions: MidiInCore
 //*********************************************************************//
 
-static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *srcRef )
+static void midiInputCallback( const MIDIPacketList *list, void *procRef, void */*srcRef*/ )
 {
   MidiInApi::RtMidiInData *data = static_cast<MidiInApi::RtMidiInData *> (procRef);
   CoreMidiData *apiData = static_cast<CoreMidiData *> (data->apiData);
@@ -789,7 +789,7 @@ std::string MidiInCore :: getPortName( unsigned int portNumber )
 
   portRef = MIDIGetSource( portNumber );
   nameRef = ConnectedEndpointName(portRef);
-  CFStringGetCString( nameRef, name, sizeof(name), 0);
+  CFStringGetCString( nameRef, name, sizeof(name), CFStringGetSystemEncoding());
   CFRelease( nameRef );
 
   return stringName = name;
@@ -858,7 +858,7 @@ std::string MidiOutCore :: getPortName( unsigned int portNumber )
 
   portRef = MIDIGetDestination( portNumber );
   nameRef = ConnectedEndpointName(portRef);
-  CFStringGetCString( nameRef, name, sizeof(name), 0);
+  CFStringGetCString( nameRef, name, sizeof(name), CFStringGetSystemEncoding());
   CFRelease( nameRef );
   
   return stringName = name;
@@ -947,7 +947,7 @@ void MidiOutCore :: openVirtualPort( std::string portName )
 
 static char *sysexBuffer = 0;
 
-static void sysexCompletionProc( MIDISysexSendRequest * sreq )
+static void sysexCompletionProc( MIDISysexSendRequest * /*sreq*/ )
 {
   //std::cout << "Completed SysEx send\n";
  delete sysexBuffer;
@@ -999,9 +999,9 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
    return;
   }
   else if ( nBytes > 3 ) {
-   errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
-   RtMidi::error( RtMidiError::WARNING, errorString_ );
-   return;
+    errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
+    RtMidi::error( RtMidiError::WARNING, errorString_ );
+    return;
   }
 
   MIDIPacketList packetList;
@@ -1399,8 +1399,8 @@ std::string MidiInAlsa :: getPortName( unsigned int portNumber )
     snd_seq_get_any_client_info( data->seq, cnum, cinfo );
     std::ostringstream os;
     os << snd_seq_client_info_get_name( cinfo );
-    os << " ";                                    // GO: These lines added to make sure devices are listed
-    os << snd_seq_port_info_get_client( pinfo );  // GO: with full portnames added to ensure individual device names
+    os << " ";                                    // These lines added to make sure devices are listed
+    os << snd_seq_port_info_get_client( pinfo );  // with full portnames added to ensure individual device names
     os << ":";
     os << snd_seq_port_info_get_port( pinfo );
     stringName = os.str();
@@ -1422,7 +1422,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
   }
 
   unsigned int nSrc = this->getPortCount();
-  if (nSrc < 1) {
+  if ( nSrc < 1 ) {
     errorString_ = "MidiInAlsa::openPort: no MIDI input sources found!";
     RtMidi::error( RtMidiError::NO_DEVICES_FOUND, errorString_ );
   }
@@ -1436,7 +1436,6 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
     errorString_ = ost.str();
     RtMidi::error( RtMidiError::INVALID_PARAMETER, errorString_ );
   }
-
 
   snd_seq_addr_t sender, receiver;
   sender.client = snd_seq_port_info_get_client( pinfo );
@@ -1464,6 +1463,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
       errorString_ = "MidiInAlsa::openPort: ALSA error creating input port.";
       RtMidi::error( RtMidiError::DRIVER_ERROR, errorString_ );
     }
+    data->vport = snd_seq_port_info_get_port(pinfo);
   }
 
   receiver.port = data->vport;
@@ -1865,7 +1865,7 @@ struct WinMidiData {
 //  Class Definitions: MidiInWinMM
 //*********************************************************************//
 
-static void CALLBACK midiInputCallback( HMIDIIN hmin,
+static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
                                         UINT inputStatus, 
                                         DWORD_PTR instancePtr,
                                         DWORD_PTR midiMessage,
@@ -2111,7 +2111,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
   midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
 
 #if defined( UNICODE ) || defined( _UNICODE )
-  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL);
+  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
   stringName.assign( length, 0 );
   length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, wcslen(deviceCaps.szPname), &stringName[0], length, NULL, NULL);
 #else
@@ -2185,7 +2185,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
   midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
 
 #if defined( UNICODE ) || defined( _UNICODE )
-  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL);
+  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
   stringName.assign( length, 0 );
   length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, wcslen(deviceCaps.szPname), &stringName[0], length, NULL, NULL);
 #else

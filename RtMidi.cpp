@@ -932,13 +932,11 @@ void MidiOutCore :: openVirtualPort( std::string portName )
   data->endpoint = endpoint;
 }
 
-char *sysexBuffer = 0;
 
 void sysexCompletionProc( MIDISysexSendRequest * sreq )
 {
   //std::cout << "Completed SysEx send\n";
- delete sysexBuffer;
- sysexBuffer = 0;
+  free(sreq);
 }
 
 void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
@@ -959,27 +957,26 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
   OSStatus result;
 
   if ( message->at(0) == 0xF0 ) {
-
-    while ( sysexBuffer != 0 ) usleep( 1000 ); // sleep 1 ms
-
-   sysexBuffer = new char[nBytes];
-   if ( sysexBuffer == NULL ) {
-     errorString_ = "MidiOutCore::sendMessage: error allocating sysex message memory!";
-     RtMidi::error( RtError::MEMORY_ERROR, errorString_ );
-   }
-
+      
+   // Apple's fantastic API requires us to free the allocated data in the completion callback
+   // but trashes the pointer and size before we get a chance to free it. Very useful....
+   // So we use a ugly hack - put the sysex buffer data right at the end of the MIDISysexSendRequest structure
+   MIDISysexSendRequest *newRequest = (MIDISysexSendRequest *) malloc(sizeof(struct MIDISysexSendRequest) + nBytes);
+   char * sysexBuffer = ((char *) newRequest) + sizeof(struct MIDISysexSendRequest);
+      
    // Copy data to buffer.
    for ( unsigned int i=0; i<nBytes; ++i ) sysexBuffer[i] = message->at(i);
+      
+   newRequest->destination = data->destinationId;
+   newRequest->data = (Byte *)sysexBuffer;
+   newRequest->bytesToSend = nBytes;
+   newRequest->complete = 0;
+   newRequest->completionProc = sysexCompletionProc;
+   newRequest->completionRefCon = newRequest;
 
-   data->sysexreq.destination = data->destinationId;
-   data->sysexreq.data = (Byte *)sysexBuffer;
-   data->sysexreq.bytesToSend = nBytes;
-   data->sysexreq.complete = 0;
-   data->sysexreq.completionProc = sysexCompletionProc;
-   data->sysexreq.completionRefCon = &(data->sysexreq);
-
-   result = MIDISendSysex( &(data->sysexreq) );
+   result = MIDISendSysex(newRequest);
    if ( result != noErr ) {
+     free(newRequest);
      errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
      RtMidi::error( RtError::WARNING, errorString_ );
    }
@@ -1879,6 +1876,7 @@ struct WinMidiData {
   DWORD lastTime;
   MidiInApi::MidiMessage message;
   LPMIDIHDR sysexBuffer[RT_SYSEX_BUFFER_COUNT];
+  CRITICAL_SECTION _mutex; //[Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
 };
 
 //*********************************************************************//
@@ -1954,8 +1952,10 @@ static void CALLBACK midiInputCallback( HMIDIIN hmin,
     // one or two minutes.
 	if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
     //if ( sysex->dwBytesRecorded > 0 ) {
+	  EnterCriticalSection(&apiData->_mutex); 
       MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-      if ( result != MMSYSERR_NOERROR )
+	  LeaveCriticalSection(&apiData->_mutex);
+	  if ( result != MMSYSERR_NOERROR )
         std::cerr << "\nRtMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
 
       if ( data->ignoreFlags & 0x01 ) return;
@@ -1990,11 +1990,13 @@ MidiInWinMM :: MidiInWinMM( const std::string clientName, unsigned int queueSize
 
 MidiInWinMM :: ~MidiInWinMM()
 {
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  DeleteCriticalSection(&(data->_mutex));
+
   // Close a connection if it exists.
   closePort();
 
   // Cleanup.
-  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
   delete data;
 }
 
@@ -2013,6 +2015,11 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
   data->message.bytes.clear();  // needs to be empty for first input message
+
+  if (!InitializeCriticalSectionAndSpinCount(&(data->_mutex), 0x00000400)) {
+    errorString_ = "MidiInWinMM::initialize: InitializeCriticalSectionAndSpinCount failed.";
+    RtMidi::error( RtError::WARNING, errorString_ );
+   }
 }
 
 void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portName*/ )
@@ -2092,6 +2099,7 @@ void MidiInWinMM :: closePort( void )
 {
   if ( connected_ ) {
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+	EnterCriticalSection(&data->_mutex); 
     midiInReset( data->inHandle );
     midiInStop( data->inHandle );
 
@@ -2108,6 +2116,7 @@ void MidiInWinMM :: closePort( void )
 
     midiInClose( data->inHandle );
     connected_ = false;
+	LeaveCriticalSection(&data->_mutex); 
   }
 }
 
@@ -2272,78 +2281,79 @@ void MidiOutWinMM :: openVirtualPort( std::string portName )
 
 void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
 {
-  unsigned int nBytes = static_cast<unsigned int>(message->size());
-  if ( nBytes == 0 ) {
-    errorString_ = "MidiOutWinMM::sendMessage: message argument is empty!";
-    RtMidi::error( RtError::WARNING, errorString_ );
-    return;
-  }
+  if ( connected_ ) {
+	  unsigned int nBytes = static_cast<unsigned int>(message->size());
+	  if ( nBytes == 0 ) {
+		errorString_ = "MidiOutWinMM::sendMessage: message argument is empty!";
+		RtMidi::error( RtError::WARNING, errorString_ );
+		return;
+	  }
 
-  MMRESULT result;
-  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  if ( message->at(0) == 0xF0 ) { // Sysex message
+	  MMRESULT result;
+	  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+	  if ( message->at(0) == 0xF0 ) { // Sysex message
 
-    // Allocate buffer for sysex data.
-    char *buffer = (char *) malloc( nBytes );
-    if ( buffer == NULL ) {
-      errorString_ = "MidiOutWinMM::sendMessage: error allocating sysex message memory!";
-      RtMidi::error( RtError::MEMORY_ERROR, errorString_ );
-    }
+		// Allocate buffer for sysex data.
+		char *buffer = (char *) malloc( nBytes );
+		if ( buffer == NULL ) {
+		  errorString_ = "MidiOutWinMM::sendMessage: error allocating sysex message memory!";
+		  RtMidi::error( RtError::MEMORY_ERROR, errorString_ );
+		}
 
-    // Copy data to buffer.
-    for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message->at(i);
+		// Copy data to buffer.
+		for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message->at(i);
 
-    // Create and prepare MIDIHDR structure.
-    MIDIHDR sysex;
-    sysex.lpData = (LPSTR) buffer;
-    sysex.dwBufferLength = nBytes;
-    sysex.dwFlags = 0;
-    result = midiOutPrepareHeader( data->outHandle,  &sysex, sizeof(MIDIHDR) ); 
-    if ( result != MMSYSERR_NOERROR ) {
-      free( buffer );
-      errorString_ = "MidiOutWinMM::sendMessage: error preparing sysex header.";
-      RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
-    }
+		// Create and prepare MIDIHDR structure.
+		MIDIHDR sysex;
+		sysex.lpData = (LPSTR) buffer;
+		sysex.dwBufferLength = nBytes;
+		sysex.dwFlags = 0;
+		result = midiOutPrepareHeader( data->outHandle,  &sysex, sizeof(MIDIHDR) ); 
+		if ( result != MMSYSERR_NOERROR ) {
+		  free( buffer );
+		  errorString_ = "MidiOutWinMM::sendMessage: error preparing sysex header.";
+		  RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
+		}
 
-    // Send the message.
-    result = midiOutLongMsg( data->outHandle, &sysex, sizeof(MIDIHDR) );
-    if ( result != MMSYSERR_NOERROR ) {
-      free( buffer );
-      errorString_ = "MidiOutWinMM::sendMessage: error sending sysex message.";
-      RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
-    }
+		// Send the message.
+		result = midiOutLongMsg( data->outHandle, &sysex, sizeof(MIDIHDR) );
+		if ( result != MMSYSERR_NOERROR ) {
+		  free( buffer );
+		  errorString_ = "MidiOutWinMM::sendMessage: error sending sysex message.";
+		  RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
+		}
 
-    // Unprepare the buffer and MIDIHDR.
-    while ( MIDIERR_STILLPLAYING == midiOutUnprepareHeader( data->outHandle, &sysex, sizeof (MIDIHDR) ) ) Sleep( 1 );
-    free( buffer );
+		// Unprepare the buffer and MIDIHDR.
+		while ( MIDIERR_STILLPLAYING == midiOutUnprepareHeader( data->outHandle, &sysex, sizeof (MIDIHDR) ) ) Sleep( 1 );
+		free( buffer );
 
-  }
-  else { // Channel or system message.
+	  }
+	  else { // Channel or system message.
 
-    // Make sure the message size isn't too big.
-    if ( nBytes > 3 ) {
-      errorString_ = "MidiOutWinMM::sendMessage: message size is greater than 3 bytes (and not sysex)!";
-      RtMidi::error( RtError::WARNING, errorString_ );
-      return;
-    }
+		// Make sure the message size isn't too big.
+		if ( nBytes > 3 ) {
+		  errorString_ = "MidiOutWinMM::sendMessage: message size is greater than 3 bytes (and not sysex)!";
+		  RtMidi::error( RtError::WARNING, errorString_ );
+		  return;
+		}
 
-    // Pack MIDI bytes into double word.
-    DWORD packet;
-    unsigned char *ptr = (unsigned char *) &packet;
-    for ( unsigned int i=0; i<nBytes; ++i ) {
-      *ptr = message->at(i);
-      ++ptr;
-    }
+		// Pack MIDI bytes into double word.
+		DWORD packet;
+		unsigned char *ptr = (unsigned char *) &packet;
+		for ( unsigned int i=0; i<nBytes; ++i ) {
+		  *ptr = message->at(i);
+		  ++ptr;
+		}
 
-    // Send the message immediately.
-    result = midiOutShortMsg( data->outHandle, packet );
-    if ( result != MMSYSERR_NOERROR ) {
-      errorString_ = "MidiOutWinMM::sendMessage: error sending MIDI message.";
-      RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
-    }
-  }
+		// Send the message immediately.
+		result = midiOutShortMsg( data->outHandle, packet );
+		if ( result != MMSYSERR_NOERROR ) {
+		  errorString_ = "MidiOutWinMM::sendMessage: error sending MIDI message.";
+		  RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
+		}
+	  }
+	}
 }
-
 #endif  // __WINDOWS_MM__
 
 // *********************************************************************//

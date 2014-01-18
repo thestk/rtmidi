@@ -1216,6 +1216,10 @@ extern "C" void *alsaMidiHandler( void *ptr )
       if ( !( data->ignoreFlags & 0x02 ) ) doDecode = true;
       break;
 
+    case SND_SEQ_EVENT_CLOCK: // MIDI timing clock
+      if ( !( data->ignoreFlags & 0x02 ) ) doDecode = true;
+      break;
+
     case SND_SEQ_EVENT_SENSING: // Active sensing
       if ( !( data->ignoreFlags & 0x04 ) ) doDecode = true;
       break;

@@ -3509,7 +3509,7 @@ void MidiInJack :: openPort( unsigned int portNumber, const std::string portName
                                      JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0 );
 
   if ( data->port == NULL) {
-    errorString_ = "MidiInJack::openVirtualPort: JACK error creating virtual port";
+    errorString_ = "MidiInJack::openPort: JACK error creating port";
     RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
   }
 
@@ -3664,7 +3664,7 @@ void MidiOutJack :: openPort( unsigned int portNumber, const std::string portNam
       JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput, 0 );
 
   if ( data->port == NULL ) {
-    errorString_ = "MidiOutJack::openVirtualPort: JACK error creating virtual port";
+    errorString_ = "MidiOutJack::openPort: JACK error creating port";
     RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
   }
 

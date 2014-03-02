@@ -422,24 +422,26 @@ void midiInputCallback( const MIDIPacketList *list, void *procRef, void *srcRef 
       }
       continueSysex = packet->data[nBytes-1] != 0xF7;
 
-      if ( !continueSysex ) {
-        // If not a continuing sysex message, invoke the user callback function or queue the message.
-        if ( data->usingCallback ) {
-          RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) data->userCallback;
-          callback( message.timeStamp, &message.bytes, data->userData );
-        }
-        else {
-          // As long as we haven't reached our queue size limit, push the message.
-          if ( data->queue.size < data->queue.ringSize ) {
-            data->queue.ring[data->queue.back++] = message;
-            if ( data->queue.back == data->queue.ringSize )
-              data->queue.back = 0;
-            data->queue.size++;
+      if ( !( data->ignoreFlags & 0x01 ) ) {
+           if ( !continueSysex ) {
+            // If not a continuing sysex message, invoke the user callback function or queue the message.
+            if ( data->usingCallback ) {
+              RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) data->userCallback;
+              callback( message.timeStamp, &message.bytes, data->userData );
+            }
+            else {
+              // As long as we haven't reached our queue size limit, push the message.
+              if ( data->queue.size < data->queue.ringSize ) {
+                data->queue.ring[data->queue.back++] = message;
+                if ( data->queue.back == data->queue.ringSize )
+                  data->queue.back = 0;
+                data->queue.size++;
+              }
+              else
+                std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
+            }
+            message.bytes.clear();
           }
-          else
-            std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
-        }
-        message.bytes.clear();
       }
     }
     else {

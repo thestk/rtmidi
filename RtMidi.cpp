@@ -1930,6 +1930,7 @@ struct WinMidiData {
   DWORD lastTime;
   MidiInApi::MidiMessage message;
   LPMIDIHDR sysexBuffer[RT_SYSEX_BUFFER_COUNT];
+  CRITICAL_SECTION _mutex; // [Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
 };
 
 //*********************************************************************//
@@ -2003,9 +2004,11 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     // buffer when an application closes and in this case, we should
     // avoid requeueing it, else the computer suddenly reboots after
     // one or two minutes.
-	if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-    //if ( sysex->dwBytesRecorded > 0 ) {
+    if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
+      //if ( sysex->dwBytesRecorded > 0 ) {
+      EnterCriticalSection( &apiData->_mutex );
       MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
+      LeaveCriticalSection( &apiData->_mutex );
       if ( result != MMSYSERR_NOERROR )
         std::cerr << "\nRtMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
 
@@ -2041,11 +2044,13 @@ MidiInWinMM :: MidiInWinMM( const std::string clientName, unsigned int queueSize
 
 MidiInWinMM :: ~MidiInWinMM()
 {
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  DeleteCriticalSection( &(data->_mutex) );
+
   // Close a connection if it exists.
   closePort();
 
   // Cleanup.
-  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
   delete data;
 }
 
@@ -2064,6 +2069,11 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
   data->message.bytes.clear();  // needs to be empty for first input message
+
+  if ( !InitializeCriticalSectionAndSpinCount(&(data->_mutex), 0x00000400) ) {
+    errorString_ = "MidiInWinMM::initialize: InitializeCriticalSectionAndSpinCount failed.";
+    error( RtError::WARNING, errorString_ );
+  }
 }
 
 void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portName*/ )
@@ -2149,6 +2159,7 @@ void MidiInWinMM :: closePort( void )
 {
   if ( connected_ ) {
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+    EnterCriticalSection( &data->_mutex );
     midiInReset( data->inHandle );
     midiInStop( data->inHandle );
 
@@ -2166,6 +2177,7 @@ void MidiInWinMM :: closePort( void )
 
     midiInClose( data->inHandle );
     connected_ = false;
+    LeaveCriticalSection( &data->_mutex );
   }
 }
 
@@ -2331,6 +2343,8 @@ void MidiOutWinMM :: openVirtualPort( std::string portName )
 
 void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
 {
+  if ( !connected_ ) return;
+
   unsigned int nBytes = static_cast<unsigned int>(message->size());
   if ( nBytes == 0 ) {
     errorString_ = "MidiOutWinMM::sendMessage: message argument is empty!";
@@ -2378,7 +2392,6 @@ void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
     // Unprepare the buffer and MIDIHDR.
     while ( MIDIERR_STILLPLAYING == midiOutUnprepareHeader( data->outHandle, &sysex, sizeof (MIDIHDR) ) ) Sleep( 1 );
     free( buffer );
-
   }
   else { // Channel or system message.
 

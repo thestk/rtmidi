@@ -1423,23 +1423,13 @@ unsigned int MidiInAlsa :: getPortCount()
 
 std::string MidiInAlsa :: getPortName( unsigned int portNumber )
 {
-  snd_seq_client_info_t *cinfo;
   snd_seq_port_info_t *pinfo;
-  snd_seq_client_info_alloca( &cinfo );
   snd_seq_port_info_alloca( &pinfo );
 
   std::string stringName;
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
   if ( portInfo( data->seq, pinfo, SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, (int) portNumber ) ) {
-    int cnum = snd_seq_port_info_get_client( pinfo );
-    snd_seq_get_any_client_info( data->seq, cnum, cinfo );
-    std::ostringstream os;
-    os << snd_seq_client_info_get_name( cinfo );
-    os << " ";                                    // GO: These lines added to make sure devices are listed
-    os << snd_seq_port_info_get_client( pinfo );  // GO: with full portnames added to ensure individual device names
-    os << ":";
-    os << snd_seq_port_info_get_port( pinfo );
-    stringName = os.str();
+    stringName = snd_seq_port_info_get_name( pinfo );
     return stringName;
   }
 
@@ -1704,21 +1694,13 @@ unsigned int MidiOutAlsa :: getPortCount()
 
 std::string MidiOutAlsa :: getPortName( unsigned int portNumber )
 {
-  snd_seq_client_info_t *cinfo;
   snd_seq_port_info_t *pinfo;
-  snd_seq_client_info_alloca( &cinfo );
   snd_seq_port_info_alloca( &pinfo );
 
   std::string stringName;
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
   if ( portInfo( data->seq, pinfo, SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE, (int) portNumber ) ) {
-    int cnum = snd_seq_port_info_get_client(pinfo);
-    snd_seq_get_any_client_info( data->seq, cnum, cinfo );
-    std::ostringstream os;
-    os << snd_seq_client_info_get_name(cinfo);
-    os << ":";
-    os << snd_seq_port_info_get_port(pinfo);
-    stringName = os.str();
+    stringName = snd_seq_port_info_get_name( pinfo );
     return stringName;
   }
 

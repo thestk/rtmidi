@@ -466,7 +466,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
       }
       continueSysex = packet->data[nBytes-1] != 0xF7;
 
-      if ( !continueSysex ) {
+      if ( !( data->ignoreFlags & 0x01 ) && !continueSysex ) {
         // If not a continuing sysex message, invoke the user callback function or queue the message.
         if ( data->usingCallback ) {
           RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) data->userCallback;

@@ -10,10 +10,11 @@ v2.1.0: (?? 2014)
 - fix for ALSA incorrect use of snd_seq_create_port() function (Tobias Schlemmer)
 - fix for international character support in CoreMidi (Martin Finke)
 - fix for unicode conversion in WinMM (Dan Wilcox)
-- added custom error hook that allows the client to capture an RtMidi error outside of the RtMidi code
-- added RtMidi::isPortOpen function
+- added custom error hook that allows the client to capture an RtMidi error outside of the RtMidi code (Pavel Mogilevskiy)
+- added RtMidi::isPortOpen function (Pavel Mogilevskiy)
 - updated OS-X sysex sending mechanism (ptarabbia)
 - Windows update to avoid lockups when shutting down while sending/receiving sysex messages (ptarabbia)
+- OS-X fix to avoid empty messages in callbacks when ignoring sysex messages and split sysexes are received (codepainters)
 
 v2.0.1: (26 July 2012)
 - small fixes for problems reported by Chris Arndt (scoping, preprocessor, and include)

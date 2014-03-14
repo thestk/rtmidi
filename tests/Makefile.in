@@ -40,6 +40,7 @@ clean :
 	$(RM) -f $(OBJECT_PATH)/*.o
 	$(RM) -f $(PROGRAMS) *.exe
 	$(RM) -f *~
+	$(RM) -fR *.dSYM
 
 distclean: clean
 	$(RM) -f Makefile

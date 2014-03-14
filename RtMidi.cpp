@@ -243,17 +243,12 @@ MidiApi :: ~MidiApi( void )
 {
 }
 
-bool MidiApi :: isPortOpen() const
-{
-    return connected_;
-}
-
 void MidiApi :: setErrorCallback( RtMidiErrorCallback errorCallback )
 {
     errorCallback_ = errorCallback;
 }
 
-void MidiApi :: error( RtError::Type type, std::string errorString )
+void MidiApi :: error( RtMidiError::Type type, std::string errorString )
 {
   if ( errorCallback_ ) {
     static bool firstErrorOccured = false;
@@ -269,17 +264,17 @@ void MidiApi :: error( RtError::Type type, std::string errorString )
     return;
   }
 
-  if ( type == RtError::WARNING ) {
+  if ( type == RtMidiError::WARNING ) {
     std::cerr << '\n' << errorString << "\n\n";
   }
-  else if ( type == RtError::DEBUG_WARNING ) {
+  else if ( type == RtMidiError::DEBUG_WARNING ) {
 #if defined(__RTMIDI_DEBUG__)
     std::cerr << '\n' << errorString << "\n\n";
 #endif
   }
   else {
     std::cerr << '\n' << errorString << "\n\n";
-    throw RtError( errorString, type );
+    throw RtMidiError( errorString, type );
   }
 }
 

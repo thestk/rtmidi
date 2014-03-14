@@ -433,11 +433,11 @@ class MidiApi
   virtual unsigned int getPortCount( void ) = 0;
   virtual std::string getPortName( unsigned int portNumber ) = 0;
 
-  bool isPortOpened() const;
+  inline bool isPortOpen() const { return connected_; }
   void setErrorCallback( RtMidiErrorCallback errorCallback );
 
   //! A basic error reporting function for RtMidi classes.
-  void error( RtError::Type type, std::string errorString );
+  void error( RtMidiError::Type type, std::string errorString );
 
 protected:
   virtual void initialize( const std::string& clientName ) = 0;
@@ -446,7 +446,7 @@ protected:
   bool connected_;
   std::string errorString_;
   RtMidiErrorCallback errorCallback_;
-}
+};
 
 class MidiInApi : public MidiApi
 {
@@ -458,7 +458,6 @@ class MidiInApi : public MidiApi
   void cancelCallback( void );
   virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
   double getMessage( std::vector<unsigned char> *message );
-  inline bool isPortOpen() const { return connected_; }
 
   // A MIDI structure used internally by the class to store incoming
   // messages.  Each message represents one and only one MIDI message.
@@ -527,6 +526,7 @@ inline RtMidi::Api RtMidiIn :: getCurrentApi( void ) throw() { return rtapi_->ge
 inline void RtMidiIn :: openPort( unsigned int portNumber, const std::string portName ) { rtapi_->openPort( portNumber, portName ); }
 inline void RtMidiIn :: openVirtualPort( const std::string portName ) { rtapi_->openVirtualPort( portName ); }
 inline void RtMidiIn :: closePort( void ) { rtapi_->closePort(); }
+inline bool RtMidiIn :: isPortOpen() const { return rtapi_->isPortOpen(); }
 inline void RtMidiIn :: setCallback( RtMidiCallback callback, void *userData ) { ((MidiInApi *)rtapi_)->setCallback( callback, userData ); }
 inline void RtMidiIn :: cancelCallback( void ) { ((MidiInApi *)rtapi_)->cancelCallback(); }
 inline unsigned int RtMidiIn :: getPortCount( void ) { return rtapi_->getPortCount(); }
@@ -539,6 +539,7 @@ inline RtMidi::Api RtMidiOut :: getCurrentApi( void ) throw() { return rtapi_->g
 inline void RtMidiOut :: openPort( unsigned int portNumber, const std::string portName ) { rtapi_->openPort( portNumber, portName ); }
 inline void RtMidiOut :: openVirtualPort( const std::string portName ) { rtapi_->openVirtualPort( portName ); }
 inline void RtMidiOut :: closePort( void ) { rtapi_->closePort(); }
+inline bool RtMidiOut :: isPortOpen() const { return rtapi_->isPortOpen(); }
 inline unsigned int RtMidiOut :: getPortCount( void ) { return rtapi_->getPortCount(); }
 inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return rtapi_->getPortName( portNumber ); }
 inline void RtMidiOut :: sendMessage( std::vector<unsigned char> *message ) { ((MidiOutApi *)rtapi_)->sendMessage( message ); }

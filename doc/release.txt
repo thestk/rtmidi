@@ -10,6 +10,9 @@ v2.1.0: (?? 2014)
 - fix for ALSA incorrect use of snd_seq_create_port() function (Tobias Schlemmer)
 - fix for international character support in CoreMidi (Martin Finke)
 - fix for unicode conversion in WinMM (Dan Wilcox)
+- added custom error hook that allows the client to capture an RtMidi error outside of the RtMidi code
+- fix for portnames in Windows when UNICODE is defined
+- added RtMidi::isPortOpen function
 
 v2.0.1: (26 July 2012)
 - small fixes for problems reported by Chris Arndt (scoping, preprocessor, and include)

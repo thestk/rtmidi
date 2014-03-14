@@ -80,7 +80,7 @@ int main( int argc, char *argv[] )
   midiout->sendMessage( &message );
   SLEEP( 500 ); // pause a little
 
-  // Create a long sysex messages of numbered bytes and send it out.
+  // Create a long sysex message of numbered bytes and send it out.
   for ( int n=0; n<2; n++ ) {
   message.clear();
   message.push_back( 240 );

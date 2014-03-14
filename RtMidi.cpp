@@ -993,13 +993,9 @@ void MidiOutCore :: openVirtualPort( std::string portName )
   data->endpoint = endpoint;
 }
 
-static char *sysexBuffer = 0;
-
-static void sysexCompletionProc( MIDISysexSendRequest * /*sreq*/ )
+static void sysexCompletionProc( MIDISysexSendRequest *sreq )
 {
-  //std::cout << "Completed SysEx send\n";
- delete sysexBuffer;
- sysexBuffer = 0;
+  free( sreq );
 }
 
 void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
@@ -1021,32 +1017,34 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 
   if ( message->at(0) == 0xF0 ) {
 
-    while ( sysexBuffer != 0 ) usleep( 1000 ); // sleep 1 ms
+    // Apple's fantastic API requires us to free the allocated data in
+    // the completion callback but trashes the pointer and size before
+    // we get a chance to free it!!  This is a somewhat ugly hack
+    // submitted by ptarabbia that puts the sysex buffer data right at
+    // the end of the MIDISysexSendRequest structure.  This solution
+    // does not require that we wait for a previous sysex buffer to be
+    // sent before sending a new one, which was the old way we did it.
+    MIDISysexSendRequest *newRequest = (MIDISysexSendRequest *) malloc(sizeof(struct MIDISysexSendRequest) + nBytes);
+    char * sysexBuffer = ((char *) newRequest) + sizeof(struct MIDISysexSendRequest);
 
-   sysexBuffer = new char[nBytes];
-   if ( sysexBuffer == NULL ) {
-     errorString_ = "MidiOutCore::sendMessage: error allocating sysex message memory!";
-     error( RtMidiError::MEMORY_ERROR, errorString_ );
-     return;
-   }
+    // Copy data to buffer.
+    for ( unsigned int i=0; i<nBytes; ++i ) sysexBuffer[i] = message->at(i);
 
-   // Copy data to buffer.
-   for ( unsigned int i=0; i<nBytes; ++i ) sysexBuffer[i] = message->at(i);
+    newRequest->destination = data->destinationId;
+    newRequest->data = (Byte *)sysexBuffer;
+    newRequest->bytesToSend = nBytes;
+    newRequest->complete = 0;
+    newRequest->completionProc = sysexCompletionProc;
+    newRequest->completionRefCon = newRequest;
 
-   data->sysexreq.destination = data->destinationId;
-   data->sysexreq.data = (Byte *)sysexBuffer;
-   data->sysexreq.bytesToSend = nBytes;
-   data->sysexreq.complete = 0;
-   data->sysexreq.completionProc = sysexCompletionProc;
-   data->sysexreq.completionRefCon = &(data->sysexreq);
-
-   result = MIDISendSysex( &(data->sysexreq) );
-   if ( result != noErr ) {
-     errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
-     error( RtMidiError::WARNING, errorString_ );
-     return;
-   }
-   return;
+    result = MIDISendSysex(newRequest);
+    if ( result != noErr ) {
+      free( newRequest );
+      errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
+      error( RtMidiError::WARNING, errorString_ );
+      return;
+    }
+    return;
   }
   else if ( nBytes > 3 ) {
     errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";

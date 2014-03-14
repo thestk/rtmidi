@@ -11,7 +11,6 @@ v2.1.0: (?? 2014)
 - fix for international character support in CoreMidi (Martin Finke)
 - fix for unicode conversion in WinMM (Dan Wilcox)
 - added custom error hook that allows the client to capture an RtMidi error outside of the RtMidi code
-- fix for portnames in Windows when UNICODE is defined
 - added RtMidi::isPortOpen function
 - updated OS-X sysex sending mechanism (ptarabbia)
 - Windows update to avoid lockups when shutting down while sending/receiving sysex messages (ptarabbia)

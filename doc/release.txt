@@ -12,7 +12,7 @@ v2.1.0: (?? 2014)
 - fix for unicode conversion in WinMM (Dan Wilcox)
 - added custom error hook that allows the client to capture an RtMidi error outside of the RtMidi code (Pavel Mogilevskiy)
 - added RtMidi::isPortOpen function (Pavel Mogilevskiy)
-- updated OS-X sysex sending mechanism (ptarabbia)
+- updated OS-X sysex sending mechanism to use normal message sending, which fixes a problem where virtual ports didn't receive sysex messages
 - Windows update to avoid lockups when shutting down while sending/receiving sysex messages (ptarabbia)
 - OS-X fix to avoid empty messages in callbacks when ignoring sysex messages and split sysexes are received (codepainters)
 

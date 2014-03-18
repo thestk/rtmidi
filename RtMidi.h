@@ -570,9 +570,6 @@ class MidiInCore: public MidiInApi
   std::string getPortName( unsigned int portNumber );
 
  protected:
-  std::string clientName;
-
-  void connect( void );
   void initialize( const std::string& clientName );
 };
 
@@ -590,9 +587,6 @@ class MidiOutCore: public MidiOutApi
   void sendMessage( std::vector<unsigned char> *message );
 
  protected:
-  std::string clientName;
-
-  void connect( void );
   void initialize( const std::string& clientName );
 };
 
@@ -613,6 +607,9 @@ class MidiInJack: public MidiInApi
   std::string getPortName( unsigned int portNumber );
 
  protected:
+  std::string clientName;
+
+  void connect( void );
   void initialize( const std::string& clientName );
 };
 
@@ -630,6 +627,9 @@ class MidiOutJack: public MidiOutApi
   void sendMessage( std::vector<unsigned char> *message );
 
  protected:
+  std::string clientName;
+
+  void connect( void );
   void initialize( const std::string& clientName );
 };
 

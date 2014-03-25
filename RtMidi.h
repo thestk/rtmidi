@@ -375,7 +375,7 @@ class MidiInApi
     bool firstMessage;
     void *apiData;
     bool usingCallback;
-    void *userCallback;
+    RtMidiIn::RtMidiCallback userCallback;
     void *userData;
     bool continueSysex;
 

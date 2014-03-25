@@ -1716,6 +1716,8 @@ std::string MidiOutAlsa :: getPortName( unsigned int portNumber )
     snd_seq_get_any_client_info( data->seq, cnum, cinfo );
     std::ostringstream os;
     os << snd_seq_client_info_get_name(cinfo);
+    os << " ";                                    // GO: These lines added to make sure devices are listed
+    os << snd_seq_port_info_get_client( pinfo );  // GO: with full portnames added to ensure individual device names
     os << ":";
     os << snd_seq_port_info_get_port(pinfo);
     stringName = os.str();

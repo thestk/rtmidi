@@ -267,7 +267,7 @@ void MidiInApi :: setCallback( RtMidiIn::RtMidiCallback callback, void *userData
     return;
   }
 
-  inputData_.userCallback = (void *) callback;
+  inputData_.userCallback = callback;
   inputData_.userData = userData;
   inputData_.usingCallback = true;
 }
@@ -3419,7 +3419,7 @@ int jackProcessIn( jack_nframes_t nframes, void *arg )
   JackMidiData *jData = (JackMidiData *) arg;
   MidiInApi :: RtMidiInData *rtData = jData->rtMidiIn;
   jack_midi_event_t event;
-  jack_time_t long long time;
+  jack_time_t time;
 
   // Is port created?
   if ( jData->port == NULL ) return 0;

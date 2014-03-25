@@ -1495,11 +1495,14 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
     snd_seq_port_info_set_timestamp_queue(pinfo, data->queue_id);
 #endif
     snd_seq_port_info_set_name(pinfo,  portName.c_str() );
-    data->vport = snd_seq_create_port(data->seq, pinfo);
+    int createok = snd_seq_create_port(data->seq, pinfo);
   
-    if ( data->vport < 0 ) {
+    if ( createok < 0 ) {
       errorString_ = "MidiInAlsa::openPort: ALSA error creating input port.";
       RtMidi::error( RtError::DRIVER_ERROR, errorString_ );
+      data->vport = createok;
+    } else {
+	    data->vport = snd_seq_port_info_get_port(pinfo);
     }
   }
 

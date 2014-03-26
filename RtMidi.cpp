@@ -1200,7 +1200,8 @@ static void *alsaMidiHandler( void *ptr )
       continue;
     }
     else if ( result <= 0 ) {
-      std::cerr << "MidiInAlsa::alsaMidiHandler: unknown MIDI input error!\n";
+      std::cerr << "\nMidiInAlsa::alsaMidiHandler: unknown MIDI input error!\n";
+      perror("System reports");
       continue;
     }
 

@@ -1606,6 +1606,7 @@ void MidiInAlsa :: openVirtualPort( std::string portName )
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
     }
+    data->vport = snd_seq_port_info_get_port(pinfo);
   }
 
   if ( inputData_.doInput == false ) {

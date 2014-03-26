@@ -130,6 +130,27 @@ class RtMidi
 
   //! A static function to determine the current RtMidi version.
   static std::string getVersion( void ) throw();
+  //! Define a port Id type.
+  typedef void * PortIdType;
+
+  //! A port descriptor type.
+  struct PortDescriptor {
+	  std::string Name; /*!< The Name of the port */
+	  std::string Path; /*!< API dependent path that allows to uniquely identify the port */
+	  PortIdType  id;   /*!< API dependent id of the port */
+	  void *      api;  /*!< API to be called when the port shall be opened */
+  }
+
+  //! Define a port Id type.
+  typedef void * PortIdType;
+
+  //! A port descriptor type.
+  struct PortDescriptor {
+	  std::string Name; /*!< The Name of the port */
+	  std::string Path; /*!< API dependent path that allows to uniquely identify the port */
+	  PortIdType  id;   /*!< API dependent id of the port */
+	  void *      api;  /*!< API to be called when the port shall be opened */
+  }
 
   //! A static function to determine the available compiled MIDI APIs.
   /*!
@@ -142,8 +163,17 @@ class RtMidi
   //! Pure virtual openPort() function.
   virtual void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi" ) ) = 0;
 
+  //! Pure virtual openPort() function.
+  virtual void openPort( const PortIdType portId, const std::string portName = std::string( "RtMidi" ) ) = 0;
+
+  //! Pure virtual openPort() function.
+  virtual void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi" ) ) = 0;
+
   //! Pure virtual openVirtualPort() function.
   virtual void openVirtualPort( const std::string portName = std::string( "RtMidi" ) ) = 0;
+
+  //! Pure virtual getPortList() function.
+  virtual std::list<PortDescriptor> getPortList();
 
   //! Pure virtual getPortCount() function.
   virtual unsigned int getPortCount() = 0;
@@ -247,6 +277,20 @@ class RtMidiIn : public RtMidi
   */
   void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi Input" ) );
 
+  //! Open a MIDI input connection given as string representation of the API dependent port id.
+  /*!
+    \param portId   An API dependent port id must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+  */
+  virtual void openPort( const PortIdType portId, const std::string portName = std::string( "RtMidi" ) ) = 0;
+
+  //! Open a MIDI input connection given by a port descriptor.
+  /*!
+    \param port     A port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+  */
+  virtual void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi" ) ) = 0;
+
   //! Create a virtual input port, with optional name, to allow software connections (OS X, JACK and ALSA only).
   /*!
     This function creates a virtual MIDI input port to which other
@@ -256,8 +300,15 @@ class RtMidiIn : public RtMidi
 
     \param portName An optional name for the application port that is
                     used to connect to portId can be specified.
+
   */
   void openVirtualPort( const std::string portName = std::string( "RtMidi Input" ) );
+
+  //! Return a list of all available ports of the current API.
+  /*!
+    \return This function returns a list of port descriptors.
+  */
+  virtual std::list<PortDescriptor> getPortList();
 
   //! Set a callback function to be invoked for incoming MIDI messages.
   /*!
@@ -476,8 +527,8 @@ class MidiInApi : public MidiApi
 
   // A MIDI structure used internally by the class to store incoming
   // messages.  Each message represents one and only one MIDI message.
-  struct MidiMessage { 
-    std::vector<unsigned char> bytes; 
+  struct MidiMessage {
+    std::vector<unsigned char> bytes;
     double timeStamp;
 
     // Default constructor.

@@ -15,6 +15,7 @@ v2.1.0: (?? 2014)
 - updated OS-X sysex sending mechanism to use normal message sending, which fixes a problem where virtual ports didn't receive sysex messages
 - Windows update to avoid lockups when shutting down while sending/receiving sysex messages (ptarabbia)
 - OS-X fix to avoid empty messages in callbacks when ignoring sysex messages and split sysexes are received (codepainters)
+- ALSA openPort fix to better distinguish sender and receiver (Russell Smyth)
 
 v2.0.1: (26 July 2012)
 - small fixes for problems reported by Chris Arndt (scoping, preprocessor, and include)

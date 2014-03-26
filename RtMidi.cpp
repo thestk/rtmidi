@@ -1490,10 +1490,10 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
     return;
   }
 
-  snd_seq_port_info_t *pinfo;
-  snd_seq_port_info_alloca( &pinfo );
+  snd_seq_port_info_t *src_pinfo;
+  snd_seq_port_info_alloca( &src_pinfo );
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-  if ( portInfo( data->seq, pinfo, SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, (int) portNumber ) == 0 ) {
+  if ( portInfo( data->seq, src_pinfo, SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, (int) portNumber ) == 0 ) {
     std::ostringstream ost;
     ost << "MidiInAlsa::openPort: the 'portNumber' argument (" << portNumber << ") is invalid.";
     errorString_ = ost.str();
@@ -1502,9 +1502,11 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
   }
 
   snd_seq_addr_t sender, receiver;
-  sender.client = snd_seq_port_info_get_client( pinfo );
-  sender.port = snd_seq_port_info_get_port( pinfo );
-  receiver.client = snd_seq_client_id( data->seq );
+  sender.client = snd_seq_port_info_get_client( src_pinfo );
+  sender.port = snd_seq_port_info_get_port( src_pinfo );
+
+  snd_seq_port_info_t *pinfo;
+  snd_seq_port_info_alloca( &pinfo );
   if ( data->vport < 0 ) {
     snd_seq_port_info_set_client( pinfo, 0 );
     snd_seq_port_info_set_port( pinfo, 0 );
@@ -1531,6 +1533,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
     data->vport = snd_seq_port_info_get_port(pinfo);
   }
 
+  receiver.client = snd_seq_port_info_get_client( pinfo );
   receiver.port = data->vport;
 
   if ( !data->subscription ) {

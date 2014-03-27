@@ -2084,7 +2084,7 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
 
   if ( !InitializeCriticalSectionAndSpinCount(&(data->_mutex), 0x00000400) ) {
     errorString_ = "MidiInWinMM::initialize: InitializeCriticalSectionAndSpinCount failed.";
-    error( RtError::WARNING, errorString_ );
+    error( RtMidiError::WARNING, errorString_ );
   }
 }
 
@@ -2160,7 +2160,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
   connected_ = true;
 }
 
-void MidiInWinMM :: openVirtualPort( std::string portName )
+void MidiInWinMM :: openVirtualPort( std::string /*portName*/ )
 {
   // This function cannot be implemented for the Windows MM MIDI API.
   errorString_ = "MidiInWinMM::openVirtualPort: cannot be implemented in Windows MM MIDI API!";
@@ -2346,7 +2346,7 @@ void MidiOutWinMM :: closePort( void )
   }
 }
 
-void MidiOutWinMM :: openVirtualPort( std::string portName )
+void MidiOutWinMM :: openVirtualPort( std::string /*portName*/ )
 {
   // This function cannot be implemented for the Windows MM MIDI API.
   errorString_ = "MidiOutWinMM::openVirtualPort: cannot be implemented in Windows MM MIDI API!";

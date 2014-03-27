@@ -122,7 +122,7 @@ class RtMidi
     UNSPECIFIED,    /*!< Search for a working compiled API. */
     MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
     LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
-    UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
+    UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
     WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
     RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
@@ -224,7 +224,7 @@ class RtMidiIn : public RtMidi
 
     If no API argument is specified and multiple API support has been
     compiled, the default order of use is JACK, ALSA (Linux) and CORE,
-    Jack (OS-X).
+    JACK (OS-X).
 
     \param api        An optional API id can be specified.
     \param clientName An optional Client name can be specified. This
@@ -250,11 +250,11 @@ class RtMidiIn : public RtMidi
   */
   void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi Input" ) );
 
-  //! Create a virtual input port, with optional name, to allow software connections (OS X, Jack and ALSA only).
+  //! Create a virtual input port, with optional name, to allow software connections (OS X, JACK and ALSA only).
   /*!
     This function creates a virtual MIDI input port to which other
     software applications can connect.  This type of functionality
-    is currently only supported by the Macintosh OS-X, any Jack,
+    is currently only supported by the Macintosh OS-X, any JACK,
     and Linux ALSA APIs (the function returns an error for the other APIs).
 
     \param portName An optional name for the applicaction port that is
@@ -359,7 +359,7 @@ class RtMidiOut : public RtMidi
 
     If no API argument is specified and multiple API support has been
     compiled, the default order of use is JACK, ALSA (Linux) and CORE,
-    Jack (OS-X).
+    JACK (OS-X).
   */
   RtMidiOut( RtMidi::Api api=UNSPECIFIED,
              const std::string clientName = std::string( "RtMidi Output Client") );

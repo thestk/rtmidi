@@ -112,6 +112,8 @@ class RtMidiError : public std::exception
 typedef void (*RtMidiErrorCallback)( RtMidiError::Type type, const std::string &errorText );
 
 class MidiApi;
+class RtMidiIn;
+class RtMidiOut;
 
 class RtMidi
 {
@@ -129,16 +131,91 @@ class RtMidi
 
   //! A static function to determine the current RtMidi version.
   static std::string getVersion( void ) throw();
-  //! Define a port Id type.
-  typedef void * PortIdType;
 
   //! A port descriptor type.
+  /*! This will be used with scoped pointers to store system dependent
+   *  data for identifying the port.
+   */
   struct PortDescriptor {
-	  std::string Name; /*!< The Name of the port */
-	  std::string Path; /*!< API dependent path that allows to uniquely identify the port */
-	  PortIdType  id;   /*!< API dependent id of the port */
-	  void *      api;  /*!< API to be called when the port shall be opened */
-  }
+	  //! Flags for formatting a string description of the port.
+	  /*! These flags just mark the requirements that the string
+	    should fulfil. An API may return the same string for
+	    different requirements e.g. the same short and long
+	    name. */
+	  enum NamingType {
+		  SHORT_NAME =0,  /*!< A short human readable name
+                                     depending on the API
+                                     e.g. “Ensoniq AudioPCI” */
+		  LONG_NAME,      /*!< A complete human readable
+                                    name depending on the API
+                                    e.g. "Ensoniq AudioPCI: ES1371" */
+		  SESSION_PATH,   /*!< A unique description that can
+				    be used to identify the port
+				    during runtime. It may be a
+				    cryptic string. */
+		  STORAGE_PATH,   /*!< A unique description that is
+				    optimised for storage in
+				    configuration files. This is a
+				    more textual representation that
+				    is more robust to small changes in
+				    the surrounding environment than
+				    \ref SESSION_PATH */
+		  UNIQUE_NAME = 0x10, /*!< Make all names uniqe. This
+                                         is usually done by adding
+                                         numbers to the end of the
+                                         string */
+		  INCLUDE_API = 0x20 /*!< Add a string describing the
+                                        API at the beginning of the
+                                        string. */
+	  };
+
+	  //! Flags describing the capabilities of a given port.
+	  enum PortCapabilities {
+		  INPUT    = 1,  /*!< Ports that can be read from. */
+		  OUTPUT   = 2,  /*!< Ports that can be written to. */
+		  INOUTPUT = 3   /*!< Ports that allow reading and writing (INPUT | OUTPUT) */
+	  };
+
+	  //! Default constructor.
+	  /*!
+	   * Derived classes should have a constructor.
+	   */
+	  PortIdType() {};
+
+	  //! Get the MIDI api for the current port. 
+	  /*! This is the only information RtMidi needs to know: Which
+	   *  API should handle this object.
+	   * 
+	   * \return API that can handle this object.
+	   */
+	  virtual MidiApi * getAPI() = 0;
+
+	  //! A virtual destructor
+	  /*! As we might have to destruct the object from the application code
+	   *  each port id must have a virtual destructor.
+	   */
+	  virtual ~PortIdType() = 0;
+
+	  //! Return the port name
+	  /*!
+	   * \param flags A description of the requirements of the returned name.
+	   * \return A name that is formatted according to \ref flags.
+	   * \sa NamingTypes
+	   */
+	  virtual std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) = 0;
+	  
+	  //! Get capabilities
+	  /*! \return a capabilities flag describing the capabilities of the port.
+	   *  \sa PortCapabilities
+	   */
+	  virtual int getCapabilities();
+  };
+
+  //! A list of port descriptors.
+  /*! Port descriptors are stored as shared pointers. This avoids
+    unnecessary duplication of the data structure and handles automatic 
+    deletion if all references have been removed. */
+  typedef std::list<std::shared_ptr<PortDescriptor> > PortList;
 
   //! Define a port Id type.
   typedef void * PortIdType;
@@ -163,16 +240,13 @@ class RtMidi
   virtual void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi" ) ) = 0;
 
   //! Pure virtual openPort() function.
-  virtual void openPort( const PortIdType portId, const std::string portName = std::string( "RtMidi" ) ) = 0;
-
-  //! Pure virtual openPort() function.
   virtual void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi" ) ) = 0;
 
   //! Pure virtual openVirtualPort() function.
   virtual void openVirtualPort( const std::string portName = std::string( "RtMidi" ) ) = 0;
 
   //! Pure virtual getPortList() function.
-  virtual std::list<PortDescriptor> getPortList();
+  virtual std::list<PortDescriptor> getPortList(int capabilities = PortDescriptor:: INOUTPUT) = 0;
 
   //! Pure virtual getPortCount() function.
   virtual unsigned int getPortCount() = 0;
@@ -185,6 +259,9 @@ class RtMidi
 
   //! Returns true if a port is open and false if not.
   virtual bool isPortOpen( void ) const = 0;
+
+  //! Returns a port descirptor if the port is open
+  virtual std::scoped_ptr<PortDescriptor> getDescriptor() = 0;
 
   //! Set an error callback function to be invoked when an error has occured.
   /*!
@@ -276,13 +353,6 @@ class RtMidiIn : public RtMidi
   */
   void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi Input" ) );
 
-  //! Open a MIDI input connection given as string representation of the API dependent port id.
-  /*!
-    \param portId   An API dependent port id must be specified.
-    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
-  */
-  virtual void openPort( const PortIdType portId, const std::string portName = std::string( "RtMidi" ) ) = 0;
-
   //! Open a MIDI input connection given by a port descriptor.
   /*!
     \param port     A port descriptor of the port must be specified.
@@ -305,9 +375,12 @@ class RtMidiIn : public RtMidi
 
   //! Return a list of all available ports of the current API.
   /*!
+    \param capabilities an opitonnal parameter that describes which
+    device types are returned.
     \return This function returns a list of port descriptors.
+    \note An API is not required to return all output ports from RtMidiIn.
   */
-  virtual std::list<PortDescriptor> getPortList();
+  virtual std::list<PortDescriptor> getPortList(int capabilities = PortDescriptor:: INPUT);
 
   //! Set a callback function to be invoked for incoming MIDI messages.
   /*!
@@ -334,6 +407,9 @@ class RtMidiIn : public RtMidi
 
   //! Returns true if a port is open and false if not.
   virtual bool isPortOpen() const;
+
+  //! Returns a port descirptor if the port is open
+  virtual std::scoped_ptr<PortDescriptor> getDescriptor() = 0;
 
   //! Return the number of available MIDI input ports.
   /*!
@@ -417,7 +493,7 @@ class RtMidiOut : public RtMidi
   //! Returns the MIDI API specifier for the current instance of RtMidiOut.
   RtMidi::Api getCurrentApi( void ) throw();
 
-  //! Open a MIDI output connection.
+  //! Open a MIDI output connection given by an enumeration number.
   /*!
       An optional port number greater than 0 can be specified.
       Otherwise, the default or first port found is opened.  An
@@ -426,11 +502,12 @@ class RtMidiOut : public RtMidi
   */
   void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi Output" ) );
 
-  //! Close an open MIDI connection (if one exists).
-  void closePort( void );
-
-  //! Returns true if a port is open and false if not.
-  virtual bool isPortOpen() const;
+  //! Open a MIDI output connection given by a port descriptor.
+  /*!
+    \param port     A port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+  */
+  virtual void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi Output" ) ) = 0;
 
   //! Create a virtual output port, with optional name, to allow software connections (OS X, JACK and ALSA only).
   /*!
@@ -442,6 +519,24 @@ class RtMidiOut : public RtMidi
       create the virtual port.
   */
   void openVirtualPort( const std::string portName = std::string( "RtMidi Output" ) );
+
+  //! Close an open MIDI connection (if one exists).
+  void closePort( void );
+
+  //! Returns true if a port is open and false if not.
+  virtual bool isPortOpen() const;
+
+  //! Returns a port descirptor if the port is open
+  virtual std::scoped_ptr<PortDescriptor> getDescriptor() = 0;
+
+  //! Return a list of all available ports of the current API.
+  /*!
+    \param capabilities an opitonnal parameter that describes which
+    device types are returned.
+    \return This function returns a list of port descriptors.
+    \note An API is not required to return all input ports from RtMidiOut.
+  */
+  virtual std::list<PortDescriptor> getPortList(int capabilities = PortDescriptor::OUTPUT);
 
   //! Return the number of available MIDI output ports.
   unsigned int getPortCount( void );

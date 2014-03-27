@@ -225,6 +225,12 @@ class RtMidiIn : public RtMidi
     If no API argument is specified and multiple API support has been
     compiled, the default order of use is JACK, ALSA (Linux) and CORE,
     Jack (OS-X).
+
+    \param api        An optional API id can be specified.
+    \param clientName An optional Client name can be specified. This
+                      will be used to group the ports that are created
+		      by the application.
+    \param queueSizeLimit An optional size of the MIDI input queue can be specified.
   */
   RtMidiIn( RtMidi::Api api=UNSPECIFIED,
             const std::string clientName = std::string( "RtMidi Input Client"),
@@ -236,19 +242,23 @@ class RtMidiIn : public RtMidi
   //! Returns the MIDI API specifier for the current instance of RtMidiIn.
   RtMidi::Api getCurrentApi( void ) throw();
 
-  //! Open a MIDI input connection.
+  //! Open a MIDI input connection given by enumeration number.
   /*!
-    An optional port number greater than 0 can be specified.
+    \param portNumber An optional port number greater than 0 can be specified.
     Otherwise, the default or first port found is opened.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
   */
   void openPort( unsigned int portNumber = 0, const std::string portName = std::string( "RtMidi Input" ) );
 
-  //! Create a virtual input port, with optional name, to allow software connections (OS X and ALSA only).
+  //! Create a virtual input port, with optional name, to allow software connections (OS X, Jack and ALSA only).
   /*!
     This function creates a virtual MIDI input port to which other
     software applications can connect.  This type of functionality
-    is currently only supported by the Macintosh OS-X and Linux ALSA
-    APIs (the function does nothing for the other APIs).
+    is currently only supported by the Macintosh OS-X, any Jack,
+    and Linux ALSA APIs (the function returns an error for the other APIs).
+
+    \param portName An optional name for the applicaction port that is
+           used to connect to portId can be specified.
   */
   void openVirtualPort( const std::string portName = std::string( "RtMidi Input" ) );
 
@@ -258,6 +268,10 @@ class RtMidiIn : public RtMidi
     message is received.  While not absolutely necessary, it is best
     to set the callback function before opening a MIDI port to avoid
     leaving some messages in the queue.
+
+    \param callback A callback function must be given.
+    \param userData Opitionally, a pointer to additional data can be
+           passed to the callback function whenever it is called.
   */
   void setCallback( RtMidiCallback callback, void *userData = 0 );
 
@@ -275,11 +289,15 @@ class RtMidiIn : public RtMidi
   virtual bool isPortOpen() const;
 
   //! Return the number of available MIDI input ports.
+  /*!
+    \return This function returns the number of midi ports of the selected API.
+  */
   unsigned int getPortCount();
 
   //! Return a string identifier for the specified MIDI input port number.
   /*!
-    An empty string is returned if an invalid port specifier is provided.
+    \return The name of the port with the given Id is returned.
+    \retval An empty string is returned if an invalid port specifier is provided.
   */
   std::string getPortName( unsigned int portNumber = 0 );
 

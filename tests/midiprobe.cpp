@@ -61,7 +61,7 @@ int main()
     }
     std::cout << std::endl;
 
-  } catch ( RtError &error ) {
+  } catch ( RtMidiError &error ) {
     error.printMessage();
   }
 

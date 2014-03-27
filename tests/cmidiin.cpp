@@ -60,7 +60,7 @@ int main( int argc, char *argv[] )
     char input;
     std::cin.get(input);
 
-  } catch ( RtError &error ) {
+  } catch ( RtMidiError &error ) {
     error.printMessage();
   }
 

@@ -17,17 +17,19 @@ Where applicable, multiple API support can be compiled and a particular API spec
 
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
 
-\section whatsnew What's New (Version 2.0)
+\section whatsnew What's New (Version 2.1)
+
+A minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.
 
 No incompatable API changes were made in version 2.0, however, support for multiple compiled APIs (where available) was added (see \ref multi).  Other changes include: 1. Added Windows Kernel Streaming support (thanks to Sebastien Alaiwan), though not tested in Visual Studio (and timestamping is not implemented); and 2. Support for the IRIX (SGI) operating system was discontinued.
 
 \section download Download
 
-Latest Release (26 July 2012): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.0.1.tar.gz">Version 2.0.1</A>
+Latest Release (?? January 2014): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.0.tar.gz">Version 2.1.0</A>
 
 \section start Getting Started
 
-The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated.  The following code example demonstrates default object construction and destruction:
+The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtMidiError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated.  The following code example demonstrates default object construction and destruction:
 
 \code
 
@@ -41,7 +43,7 @@ int main()
   try {
     midiin = new RtMidiIn();
   }
-  catch (RtError &error) {
+  catch (RtMidiError &error) {
     // Handle the exception here
     error.printMessage();
   }
@@ -56,10 +58,10 @@ Obviously, this example doesn't demonstrate any of the real functionality of RtM
 
 \section error Error Handling
 
-RtMidi uses a C++ exception handler called RtError, which is declared
-and defined in RtError.h.  The RtError class is quite simple but it
-does allow errors to be "caught" by RtError::Type.  Many RtMidi
-methods can "throw" an RtError, most typically if a driver error
+RtMidi uses a C++ exception handler called RtMidiError, which is declared
+and defined in RtMidi.h.  The RtMidiError class is quite simple but it
+does allow errors to be "caught" by RtMidiError::Type.  Many RtMidi
+methods can "throw" an RtMidiError, most typically if a driver error
 occurs or an invalid function argument is specified.  There are a
 number of cases within RtMidi where warning messages may be displayed
 but an exception is not thrown.  There is a protected RtMidi method,
@@ -68,7 +70,7 @@ are handled and reported.  By default, error messages are not
 automatically displayed in RtMidi unless the preprocessor definition
 __RTMIDI_DEBUG__ is defined during compilation.  Messages associated
 with caught exceptions can be displayed with, for example, the
-RtError::printMessage() function.
+RtMidiError::printMessage() function.
 
 
 \section probing Probing Ports
@@ -91,7 +93,7 @@ int main()
   try {
     midiin = new RtMidiIn();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     exit( EXIT_FAILURE );
   }
@@ -104,7 +106,7 @@ int main()
     try {
       portName = midiin->getPortName(i);
     }
-    catch ( RtError &error ) {
+    catch ( RtMidiError &error ) {
       error.printMessage();
       goto cleanup;
     }
@@ -115,7 +117,7 @@ int main()
   try {
     midiout = new RtMidiOut();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     exit( EXIT_FAILURE );
   }
@@ -127,7 +129,7 @@ int main()
     try {
       portName = midiout->getPortName(i);
     }
-    catch (RtError &error) {
+    catch (RtMidiError &error) {
       error.printMessage();
       goto cleanup;
     }
@@ -385,7 +387,7 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 </TABLE>
 <P>
 
-The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT>, <tt>RtError.h</tt>, and <TT>RtMidi.cpp</TT> all exist in the same directory.
+The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT> and <TT>RtMidi.cpp</TT> all exist in the same directory.
 
 \section debug Debugging
 

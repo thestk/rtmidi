@@ -27,7 +27,7 @@ AC_ARG_ENABLE(debug,
   [AC_SUBST( cppflag, [] ) AC_SUBST( cxxflag, [-O3] ) AC_SUBST( object_path, [Release] ) AC_MSG_RESULT(no)])
 
 # Set paths if prefix is defined
-if test x"$prefix" != x; then
+if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
   LIBS="$LIBS -L$prefix/lib"
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
 fi
@@ -41,7 +41,7 @@ CXXFLAGS="$cxxflag"
 
 # Check compiler and use -Wall if gnu.
 if [test $GXX = "yes" ;] then
-  AC_SUBST( cxxflag, [-Wall] )
+  AC_SUBST( cxxflag, ["-Wall -Wextra"] )
 fi
 
 CXXFLAGS="$CXXFLAGS $cxxflag"

@@ -1,9 +1,21 @@
-RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X (CoreMidi & Jack), and Windows (Multimedia).
+RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X (CoreMidi & Jack), and Windows (Multimedia, Kernel Streaming).
 
-By Gary P. Scavone, 2003-2012
+By Gary P. Scavone, 2003-2014
 
-v2.0.2: (?? 2014)
+v2.1.0: (?? 2014)
+- renamed RtError class to RtMidiError and embedded it in RtMidi.h (and deleted RtError.h)
 - fix to CoreMidi implementation to support dynamic port changes
+- removed global ALSA sequencer objects because they were not thread safe (Martin Koegler)
+- fix for ALSA timing ignore flag (Devin Anderson)
+- fix for ALSA incorrect use of snd_seq_create_port() function (Tobias Schlemmer)
+- fix for international character support in CoreMidi (Martin Finke)
+- fix for unicode conversion in WinMM (Dan Wilcox)
+- added custom error hook that allows the client to capture an RtMidi error outside of the RtMidi code (Pavel Mogilevskiy)
+- added RtMidi::isPortOpen function (Pavel Mogilevskiy)
+- updated OS-X sysex sending mechanism to use normal message sending, which fixes a problem where virtual ports didn't receive sysex messages
+- Windows update to avoid lockups when shutting down while sending/receiving sysex messages (ptarabbia)
+- OS-X fix to avoid empty messages in callbacks when ignoring sysex messages and split sysexes are received (codepainters)
+- ALSA openPort fix to better distinguish sender and receiver (Russell Smyth)
 
 v2.0.1: (26 July 2012)
 - small fixes for problems reported by Chris Arndt (scoping, preprocessor, and include)
@@ -14,7 +26,7 @@ v2.0.0: (18 June 2012)
 - added beta Windows kernel streaming support (thanks to Sebastien Alaiwan)
 - updates to compile as a shared library or dll
 - updated license
-- various memory-leak fixes (thanks to Sebastien Alaiwan and Martin Koegler
+- various memory-leak fixes (thanks to Sebastien Alaiwan and Martin Koegler)
 - fix for continue sysex problem (thanks to Luc Deschenaux)
 - removed SGI (IRIX) support
 

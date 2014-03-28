@@ -2019,9 +2019,9 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     // one or two minutes.
     if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
       //if ( sysex->dwBytesRecorded > 0 ) {
-      EnterCriticalSection( &apiData->_mutex );
+      EnterCriticalSection( &(apiData->_mutex) );
       MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-      LeaveCriticalSection( &apiData->_mutex );
+      LeaveCriticalSection( &(apiData->_mutex) );
       if ( result != MMSYSERR_NOERROR )
         std::cerr << "\nRtMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
 
@@ -2057,11 +2057,11 @@ MidiInWinMM :: MidiInWinMM( const std::string clientName, unsigned int queueSize
 
 MidiInWinMM :: ~MidiInWinMM()
 {
-  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  DeleteCriticalSection( &(data->_mutex) );
-
   // Close a connection if it exists.
   closePort();
+
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  DeleteCriticalSection( &(data->_mutex) );
 
   // Cleanup.
   delete data;
@@ -2172,7 +2172,7 @@ void MidiInWinMM :: closePort( void )
 {
   if ( connected_ ) {
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-    EnterCriticalSection( &data->_mutex );
+    EnterCriticalSection( &(data->_mutex) );
     midiInReset( data->inHandle );
     midiInStop( data->inHandle );
 
@@ -2190,7 +2190,7 @@ void MidiInWinMM :: closePort( void )
 
     midiInClose( data->inHandle );
     connected_ = false;
-    LeaveCriticalSection( &data->_mutex );
+    LeaveCriticalSection( &(data->_mutex) );
   }
 }
 

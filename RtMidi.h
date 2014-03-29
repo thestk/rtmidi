@@ -113,7 +113,8 @@ class RtMidiError : public std::exception
  */
 typedef void (*RtMidiErrorCallback)( RtMidiError::Type type, const std::string &errorText );
 
-class MidiApi {
+class CommonMidiApi {
+public:
 	//! A port descriptor type.
 	/*! This will be used with scoped pointers to store system dependent
 	 *  data for identifying the port.
@@ -220,7 +221,7 @@ class MidiApi {
 		 *
 		 * \return API that can handle this object.
 		 */
-		virtual MidiApi * getAPI() = 0;
+		virtual CommonMidiApi * getAPI() = 0;
 
 		//! Return the port name
 		/*!
@@ -287,7 +288,7 @@ class MidiApi {
 	  output devices which cannot be used as input if
 	  \ref PortDescriptor::OUTPUT is passed as \ref capabilities parameter.
 	*/
-	virtual MidiApi::PortList getPortList(int capabilities = PortDescriptor:: INOUTPUT) = 0;
+	virtual CommonMidiApi::PortList getPortList(int capabilities = PortDescriptor:: INOUTPUT) = 0;
 
 	//! Pure virtual to return the number of available MIDI ports of the current API.
 	/*!
@@ -340,14 +341,15 @@ class MidiApi {
 /*! \class RtMidi
     \brief A global class that implements basic backend API handling.
 
-    This class enhances \ref MidiApi by some functionality to handle
+    This class enhances \ref CommonMidiApi by some functionality to handle
     backend API objects. It serves as base class for the public RtMidi
     API.
 
     by Gary P. Scavone, 2003-2014.
 */
 /**********************************************************************/
-class RtMidi : public MidiApi
+class MidiApi;
+class RtMidi : public CommonMidiApi
 {
  public:
 
@@ -374,11 +376,11 @@ class RtMidi : public MidiApi
   static void getCompiledApi( std::vector<RtMidi::Api> &apis ) throw();
 
  protected:
+  MidiApi *rtapi_;
 
   RtMidi();
   virtual ~RtMidi();
 
-  MidiApi *rtapi_;
 };
 
 /**********************************************************************/
@@ -488,7 +490,7 @@ class RtMidiIn : public RtMidi
 
 =======
   //! Returns a port descirptor if the port is open
-  virtual MidiApi::PortDescriptor::Pointer getDescriptor() = 0;
+  virtual CommonMidiApi::PortDescriptor::Pointer getDescriptor();
 
   //! Return a list of all available input ports of the current API.
   /*!
@@ -497,7 +499,7 @@ class RtMidiIn : public RtMidi
     \return This function returns a list of port descriptors.
     \note An Output API is not required to return all output ports from RtMidiIn.
   */
-  virtual MidiApi::PortList getPortList(int capabilities = PortDescriptor:: INPUT);
+  virtual CommonMidiApi::PortList getPortList(int capabilities = PortDescriptor:: INPUT);
 
   //! Return the number of available MIDI input ports.
   /*!
@@ -639,7 +641,7 @@ class RtMidiOut : public RtMidi
   /*! \return Port descriptor of the currently open port
    *  \retval 0 iff the port s not open
    */
-  virtual MidiApi::PortDescriptor::Pointer getDescriptor() = 0;
+  virtual CommonMidiApi::PortDescriptor::Pointer getDescriptor();
 
   //! Close an open MIDI connection (if one exists).
   void closePort( void );
@@ -654,7 +656,7 @@ class RtMidiOut : public RtMidi
     \return This function returns a list of port descriptors.
     \note An API is not required to return all input ports from RtMidiOut.
   */
-  virtual MidiApi::PortList getPortList(int capabilities = PortDescriptor::OUTPUT);
+  virtual CommonMidiApi::PortList getPortList(int capabilities = PortDescriptor::OUTPUT);
 
   //! Return the number of available MIDI output ports.
   unsigned int getPortCount( void );
@@ -698,7 +700,7 @@ class RtMidiOut : public RtMidi
 //
 // **************************************************************** //
 
-class MidiBackendApi: public MidiApi
+class MidiApi: public CommonMidiApi
 {
  public:
 
@@ -723,7 +725,7 @@ protected:
   RtMidiErrorCallback errorCallback_;
 };
 
-class MidiInApi : public MidiBackendApi
+class MidiInApi : public MidiApi
 {
  public:
 
@@ -782,7 +784,7 @@ class MidiInApi : public MidiBackendApi
   RtMidiInData inputData_;
 };
 
-class MidiOutApi : public MidiBackendApi
+class MidiOutApi : public MidiApi
 {
  public:
 
@@ -841,8 +843,8 @@ class MidiInCore: public MidiInApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -860,8 +862,8 @@ class MidiOutCore: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -884,8 +886,8 @@ class MidiInJack: public MidiInApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -906,8 +908,8 @@ class MidiOutJack: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -929,12 +931,12 @@ class MidiInAlsa: public MidiInApi
  public:
   MidiInAlsa( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInAlsa( void );
-  RtMidi::Api getCurrentApi( void ) { return RtMidi::LINUX_ALSA; };
+  RtMidi::Api getCurrentApi( void ) throw() { return RtMidi::LINUX_ALSA; };
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -948,12 +950,12 @@ class MidiOutAlsa: public MidiOutApi
  public:
   MidiOutAlsa( const std::string clientName );
   ~MidiOutAlsa( void );
-  RtMidi::Api getCurrentApi( void ) { return RtMidi::LINUX_ALSA; };
+  RtMidi::Api getCurrentApi( void ) throw() { return RtMidi::LINUX_ALSA; };
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -976,8 +978,8 @@ class MidiInWinMM: public MidiInApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -995,8 +997,8 @@ class MidiOutWinMM: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -1019,8 +1021,8 @@ class MidiInWinKS: public MidiInApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -1038,8 +1040,8 @@ class MidiOutWinKS: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string portName);
-  MidiApi::PortDescriptor::Pointer getDescriptor();
-  MidiApi::PortList getPortList(int capabilities);
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor();
+  CommonMidiApi::PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
@@ -1065,8 +1067,8 @@ class MidiInDummy: public MidiInApi
   void openPort( unsigned int /*portNumber*/, const std::string /*portName*/ ) {}
   void openVirtualPort( const std::string /*portName*/ ) {}
   void openPort( const PortDescriptor & port, const std::string portName) {}
-  MidiApi::PortDescriptor::Pointer getDescriptor() { return 0; }
-  MidiApi::PortList getPortList(int capabilities) { return MidiApi::PortList(); }
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor() { return 0; }
+  CommonMidiApi::PortList getPortList(int capabilities) { return CommonMidiApi::PortList(); }
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int portNumber ) { return ""; }
@@ -1086,8 +1088,8 @@ class MidiOutDummy: public MidiOutApi
   void openPort( unsigned int /*portNumber*/, const std::string /*portName*/ ) {}
   void openVirtualPort( const std::string /*portName*/ ) {}
   void openPort( const PortDescriptor & port, const std::string portName) {}
-  MidiApi::PortDescriptor::Pointer getDescriptor() { return 0; }
-  MidiApi::PortList getPortList(int capabilities) { return MidiApi::PortList(); }
+  CommonMidiApi::PortDescriptor::Pointer getDescriptor() { return 0; }
+  CommonMidiApi::PortList getPortList(int capabilities) { return CommonMidiApi::PortList(); }
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }

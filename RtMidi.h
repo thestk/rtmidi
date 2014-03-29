@@ -172,7 +172,7 @@ public:
 				ptr->count = 1;
 				ptr->descriptor = p;
 			}
-			Pointer(Pointer &  other):
+			Pointer(const Pointer & other):
 				ptr(other.ptr) {
 				ptr->count++;
 			}
@@ -335,7 +335,7 @@ public:
 	  to set the error callback function before opening a port.
 	*/
 	virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL ) = 0;
-}
+};
 
 /**********************************************************************/
 /*! \class RtMidi
@@ -475,7 +475,7 @@ class RtMidiIn : public RtMidi
     \param port     A port descriptor of the port must be specified.
     \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
   */
-  void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi" ) ) = 0;
+  void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi" ) );
 
 <<<<<<< HEAD
   //! Create a virtual input port, with optional name, to allow software connections (OS X, JACK and ALSA only).
@@ -635,7 +635,7 @@ class RtMidiOut : public RtMidi
     \param port     A port descriptor of the port must be specified.
     \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
   */
-  virtual void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi Output" ) ) = 0;
+  virtual void openPort( const PortDescriptor & port, const std::string portName = std::string( "RtMidi Output" ) );
 
   //! Returns a port descirptor if the port is open
   /*! \return Port descriptor of the currently open port

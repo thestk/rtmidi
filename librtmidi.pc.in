@@ -5,7 +5,7 @@ includedir=${prefix}/include
 
 Name: librtmidi
 Description: RtMidi - a set of C++ classes that provide a common API for realtime MIDI input/output
-Version: 2.0.1
+Version: 2.1.0
 Requires: @req@ 
 Libs: -L${libdir} -lrtmidi
 Libs.private: -lpthread

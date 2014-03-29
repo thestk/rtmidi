@@ -9,7 +9,7 @@ OBJECTS	= RtMidi.o
 LIBNAME = librtmidi
 STATIC = $(LIBNAME).a
 SHARED = @sharedlib@
-RELEASE = 2.0.1
+RELEASE = 2.1.0
 MAJOR = 2
 LIBRARIES = $(STATIC) $(SHARED)
 

@@ -21,11 +21,9 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 A minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.
 
-No incompatable API changes were made in version 2.0, however, support for multiple compiled APIs (where available) was added (see \ref multi).  Other changes include: 1. Added Windows Kernel Streaming support (thanks to Sebastien Alaiwan), though not tested in Visual Studio (and timestamping is not implemented); and 2. Support for the IRIX (SGI) operating system was discontinued.
-
 \section download Download
 
-Latest Release (?? March 2014): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.0.tar.gz">Version 2.1.0</A>
+Latest Release (30 March 2014): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.0.tar.gz">Version 2.1.0</A>
 
 \section start Getting Started
 

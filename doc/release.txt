@@ -2,7 +2,7 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2014
 
-v2.1.0: (?? 2014)
+v2.1.0: (30 March 2014)
 - renamed RtError class to RtMidiError and embedded it in RtMidi.h (and deleted RtError.h)
 - fix to CoreMidi implementation to support dynamic port changes
 - removed global ALSA sequencer objects because they were not thread safe (Martin Koegler)

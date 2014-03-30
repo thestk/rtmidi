@@ -22,7 +22,7 @@
 #endif
 
 bool done;
-static void finish( int ignore ){ done = true; }
+static void finish( int /*ignore*/ ){ done = true; }
 
 void usage( void ) {
   // Error function in case of incorrect command-line

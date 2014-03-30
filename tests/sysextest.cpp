@@ -31,7 +31,7 @@ void usage( void ) {
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidi *rtmidi );
 
-void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
+void mycallback( double deltatime, std::vector< unsigned char > *message, void * /*userData*/ )
 {
   unsigned int nBytes = message->size();
   for ( unsigned int i=0; i<nBytes; i++ )

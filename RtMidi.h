@@ -124,7 +124,6 @@ class RtMidi
     LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
     RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
   };
 
@@ -566,7 +565,7 @@ inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback ) {
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WINDOWS_KS__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -711,43 +710,6 @@ class MidiOutWinMM: public MidiOutApi
   MidiOutWinMM( const std::string clientName );
   ~MidiOutWinMM( void );
   RtMidi::Api getCurrentApi( void ) { return RtMidi::WINDOWS_MM; };
-  void openPort( unsigned int portNumber, const std::string portName );
-  void openVirtualPort( const std::string portName );
-  void closePort( void );
-  unsigned int getPortCount( void );
-  std::string getPortName( unsigned int portNumber );
-  void sendMessage( std::vector<unsigned char> *message );
-
- protected:
-  void initialize( const std::string& clientName );
-};
-
-#endif
-
-#if defined(__WINDOWS_KS__)
-
-class MidiInWinKS: public MidiInApi
-{
- public:
-  MidiInWinKS( const std::string clientName, unsigned int queueSizeLimit );
-  ~MidiInWinKS( void );
-  RtMidi::Api getCurrentApi( void ) { return RtMidi::WINDOWS_KS; };
-  void openPort( unsigned int portNumber, const std::string portName );
-  void openVirtualPort( const std::string portName );
-  void closePort( void );
-  unsigned int getPortCount( void );
-  std::string getPortName( unsigned int portNumber );
-
- protected:
-  void initialize( const std::string& clientName );
-};
-
-class MidiOutWinKS: public MidiOutApi
-{
- public:
-  MidiOutWinKS( const std::string clientName );
-  ~MidiOutWinKS( void );
-  RtMidi::Api getCurrentApi( void ) { return RtMidi::WINDOWS_KS; };
   void openPort( unsigned int portNumber, const std::string portName );
   void openVirtualPort( const std::string portName );
   void closePort( void );

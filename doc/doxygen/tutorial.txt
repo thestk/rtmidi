@@ -4,7 +4,7 @@
 
 \section intro Introduction
 
-RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK), and Windows (Multimedia Library & Kernel Streaming) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK), and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
 <UL>
   <LI>object oriented C++ design</LI>
@@ -19,7 +19,7 @@ MIDI input and output functionality are separated into two classes, RtMidiIn and
 
 \section whatsnew What's New (Version 2.1)
 
-A minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.
+A minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.  The Windows Kernel Streaming support was removed because it was uncompilable and incomplete.
 
 \section download Download
 
@@ -375,13 +375,6 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD><TT>winmm.lib, multithreaded</TT></TD>
   <TD><I>compiler specific</I></TD>
 </TR>
-<TR>
-  <TD>Windows</TD>
-  <TD>Kernel Streaming</TD>
-  <TD>__WINDOWS_KS__</TD>
-  <TD><TT>ks.h, ksmedia.h, setupapi.lib, ksuser.lib, multithreaded</TT></TD>
-  <TD><I>compiler specific</I></TD>
-</TR>
 </TABLE>
 <P>
 
@@ -393,7 +386,7 @@ If you are having problems getting RtMidi to run on your system, try passing the
 
 \section multi Using Simultaneous Multiple APIs
 
-Support for each MIDI API is encapsulated in specific MidiInApi or MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both CoreMIDI and JACK support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any JACK ports are available.  This can be done by specifying the api argument RtMidi::UNIX_JACK when attempting to create an instance of RtMidiIn or RtMidiOut.  If no available ports are found, then an instance of RtMidi with the api argument RtMidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for JACK ports and if none are found, then CoreMIDI ports (in linux, the search order is JACK and then ALSA; in Windows, the search order is WinMM and then WinKS).  In theory, it should also be possible to have separate instances of RtMidi open at the same time with different underlying API support, though this has not been tested.
+Support for each MIDI API is encapsulated in specific MidiInApi or MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both CoreMIDI and JACK support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any JACK ports are available.  This can be done by specifying the api argument RtMidi::UNIX_JACK when attempting to create an instance of RtMidiIn or RtMidiOut.  If no available ports are found, then an instance of RtMidi with the api argument RtMidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for JACK ports and if none are found, then CoreMIDI ports (in linux, the search order is JACK and then ALSA.  In theory, it should also be possible to have separate instances of RtMidi open at the same time with different underlying API support, though this has not been tested.
 
 The static function RtMidi::getCompiledApi() is provided to determine the available compiled API support.  The function RtMidi::getCurrentApi() indicates the API selected for a given RtMidi instance.
 

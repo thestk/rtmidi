@@ -22,6 +22,8 @@ CFLAGS   = @CXXFLAGS@ -Iinclude -fPIC
 
 PREFIX   = @prefix@
 
+.PHONY: tests
+
 all : $(LIBRARIES)
 
 tests:

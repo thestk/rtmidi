@@ -219,8 +219,8 @@ class RtMidiIn : public RtMidi
     incoming messages will be ignored.
 
     If no API argument is specified and multiple API support has been
-    compiled, the default order of use is JACK, ALSA (Linux) and JACK,
-    CORE (OS-X).
+    compiled, the default order of use is ALSA, JACK (Linux) and CORE,
+    JACK (OS-X).
 
     \param api        An optional API id can be specified.
     \param clientName An optional client name can be specified. This
@@ -354,8 +354,8 @@ class RtMidiOut : public RtMidi
     An exception will be thrown if a MIDI system initialization error occurs.
 
     If no API argument is specified and multiple API support has been
-    compiled, the default order of use is JACK, ALSA (Linux) and JACK,
-    CORE (OS-X).
+    compiled, the default order of use is ALSA, JACK (Linux) and CORE,
+    JACK (OS-X).
   */
   RtMidiOut( RtMidi::Api api=UNSPECIFIED,
              const std::string clientName = std::string( "RtMidi Output Client") );

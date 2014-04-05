@@ -2032,7 +2032,42 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string & portNa
 void MidiInAlsa :: openPort( const PortDescriptor & port,
 			     const std::string & portName)
 {
-  abort();
+  AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+  const AlsaPortDescriptor * remote = dynamic_cast<const AlsaPortDescriptor *>(&port);
+
+  if ( !data ) {
+    errorString_ = "MidiInAlsa::openPort: Internal error: data has not been allocated!";
+    error( Error::DRIVER_ERROR, errorString_ );
+    return;
+  }
+  if ( connected_ ) {
+    errorString_ = "MidiInAlsa::openPort: a valid connection already exists!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+  if (data->subscription) {
+    error( Error::DRIVER_ERROR,
+	   "MidiInAlsa::openPort: ALSA error allocation port subscription." );
+    return;
+  }
+  if (!remote) {
+    errorString_ = "MidiInAlsa::openPort: an invalid (i.e. non-ALSA) port descriptor has been passed to openPort!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+
+  if (!data->local.client)
+    data->openPort (SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE,
+		    portName);
+  data->setRemote(remote);
+  data->connectPorts(*remote,data->local);
+
+
+  if ( inputData_.doInput == false ) {
+    inputData_.doInput = data->startQueue(&inputData_);
+  }
+
+  connected_ = true;
 }
 
 Pointer<PortDescriptor> MidiInAlsa :: getDescriptor()
@@ -2041,7 +2076,7 @@ Pointer<PortDescriptor> MidiInAlsa :: getDescriptor()
 }
 PortList MidiInAlsa :: getPortList(int capabilities)
 {
-  abort();
+  return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT);
 }
 
 
@@ -2383,7 +2418,7 @@ Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor()
 }
 PortList MidiOutAlsa :: getPortList(int capabilities)
 {
-  abort();
+  return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT);
 }
 NAMSPACE_RTMIDI_END
 #endif // __LINUX_ALSA__

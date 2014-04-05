@@ -1145,12 +1145,360 @@ namespace rtmidi {
 #include <alsa/asoundlib.h>
 
 namespace rtmidi {
-	// A structure to hold variables related to the ALSA API
-	// implementation.
-	struct AlsaMidiData {
-		snd_seq_t *seq;
-		unsigned int portNum;
-		int vport;
+	struct AlsaMidiData;
+
+	/*! An abstraction layer for the ALSA sequencer layer. It provides
+	  the following functionality:
+	  - dynamic allocation of the sequencer
+	  - optionallay avoid concurrent access to the ALSA sequencer,
+	    which is not thread proof. This feature is controlled by
+	    the parameter \ref locking.
+	*/
+
+	template <int locking=1>
+	class AlsaSequencer {
+	public:
+		AlsaSequencer():seq(0)
+		{
+			if (locking) {
+				pthread_mutexattr_t attr;
+				pthread_mutexattr_init(&attr);
+				pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+				pthread_mutex_init(&mutex, &attr);
+			}
+		}
+
+		AlsaSequencer(const std::string & name):seq(0)
+		{
+			if (locking) {
+				pthread_mutexattr_t attr;
+				pthread_mutexattr_init(&attr);
+				pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+				pthread_mutex_init(&mutex, &attr);
+			}
+			init();
+			{
+				scoped_lock lock(mutex);
+				snd_seq_set_client_name( seq, name.c_str() );
+			}
+		}
+
+		~AlsaSequencer()
+		{
+			if (locking) {
+				pthread_mutex_destroy(&mutex);
+			}
+		}
+
+		std::string GetPortName(int client, int port, int flags) {
+			init();
+			snd_seq_client_info_t *cinfo;
+			snd_seq_client_info_alloca( &cinfo );
+			{
+				scoped_lock lock (mutex);
+				snd_seq_get_any_client_info(seq,client,cinfo);
+			}
+
+			snd_seq_port_info_t *pinfo;
+			snd_seq_port_info_alloca( &pinfo );
+			{
+				scoped_lock lock (mutex);
+				snd_seq_get_any_port_info(seq,client,port,pinfo);
+			}
+
+			int naming = flags & PortDescriptor::NAMING_MASK;
+
+			std::ostringstream os;
+			switch (naming) {
+			case PortDescriptor::SESSION_PATH:
+				if (flags & PortDescriptor::INCLUDE_API)
+					os << "ALSA:";
+				os << client << ":" << port;
+				break;
+			case PortDescriptor::STORAGE_PATH:
+				if (flags & PortDescriptor::INCLUDE_API)
+					os << "ALSA:";
+				os << snd_seq_client_info_get_name(cinfo);
+				os << ":";
+				os << snd_seq_port_info_get_name(pinfo);
+				if (flags & PortDescriptor::UNIQUE_NAME)
+					os << ";" << client << ":" << port;
+				break;
+			case PortDescriptor::LONG_NAME:
+				os << snd_seq_client_info_get_name( cinfo );
+				if (flags & PortDescriptor::UNIQUE_NAME) {
+					os << " " << client;
+				}
+				os << ":";
+				if (flags & PortDescriptor::UNIQUE_NAME) {
+					os << port;
+				}
+
+				os << " " << snd_seq_port_info_get_name(pinfo);
+				if (flags & PortDescriptor::INCLUDE_API)
+					os << " (ALSA)";
+				break;
+			case PortDescriptor::SHORT_NAME:
+			default:
+				os << snd_seq_client_info_get_name( cinfo );
+				if (flags & PortDescriptor::UNIQUE_NAME) {
+					os << " ";
+					os << client;
+				}
+				os << ":" << port;
+				if (flags & PortDescriptor::INCLUDE_API)
+					os << " (ALSA)";
+
+				break;
+			}
+			return os.str();
+		}
+
+		int getPortCapabilities(int client, int port) {
+			snd_seq_port_info_t *pinfo;
+			snd_seq_port_info_alloca( &pinfo );
+			{
+				scoped_lock lock (mutex);
+				snd_seq_get_any_port_info(seq,client,port,pinfo);
+			}
+			unsigned int caps = snd_seq_port_info_get_capability(pinfo);
+			int retval = (caps & (SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ))?
+				PortDescriptor::INPUT:0;
+			if (caps & (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
+				retval |= PortDescriptor::OUTPUT;
+			return retval;
+		}
+
+		int getNextClient(snd_seq_client_info_t * cinfo ) {
+			init();
+			scoped_lock lock (mutex);
+			return snd_seq_query_next_client (seq, cinfo);
+		}
+		int getNextPort(snd_seq_port_info_t * pinfo ) {
+			init();
+			scoped_lock lock (mutex);
+			return snd_seq_query_next_port (seq, pinfo);
+		}
+
+		int createPort (snd_seq_port_info_t *pinfo) {
+			init();
+			scoped_lock lock (mutex);
+			return snd_seq_create_port(seq, pinfo);
+		}
+
+		void deletePort(int port) {
+			init();
+			scoped_lock lock (mutex);
+			snd_seq_delete_port( seq, port );
+		}
+
+		snd_seq_port_subscribe_t * connectPorts(const snd_seq_addr_t & from,
+							const snd_seq_addr_t & to) {
+			init();
+			snd_seq_port_subscribe_t *subscription;
+
+			if (snd_seq_port_subscribe_malloc( &subscription ) < 0) {
+				throw Error("MidiInAlsa::openPort: ALSA error allocation port subscription.",
+					    Error::DRIVER_ERROR );
+				return 0;
+			}
+			snd_seq_port_subscribe_set_sender(subscription, &from);
+			snd_seq_port_subscribe_set_dest(subscription, &to);
+			{
+				scoped_lock lock (mutex);
+				if ( snd_seq_subscribe_port(seq, subscription) ) {
+					snd_seq_port_subscribe_free( subscription );
+					subscription = 0;
+					throw Error("MidiInAlsa::openPort: ALSA error making port connection.",
+						    Error::DRIVER_ERROR);
+					return 0;
+				}
+				return subscription;
+			}
+		}
+
+		void closePort(snd_seq_port_subscribe_t * subscription ) {
+			init();
+			scoped_lock lock(mutex);
+			snd_seq_unsubscribe_port( seq, subscription );
+		}
+
+		void startQueue(int queue_id) {
+			init();
+			scoped_lock lock(mutex);
+			snd_seq_start_queue( seq, queue_id, NULL );
+			snd_seq_drain_output( seq );
+		}
+
+		/*! Use AlsaSequencer like a C pointer.
+		  \note This function breaks the design to control thread safety
+		  by the selection of the \ref locking parameter to the class.
+		  It should be removed as soon as possible in order ensure the
+		  thread policy that has been intended by creating this class.
+		*/
+		operator snd_seq_t * ()
+		{
+			return seq;
+		}
+	protected:
+		struct scoped_lock {
+			pthread_mutex_t * mutex;
+			scoped_lock(pthread_mutex_t & m): mutex(&m)
+			{
+				if (locking)
+					pthread_mutex_lock(mutex);
+			}
+			~scoped_lock()
+			{
+				if (locking)
+					pthread_mutex_unlock(mutex);
+			}
+		};
+		pthread_mutex_t mutex;
+		snd_seq_t * seq;
+
+
+		snd_seq_client_info_t * GetClient(int id) {
+			init();
+			snd_seq_client_info_t * cinfo;
+			scoped_lock lock(mutex);
+			snd_seq_get_any_client_info(seq,id,cinfo);
+			return cinfo;
+		}
+
+		void init()
+		{
+			init (seq);
+		}
+
+		void init(snd_seq_t * &s)
+		{
+			if (s) return;
+			{
+				scoped_lock lock(mutex);
+				int result = snd_seq_open(&s, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
+				if ( result < 0 ) {
+					throw Error( "MidiInAlsa::initialize: error creating ALSA sequencer client object.",
+						     Error::DRIVER_ERROR );
+					return;
+				}
+			}
+		}
+	};
+	typedef AlsaSequencer<1> LockingAlsaSequencer;
+	typedef AlsaSequencer<0> NonLockingAlsaSequencer;
+
+	struct AlsaPortDescriptor:public PortDescriptor,
+				  public snd_seq_addr_t
+	{
+		MidiApi * api;
+		static LockingAlsaSequencer seq;
+		AlsaPortDescriptor():api(0)
+		{
+			client = 0;
+			port   = 0;
+		}
+		AlsaPortDescriptor(int c, int p):api(0)
+		{
+			client = c;
+			port   = p;
+		}
+		~AlsaPortDescriptor() {}
+		MidiApi * getAPI() {
+			return NULL;
+		}
+		std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+			return seq.GetPortName(client,port,flags);
+		}
+		int getCapabilities() {
+			return seq.getPortCapabilities(client,port);
+		}
+		static PortList getPortList(int capabilities);
+	};
+
+	LockingAlsaSequencer AlsaPortDescriptor::seq;
+
+
+
+	PortList AlsaPortDescriptor :: getPortList(int capabilities)
+	{
+		PortList list;
+		snd_seq_client_info_t *cinfo;
+		snd_seq_port_info_t *pinfo;
+		int client;
+		snd_seq_client_info_alloca( &cinfo );
+		snd_seq_port_info_alloca( &pinfo );
+
+		snd_seq_client_info_set_client( cinfo, -1 );
+		while ( seq.getNextClient(cinfo ) >= 0 ) {
+			client = snd_seq_client_info_get_client( cinfo );
+			// ignore default device (it is included in the following results again)
+			if ( client == 0 ) continue;
+			// Reset query info
+			snd_seq_port_info_set_client( pinfo, client );
+			snd_seq_port_info_set_port( pinfo, -1 );
+			while ( seq.getNextPort( pinfo ) >= 0 ) {
+				unsigned int atyp = snd_seq_port_info_get_type( pinfo );
+				// otherwise we get ports without any
+				if ( !(capabilities & UNLIMITED) &&
+				    !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC ) ) continue;
+				unsigned int caps = snd_seq_port_info_get_capability( pinfo );
+				if (capabilities & INPUT) {
+					/* we need both READ and SUBS_READ */
+					if ((caps & (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
+					    != (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
+						continue;
+				}
+				if (capabilities & OUTPUT) {
+					/* we need both WRITE and SUBS_WRITE */
+					if ((caps & (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
+					    != (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
+						continue;
+				}
+				list.push_back(new AlsaPortDescriptor(client,snd_seq_port_info_get_port(pinfo)));
+			}
+		}
+		return list;
+	}
+
+	static void *alsaMidiHandler( void *ptr );
+
+
+	/*! A structure to hold variables related to the ALSA API
+	  implementation.
+
+	  \note After all sequencer handling is covered by the \ref
+	  AlsaSequencer class, we should make seq to be a pointer in order
+	  to allow a common client implementation.
+	*/
+
+	struct AlsaMidiData:public AlsaPortDescriptor {
+		AlsaMidiData():seq() {
+			init();
+		}
+		AlsaMidiData(const std::string &clientName):seq(clientName) {
+			init();
+		}
+		~AlsaMidiData() {
+			if (local.client)
+				deletePort();
+		}
+		void init () {
+			local.port   = 0;
+			local.client = 0;
+			port = -1;
+			subscription = 0;
+			coder = 0;
+			bufferSize = 32;
+			buffer = 0;
+			dummy_thread_id = pthread_self();
+			thread = dummy_thread_id;
+			trigger_fds[0] = -1;
+			trigger_fds[1] = -1;
+		}
+		snd_seq_addr_t local; /*!< Our port and client id. If client = 0 (default) this means we didn't aquire a port so far. */
+		NonLockingAlsaSequencer seq;
+		//		unsigned int portNum;
 		snd_seq_port_subscribe_t *subscription;
 		snd_midi_event_t *coder;
 		unsigned int bufferSize;
@@ -1160,6 +1508,87 @@ namespace rtmidi {
 		unsigned long long lastTime;
 		int queue_id; // an input queue is needed to get timestamped events
 		int trigger_fds[2];
+
+		void setRemote(const AlsaPortDescriptor * remote) {
+			port   = remote->port;
+			client = remote->client;
+		}
+		void connectPorts(const snd_seq_addr_t &from,
+				  const snd_seq_addr_t &to) {
+			subscription = seq.connectPorts(from, to);
+		}
+
+		int openPort(int alsaCapabilities,
+			     const std::string & portName) {
+			if (subscription) {
+				api->error( Error::DRIVER_ERROR,
+				       "MidiInAlsa::openPort: ALSA error allocation port subscription." );
+				return -99;
+			}
+
+			snd_seq_port_info_t *pinfo;
+			snd_seq_port_info_alloca( &pinfo );
+
+			snd_seq_port_info_set_client( pinfo, 0 );
+			snd_seq_port_info_set_port( pinfo, 0 );
+			snd_seq_port_info_set_capability( pinfo,
+							  alsaCapabilities);
+			snd_seq_port_info_set_type( pinfo,
+						    SND_SEQ_PORT_TYPE_MIDI_GENERIC |
+						    SND_SEQ_PORT_TYPE_APPLICATION );
+			snd_seq_port_info_set_midi_channels(pinfo, 16);
+#ifndef AVOID_TIMESTAMPING
+			snd_seq_port_info_set_timestamping(pinfo, 1);
+			snd_seq_port_info_set_timestamp_real(pinfo, 1);
+			snd_seq_port_info_set_timestamp_queue(pinfo, queue_id);
+#endif
+			snd_seq_port_info_set_name(pinfo,  portName.c_str() );
+			int createok = seq.createPort(pinfo);
+
+			if ( createok < 0 ) {
+				api->error( Error::DRIVER_ERROR,
+					    "MidiInAlsa::openPort: ALSA error creating input port." );
+				return createok;
+			}
+
+			local.client = snd_seq_port_info_get_client( pinfo );
+			local.port   = snd_seq_port_info_get_port(pinfo);
+			return 0;
+		}
+
+		void deletePort() {
+			seq.deletePort(local.port);
+			local.client = 0;
+			local.port   = 0;
+		}
+
+		void closePort() {
+			seq.closePort(subscription );
+			snd_seq_port_subscribe_free( subscription );
+			subscription = 0;
+		}
+
+		bool startQueue(void * userdata) {
+			// Start the input queue
+#ifndef AVOID_TIMESTAMPING
+			seq.startQueue(queue_id);
+#endif
+			// Start our MIDI input thread.
+			pthread_attr_t attr;
+			pthread_attr_init(&attr);
+			pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+			pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+
+			int err = pthread_create(&thread, &attr, alsaMidiHandler, userdata);
+			pthread_attr_destroy(&attr);
+			if ( err ) {
+				closePort();
+				api->error( Error::THREAD_ERROR,
+					    "MidiInAlsa::openPort: error starting MIDI input thread!" );
+				return false;
+			}
+			return true;
+		}
 	};
 
 #define PORT_TYPE( pinfo, bits ) ((snd_seq_port_info_get_capability(pinfo) & (bits)) == (bits))

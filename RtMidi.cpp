@@ -1854,7 +1854,7 @@ namespace rtmidi {
 
 		// Create the input queue
 #ifndef AVOID_TIMESTAMPING
-		data->queue_id = snd_seq_alloc_named_queue(seq, "Midi Queue");
+		data->queue_id = snd_seq_alloc_named_queue(data->seq, "Midi Queue");
 		// Set arbitrary tempo (mm=100) and resolution (240)
 		snd_seq_queue_tempo_t *qtempo;
 		snd_seq_queue_tempo_alloca(&qtempo);
@@ -1932,7 +1932,7 @@ namespace rtmidi {
 		return stringName;
 	}
 
-	void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName )
+	void MidiInAlsa :: openPort( unsigned int portNumber, const std::string & portName )
 	{
 		if ( connected_ ) {
 			errorString_ = "MidiInAlsa::openPort: a valid connection already exists!";
@@ -2041,7 +2041,7 @@ namespace rtmidi {
 	}
 
 	void MidiInAlsa :: openPort( const PortDescriptor & port,
-				     const std::string portName = std::string( "RtMidi" ) )
+				     const std::string & portName)
 	{
 		abort();
 	}
@@ -2248,7 +2248,7 @@ namespace rtmidi {
 		return stringName;
 	}
 
-	void MidiOutAlsa :: openPort( unsigned int portNumber, const std::string portName )
+	void MidiOutAlsa :: openPort( unsigned int portNumber, const std::string & portName )
 	{
 		if ( connected_ ) {
 			errorString_ = "MidiOutAlsa::openPort: a valid connection already exists!";
@@ -2384,7 +2384,7 @@ namespace rtmidi {
 	}
 
 	void MidiOutAlsa :: openPort( const PortDescriptor & port,
-                                      const std::string portName)
+                                      const std::string & portName)
 	{
 		abort();
 	}

@@ -955,7 +955,8 @@ public:
     }
     if (rtapi_)
       static_cast<MidiOutApi *>(rtapi_)->sendMessage(*message);
-    error( Error::WARNING, "MidiOut::sendMessage: The API has not been set.");
+    else
+      error( Error::WARNING, "MidiOut::sendMessage: The API has not been set.");
   }
 
 

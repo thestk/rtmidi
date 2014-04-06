@@ -1293,7 +1293,7 @@ namespace rtmidi {
 		}
 
 		snd_seq_port_subscribe_t * connectPorts(const snd_seq_addr_t & from,
-							const snd_seq_addr_t & to, 
+							const snd_seq_addr_t & to,
 							bool real_time) {
 			init();
 			snd_seq_port_subscribe_t *subscription;
@@ -2077,7 +2077,7 @@ namespace rtmidi {
 			data->openPort (SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE,
 					portName);
 		data->setRemote(remote);
-		data->connectPorts(*remote,data->local);
+		data->connectPorts(*remote,data->local,false);
 
 
 		if ( inputData_.doInput == false ) {
@@ -2206,7 +2206,7 @@ namespace rtmidi {
 
 		// Cleanup.
 		AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-		if ( data->local.port >= 0 ) snd_seq_delete_port( data->seq, data->local.port );
+		if ( data->local.client > 0 ) snd_seq_delete_port( data->seq, data->local.port );
 		if ( data->coder ) snd_midi_event_free( data->coder );
 		if ( data->buffer ) free( data->buffer );
 		snd_seq_close( data->seq );
@@ -2315,23 +2315,22 @@ namespace rtmidi {
 			return;
 		}
 
-		snd_seq_addr_t sender, receiver;
-		receiver.client = snd_seq_port_info_get_client( pinfo );
-		receiver.port = snd_seq_port_info_get_port( pinfo );
-		sender.client = snd_seq_client_id( data->seq );
+		data->client = snd_seq_port_info_get_client( pinfo );
+		data->port = snd_seq_port_info_get_port( pinfo );
+		data->local.client = snd_seq_client_id( data->seq );
 
-		if ( data->local.port < 0 ) {
-			data->local.port = snd_seq_create_simple_port( data->seq, portName.c_str(),
-								  SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-								  SND_SEQ_PORT_TYPE_MIDI_GENERIC|SND_SEQ_PORT_TYPE_APPLICATION );
-			if ( data->local.port < 0 ) {
+		if ( !data->local.client ) {
+			int port = snd_seq_create_simple_port( data->seq, portName.c_str(),
+							       SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
+							       SND_SEQ_PORT_TYPE_MIDI_GENERIC|SND_SEQ_PORT_TYPE_APPLICATION );
+			if ( port < 0 ) {
 				errorString_ = "MidiOutAlsa::openPort: ALSA error creating output port.";
 				error( Error::DRIVER_ERROR, errorString_ );
 				return;
 			}
-		}
 
-		sender.port = data->local.port;
+			data->local.port   = port;
+		}
 
 		// Make subscription
 		if (snd_seq_port_subscribe_malloc( &data->subscription ) < 0) {
@@ -2340,8 +2339,8 @@ namespace rtmidi {
 			error( Error::DRIVER_ERROR, errorString_ );
 			return;
 		}
-		snd_seq_port_subscribe_set_sender(data->subscription, &sender);
-		snd_seq_port_subscribe_set_dest(data->subscription, &receiver);
+		snd_seq_port_subscribe_set_sender(data->subscription, data);
+		snd_seq_port_subscribe_set_dest(data->subscription, &data->local);
 		snd_seq_port_subscribe_set_time_update(data->subscription, 1);
 		snd_seq_port_subscribe_set_time_real(data->subscription, 1);
 		if ( snd_seq_subscribe_port(data->seq, data->subscription) ) {
@@ -2367,15 +2366,17 @@ namespace rtmidi {
 	void MidiOutAlsa :: openVirtualPort( std::string portName )
 	{
 		AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-		if ( data->local.port < 0 ) {
-			data->local.port = snd_seq_create_simple_port( data->seq, portName.c_str(),
-								  SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-								  SND_SEQ_PORT_TYPE_MIDI_GENERIC|SND_SEQ_PORT_TYPE_APPLICATION );
+		if ( !data->local.client ) {
+			int port = snd_seq_create_simple_port( data->seq, portName.c_str(),
+							       SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
+							       SND_SEQ_PORT_TYPE_MIDI_GENERIC|SND_SEQ_PORT_TYPE_APPLICATION );
 
-			if ( data->local.port < 0 ) {
+			if ( port < 0 ) {
 				errorString_ = "MidiOutAlsa::openVirtualPort: ALSA error creating virtual port.";
 				error( Error::DRIVER_ERROR, errorString_ );
 			}
+			data->local.port   = port;
+			data->local.client = snd_seq_client_id(data->seq);
 		}
 	}
 

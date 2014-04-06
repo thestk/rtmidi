@@ -1282,7 +1282,8 @@ public:
   }
 
   snd_seq_port_subscribe_t * connectPorts(const snd_seq_addr_t & from,
-					  const snd_seq_addr_t & to) {
+					  const snd_seq_addr_t & to, 
+					  bool real_time) {
     init();
     snd_seq_port_subscribe_t *subscription;
 
@@ -1293,6 +1294,10 @@ public:
     }
     snd_seq_port_subscribe_set_sender(subscription, &from);
     snd_seq_port_subscribe_set_dest(subscription, &to);
+    if (real_time) {
+      snd_seq_port_subscribe_set_time_update(subscription, 1);
+      snd_seq_port_subscribe_set_time_real(subscription, 1);
+    }
     {
       scoped_lock lock (mutex);
       if ( snd_seq_subscribe_port(seq, subscription) ) {
@@ -1302,8 +1307,8 @@ public:
 		    Error::DRIVER_ERROR);
 	return 0;
       }
-      return subscription;
     }
+    return subscription;
   }
 
   void closePort(snd_seq_port_subscribe_t * subscription ) {
@@ -1503,8 +1508,9 @@ struct AlsaMidiData:public AlsaPortDescriptor {
     client = remote->client;
   }
   void connectPorts(const snd_seq_addr_t &from,
-		    const snd_seq_addr_t &to) {
-    subscription = seq.connectPorts(from, to);
+		    const snd_seq_addr_t &to,
+		    bool real_time) {
+    subscription = seq.connectPorts(from, to, real_time);
   }
 
   int openPort(int alsaCapabilities,
@@ -2410,11 +2416,46 @@ void MidiOutAlsa :: sendMessage( std::vector<unsigned char> &message )
 void MidiOutAlsa :: openPort( const PortDescriptor & port,
 			      const std::string & portName)
 {
-  abort();
+  AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+  const AlsaPortDescriptor * remote = dynamic_cast<const AlsaPortDescriptor *>(&port);
+
+  if ( !data ) {
+    errorString_ = "MidiOutAlsa::openPort: Internal error: data has not been allocated!";
+    error( Error::DRIVER_ERROR, errorString_ );
+    return;
+  }
+  if ( connected_ ) {
+    errorString_ = "MidiOutAlsa::openPort: a valid connection already exists!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+  if (data->subscription) {
+    error( Error::DRIVER_ERROR,
+	   "MidiOutAlsa::openPort: ALSA error allocation port subscription." );
+    return;
+  }
+  if (!remote) {
+    errorString_ = "MidiOutAlsa::openPort: an invalid (i.e. non-ALSA) port descriptor has been passed to openPort!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+
+  if (!data->local.client)
+    data->openPort (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ,
+		    portName);
+  data->setRemote(remote);
+  data->connectPorts(data->local,*remote,true);
+
+  connected_ = true;
 }
 Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor()
 {
   abort();
+}
+PortList MidiOutAlsa :: getPortList(int capabilities)
+{
+  return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT);
+}
 }
 PortList MidiOutAlsa :: getPortList(int capabilities)
 {

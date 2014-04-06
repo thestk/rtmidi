@@ -4,7 +4,7 @@
 RM = /bin/rm
 LN = /bin/ln
 
-OBJECTS	= RtMidi.o
+OBJECTS	= @top_srcdir@/RtMidi.o
 
 LIBNAME = librtmidi
 STATIC = $(LIBNAME).a

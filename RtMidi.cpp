@@ -1168,7 +1168,7 @@ namespace rtmidi {
 			}
 		}
 
-		AlsaSequencer(const std::string & name):seq(0)
+		AlsaSequencer(const std::string & n):seq(0),name(n)
 		{
 			if (locking) {
 				pthread_mutexattr_t attr;
@@ -1188,6 +1188,13 @@ namespace rtmidi {
 			if (locking) {
 				pthread_mutex_destroy(&mutex);
 			}
+		}
+
+		bool setName(const std::string & n) {
+			/* we don't want to rename the client after opening it. */
+			if (seq) return false;
+			name = n;
+			return true;
 		}
 
 		std::string GetPortName(int client, int port, int flags) {
@@ -1255,6 +1262,7 @@ namespace rtmidi {
 		}
 
 		int getPortCapabilities(int client, int port) {
+			init();
 			snd_seq_port_info_t *pinfo;
 			snd_seq_port_info_alloca( &pinfo );
 			{
@@ -1361,6 +1369,7 @@ namespace rtmidi {
 		};
 		pthread_mutex_t mutex;
 		snd_seq_t * seq;
+		std::string name;
 
 
 		snd_seq_client_info_t * GetClient(int id) {
@@ -1387,6 +1396,7 @@ namespace rtmidi {
 						     Error::DRIVER_ERROR );
 					return;
 				}
+				snd_seq_set_client_name( seq, name.c_str() );
 			}
 		}
 	};
@@ -1398,34 +1408,56 @@ namespace rtmidi {
 	{
 		MidiApi * api;
 		static LockingAlsaSequencer seq;
-		AlsaPortDescriptor():api(0)
+		AlsaPortDescriptor(const std::string & name):api(0),clientName(name)
 		{
 			client = 0;
 			port   = 0;
 		}
-		AlsaPortDescriptor(int c, int p):api(0)
+		AlsaPortDescriptor(int c, int p, const std::string & name):api(0),clientName(name)
 		{
 			client = c;
 			port   = p;
+			seq.setName(name);
+		}
+		AlsaPortDescriptor(snd_seq_addr_t & other,
+				   const std::string & name):snd_seq_addr_t(other),
+							     clientName(name) {
+			seq.setName(name);
 		}
 		~AlsaPortDescriptor() {}
-		MidiApi * getAPI() {
-			return NULL;
+		MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+			if (getCapabilities() & INPUT)
+				return new MidiInAlsa(clientName,queueSizeLimit);
+			else
+				return 0;
+		}
+		MidiOutApi * getOutputApi() {
+			if (getCapabilities() & OUTPUT)
+				return new MidiOutAlsa(clientName);
+			else
+				return 0;
 		}
 		std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
 			return seq.GetPortName(client,port,flags);
 		}
+
+		const std::string & getClientName() {
+			return clientName;
+		}
 		int getCapabilities() {
+			if (!client) return 0;
 			return seq.getPortCapabilities(client,port);
 		}
-		static PortList getPortList(int capabilities);
+		static PortList getPortList(int capabilities, const std::string & clientName);
+	protected:
+		std::string clientName;
 	};
 
 	LockingAlsaSequencer AlsaPortDescriptor::seq;
 
 
 
-	PortList AlsaPortDescriptor :: getPortList(int capabilities)
+	PortList AlsaPortDescriptor :: getPortList(int capabilities, const std::string & clientName)
 	{
 		PortList list;
 		snd_seq_client_info_t *cinfo;
@@ -1460,7 +1492,7 @@ namespace rtmidi {
 					    != (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
 						continue;
 				}
-				list.push_back(new AlsaPortDescriptor(client,snd_seq_port_info_get_port(pinfo)));
+				list.push_back(new AlsaPortDescriptor(client,snd_seq_port_info_get_port(pinfo),clientName));
 			}
 		}
 		return list;
@@ -1478,13 +1510,19 @@ namespace rtmidi {
 	*/
 
 	struct AlsaMidiData:public AlsaPortDescriptor {
-		AlsaMidiData():seq() {
+		/*
+		AlsaMidiData():seq()
+		{
 			init();
 		}
-		AlsaMidiData(const std::string &clientName):seq(clientName) {
+		*/
+		AlsaMidiData(const std::string &clientName):AlsaPortDescriptor(clientName),
+							    seq(clientName)
+		{
 			init();
 		}
-		~AlsaMidiData() {
+		~AlsaMidiData()
+		{
 			if (local.client)
 				deletePort();
 		}
@@ -1796,7 +1834,8 @@ namespace rtmidi {
 		return 0;
 	}
 
-	MidiInAlsa :: MidiInAlsa( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
+	MidiInAlsa :: MidiInAlsa( const std::string clientName,
+				  unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 	{
 		initialize( clientName );
 	}
@@ -2087,13 +2126,25 @@ namespace rtmidi {
 		connected_ = true;
 	}
 
-	Pointer<PortDescriptor> MidiInAlsa :: getDescriptor()
+	Pointer<PortDescriptor> MidiInAlsa :: getDescriptor(bool local)
 	{
-		abort();
+		AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+		if (local) {
+			if (data && data->local.client) {
+				return new AlsaPortDescriptor(data->local,data->getClientName());
+			}
+		} else {
+			if (data && data->client) {
+				return new AlsaPortDescriptor(*data,data->getClientName());
+			}
+		}
+		return NULL;
 	}
 	PortList MidiInAlsa :: getPortList(int capabilities)
 	{
-		return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT);
+		AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+		return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
+						       data->getClientName());
 	}
 
 
@@ -2460,13 +2511,25 @@ namespace rtmidi {
 
 		connected_ = true;
 	}
-	Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor()
+	Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor(bool local)
 	{
-		abort();
+		AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+		if (local) {
+			if (data && data->local.client) {
+				return new AlsaPortDescriptor(data->local, data->getClientName());
+			}
+		} else {
+			if (data && data->client) {
+				return new AlsaPortDescriptor(*data, data->getClientName());
+			}
+		}
+		return NULL;
 	}
 	PortList MidiOutAlsa :: getPortList(int capabilities)
 	{
-		return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT);
+		AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+		return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT,
+						       data->getClientName());
 	}
 }
 #endif // __LINUX_ALSA__

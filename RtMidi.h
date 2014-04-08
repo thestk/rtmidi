@@ -224,6 +224,8 @@ typedef std::shared_ptr<T> Pointer;
 #endif
 
 class MidiApi;
+class MidiInApi;
+class MidiOutApi;
 
 struct PortDescriptor {
   //! Flags for formatting a string description of the port.
@@ -284,13 +286,27 @@ struct PortDescriptor {
    */
   virtual ~PortDescriptor() {};
 
-  //! Get the MIDI api for the current port.
+  //! Get the MIDI input api for the current port.
   /*! This is the only information RtMidi needs to know: Which
-   *  API should handle this object.
+   *  API should handle this object. This can be used to get
+   *  an API which can send data to the given port.
    *
-   * \return API that can handle this object.
+   * \param queueSizeLimit The limit of the midi queue. This parameter is handled by
+   * the constructor of the backend API.
+   *
+   * \return API that can use this object to connect to an input port or 0
+   * if no input API can be created.
    */
-  virtual MidiApi * getAPI() = 0;
+  virtual MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) = 0;
+
+  //! Get the MIDI output api for the current port.
+  /*! This is the only information RtMidi needs to know: Which
+   *  API should handle this object. This can be used to get
+   *  an API which can receive data from the given port.
+   *
+   * \return API that can use this object to connect to an output port.
+   */
+  virtual MidiOutApi * getOutputApi() = 0;
 
   //! Return the port name
   /*!
@@ -380,8 +396,14 @@ public:
     openPort(*p, portName);
   }
 
-  //! Pure virtual function to return a port descirptor if the port is open
-  virtual Pointer<PortDescriptor> getDescriptor() = 0;
+  //! Pure virtual function to return a port descriptor if the port is open
+  /*! This function returns a port descriptor that can be used to open another port
+    either to the connected port or – if the backend supports it – the connecting port.
+    \param local The parameter local defines whether the function returns a descriptor to
+    the virtual port (true) or the remote port (false). The function returns 0 if the
+    port cannot be determined (e.g. if the port is not connected or the backend dosen't support it).
+  */
+  virtual Pointer<PortDescriptor> getDescriptor(bool local=false) = 0;
 
   //! Pure virtual function to return a list of all available ports of the current API.
   /*!
@@ -465,7 +487,7 @@ public:
 
   MidiInApi( unsigned int queueSizeLimit );
   virtual ~MidiInApi( void );
-  void setCallback( MidiCallback callback, void *userData );
+  void setCallback( MidiCallback callback, void *userData = 0 );
   void cancelCallback( void );
   virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
   RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ))
@@ -644,9 +666,9 @@ public:
   }
 
   //! Pure virtual function to return a port descirptor if the port is open
-  Pointer<PortDescriptor> getDescriptor()
+  Pointer<PortDescriptor> getDescriptor(bool local=false)
   {
-    if (rtapi_) return rtapi_->getDescriptor();
+    if (rtapi_) return rtapi_->getDescriptor(local);
     return 0;
   }
 
@@ -996,7 +1018,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1015,7 +1037,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1039,7 +1061,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1061,7 +1083,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1088,7 +1110,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1107,7 +1129,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1131,7 +1153,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1150,7 +1172,7 @@ public:
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
-  Pointer<PortDescriptor> getDescriptor();
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
   PortList getPortList(int capabilities);
   void closePort( void );
   unsigned int getPortCount( void );
@@ -1177,7 +1199,7 @@ public:
   void openPort( unsigned int /*portNumber*/, const & std::string /*portName*/ ) {}
   void openVirtualPort( const std::string /*portName*/ ) {}
   void openPort( const PortDescriptor & port, const & std::string portName) {}
-  Pointer<PortDescriptor> getDescriptor() { return 0; }
+  Pointer<PortDescriptor> getDescriptor(bool local=false) { return 0; }
   PortList getPortList(int capabilities) { return PortList(); }
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
@@ -1198,7 +1220,7 @@ public:
   void openPort( unsigned int /*portNumber*/, const & std::string /*portName*/ ) {}
   void openVirtualPort( const std::string /*portName*/ ) {}
   void openPort( const PortDescriptor & port, const & std::string portName) {}
-  Pointer<PortDescriptor> getDescriptor() { return 0; }
+  Pointer<PortDescriptor> getDescriptor(bool local=false) { return 0; }
   PortList getPortList(int capabilities) { return PortList(); }
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }

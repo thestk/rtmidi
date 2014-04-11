@@ -7,6 +7,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Fill GXX with something before test.
 AC_SUBST( GXX, ["no"] )
+AC_SUBST(noinst_LIBRARIES)
 
 # Checks for programs.
 AC_PROG_CXX(g++ CC c++ cxx)

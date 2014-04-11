@@ -3,12 +3,14 @@ AC_INIT(RtMidi, 2.1.0, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Fill GXX with something before test.
 AC_SUBST( GXX, ["no"] )
 
 # Checks for programs.
 AC_PROG_CXX(g++ CC c++ cxx)
+AM_PROG_AR
 AC_PROG_RANLIB
 AC_PATH_PROG(AR, ar, no)
 if [[ $AR = "no" ]] ; then

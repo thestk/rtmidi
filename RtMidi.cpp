@@ -4143,8 +4143,11 @@ namespace rtmidi {
 		{
 			{
 				scoped_lock lock (mutex);
-				if (client)
+				if (client) {
+					jack_deactivate (client);
+					// the latter doesn't flush the queue
 					jack_client_close (client);
+				}
 			}
 			if (locking) {
 				pthread_mutex_destroy(&mutex);

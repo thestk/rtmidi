@@ -121,7 +121,7 @@ bool chooseMidiPort( RtMidiOut &midi )
 	}
 
 	std::string portName;
-	rtmidi::PortList list = midi.getPortList(rtmidi::PortDescriptor::INPUT);
+	rtmidi::PortList list = midi.getPortList(rtmidi::PortDescriptor::OUTPUT);
 	if ( list.empty() ) {
 		std::cout << "No output ports available!" << std::endl;
 		return false;

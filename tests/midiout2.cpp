@@ -108,7 +108,7 @@ int main( int /* argc*/, char */*argv*/[] )
 
 bool chooseMidiPort( RtMidiOut &midi )
 {
-	std::cout << "\nWould you like to open a virtual input port? [y/N] ";
+	std::cout << "\nWould you like to open a virtual output port? [y/N] ";
 
 	std::string keyHit;
 	std::getline( std::cin, keyHit );

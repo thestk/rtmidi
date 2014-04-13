@@ -406,11 +406,11 @@ namespace rtmidi {
 }
 #if defined(__MACOSX_CORE__)
 
-	// The CoreMIDI API is based on the use of a callback function for
-	// MIDI input.  We convert the system specific time stamps to delta
-	// time values.
+// The CoreMIDI API is based on the use of a callback function for
+// MIDI input.  We convert the system specific time stamps to delta
+// time values.
 
-	// OS-X CoreMIDI header files.
+// OS-X CoreMIDI header files.
 #include <CoreMIDI/CoreMIDI.h>
 #include <CoreAudio/HostTime.h>
 #include <CoreServices/CoreServices.h>
@@ -1128,20 +1128,20 @@ namespace rtmidi {
 
 #if defined(__LINUX_ALSA__)
 
-	// The ALSA Sequencer API is based on the use of a callback function for
-	// MIDI input.
-	//
-	// Thanks to Pedro Lopez-Cabanillas for help with the ALSA sequencer
-	// time stamps and other assorted fixes!!!
+// The ALSA Sequencer API is based on the use of a callback function for
+// MIDI input.
+//
+// Thanks to Pedro Lopez-Cabanillas for help with the ALSA sequencer
+// time stamps and other assorted fixes!!!
 
-	// If you don't need timestamping for incoming MIDI events, define the
-	// preprocessor definition AVOID_TIMESTAMPING to save resources
-	// associated with the ALSA sequencer queues.
+// If you don't need timestamping for incoming MIDI events, define the
+// preprocessor definition AVOID_TIMESTAMPING to save resources
+// associated with the ALSA sequencer queues.
 
 #include <pthread.h>
 #include <sys/time.h>
 
-	// ALSA header file.
+// ALSA header file.
 #include <alsa/asoundlib.h>
 
 namespace rtmidi {
@@ -1151,8 +1151,8 @@ namespace rtmidi {
 	  the following functionality:
 	  - dynamic allocation of the sequencer
 	  - optionallay avoid concurrent access to the ALSA sequencer,
-	    which is not thread proof. This feature is controlled by
-	    the parameter \ref locking.
+	  which is not thread proof. This feature is controlled by
+	  the parameter \ref locking.
 	*/
 
 	template <int locking=1>
@@ -1478,7 +1478,7 @@ namespace rtmidi {
 				unsigned int atyp = snd_seq_port_info_get_type( pinfo );
 				// otherwise we get ports without any
 				if ( !(capabilities & UNLIMITED) &&
-				    !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC ) ) continue;
+				     !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC ) ) continue;
 				unsigned int caps = snd_seq_port_info_get_capability( pinfo );
 				if (capabilities & INPUT) {
 					/* we need both READ and SUBS_READ */
@@ -1511,10 +1511,10 @@ namespace rtmidi {
 
 	struct AlsaMidiData:public AlsaPortDescriptor {
 		/*
-		AlsaMidiData():seq()
-		{
-			init();
-		}
+		  AlsaMidiData():seq()
+		  {
+		  init();
+		  }
 		*/
 		AlsaMidiData(const std::string &clientName):AlsaPortDescriptor(clientName),
 							    seq(clientName)
@@ -1566,7 +1566,7 @@ namespace rtmidi {
 			     const std::string & portName) {
 			if (subscription) {
 				api->error( Error::DRIVER_ERROR,
-				       "MidiInAlsa::openPort: ALSA error allocation port subscription." );
+					    "MidiInAlsa::openPort: ALSA error allocation port subscription." );
 				return -99;
 			}
 
@@ -2535,22 +2535,22 @@ namespace rtmidi {
 #endif // __LINUX_ALSA__
 
 
-	//*********************************************************************//
-	//  API: Windows Multimedia Library (MM)
-	//*********************************************************************//
+//*********************************************************************//
+//  API: Windows Multimedia Library (MM)
+//*********************************************************************//
 
-	// API information deciphered from:
-	//  - http://msdn.microsoft.com/library/default.asp?url=/library/en-us/multimed/htm/_win32_midi_reference.asp
+// API information deciphered from:
+//  - http://msdn.microsoft.com/library/default.asp?url=/library/en-us/multimed/htm/_win32_midi_reference.asp
 
-	// Thanks to Jean-Baptiste Berruchon for the sysex code.
+// Thanks to Jean-Baptiste Berruchon for the sysex code.
 
 #if defined(__WINDOWS_MM__)
 
-	// The Windows MM API is based on the use of a callback function for
-	// MIDI input.  We convert the system specific time stamps to delta
-	// time values.
+// The Windows MM API is based on the use of a callback function for
+// MIDI input.  We convert the system specific time stamps to delta
+// time values.
 
-	// Windows MM MIDI header files.
+// Windows MM MIDI header files.
 #include <windows.h>
 #include <mmsystem.h>
 
@@ -3081,15 +3081,15 @@ namespace rtmidi{
 
 #define INSTANTIATE_GUID(a) GUID const a = { STATIC_ ## a }
 
-	INSTANTIATE_GUID(GUID_NULL);
-	INSTANTIATE_GUID(KSPROPSETID_Pin);
-	INSTANTIATE_GUID(KSPROPSETID_Connection);
-	INSTANTIATE_GUID(KSPROPSETID_Topology);
-	INSTANTIATE_GUID(KSINTERFACESETID_Standard);
-	INSTANTIATE_GUID(KSMEDIUMSETID_Standard);
-	INSTANTIATE_GUID(KSDATAFORMAT_TYPE_MUSIC);
-	INSTANTIATE_GUID(KSDATAFORMAT_SUBTYPE_MIDI);
-	INSTANTIATE_GUID(KSDATAFORMAT_SPECIFIER_NONE);
+INSTANTIATE_GUID(GUID_NULL);
+INSTANTIATE_GUID(KSPROPSETID_Pin);
+INSTANTIATE_GUID(KSPROPSETID_Connection);
+INSTANTIATE_GUID(KSPROPSETID_Topology);
+INSTANTIATE_GUID(KSINTERFACESETID_Standard);
+INSTANTIATE_GUID(KSMEDIUMSETID_Standard);
+INSTANTIATE_GUID(KSDATAFORMAT_TYPE_MUSIC);
+INSTANTIATE_GUID(KSDATAFORMAT_SUBTYPE_MIDI);
+INSTANTIATE_GUID(KSDATAFORMAT_SPECIFIER_NONE);
 
 #undef INSTANTIATE_GUID
 namespace rtmidi {

@@ -31,6 +31,13 @@ std::vector<unsigned char> instring;
 const  char * instringgoal =
 	"\xc0\x6\xf1\x3d\xb0\x8\x64\x90\x41\x5a\x80\x41\x28\xb0\x8\x28\xf0\x43\x4\x3\x3\xf7";
 
+inline size_t getlength(const char * messages) {
+	size_t retval = 0;
+	const unsigned char * c = reinterpret_cast<const unsigned char *>(messages);
+	while (*(c++) != 0xf7) retval++;
+	return ++retval;
+}
+
 void mycallback1( double deltatime, std::vector< unsigned char > *message, void * /* userData */ )
 {
 	unsigned int nBytes = message->size();
@@ -175,12 +182,24 @@ int main( int argc, char */*argv*/[] )
 		}
 		const unsigned char * goal = reinterpret_cast<const unsigned char *>(instringgoal);
 		size_t i;
-		for (i = 0 ; i < instring.size() && goal[i] ; i++)
+		std::cout << "Virtual output -> input:" << std::endl;
+		if (instring.size() != getlength(instringgoal)) abort();
+		for (i = 0 ; i < instring.size() && goal[i] ; i++){
+			std::cout << " " << std::hex << (int) instring[i];
+			std::cout << "/" << std::hex << (int) goal[i] << std::flush;
 			if (instring[i] != goal[i]) abort();
+		}
+		std::cout << std::endl;
 		if (i != instring.size()) abort();
 		goal = reinterpret_cast<const unsigned char *>(virtualinstringgoal);
-		for (i = 0 ; i < virtualinstring.size() && goal[i] ; i++)
+		std::cout << "Output -> virtual input:" << std::endl;
+		if (instring.size() != getlength(virtualinstringgoal)) abort();
+		for (i = 0 ; i < virtualinstring.size() && goal[i] ; i++) {
+			std::cout << " " << std::hex << (int) virtualinstring[i];
+			std::cout << "/" << std::hex << (int) goal[i] << std::flush;
 			if (virtualinstring[i] != goal[i]) abort();
+		}
+		std::cout << std::endl;
 		if (i != virtualinstring.size()) abort();
 		
 	} catch ( RtMidiError &error ) {

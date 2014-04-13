@@ -1055,7 +1055,7 @@ namespace rtmidi {
 	public:
 		MidiInJack( const std::string clientName, unsigned int queueSizeLimit );
 		~MidiInJack( void );
-		ApiType getCurrentApi( void ) { return UNIX_JACK; };
+		ApiType getCurrentApi( void ) throw() { return UNIX_JACK; };
 		void openPort( unsigned int portNumber, const std::string & portName );
 		void openVirtualPort( const std::string portName );
 		void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1077,7 +1077,7 @@ namespace rtmidi {
 	public:
 		MidiOutJack( const std::string clientName );
 		~MidiOutJack( void );
-		ApiType getCurrentApi( void ) { return UNIX_JACK; };
+		ApiType getCurrentApi( void ) throw() { return UNIX_JACK; };
 		void openPort( unsigned int portNumber, const std::string & portName );
 		void openVirtualPort( const std::string portName );
 		void openPort( const PortDescriptor & port, const std::string & portName);

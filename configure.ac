@@ -68,6 +68,13 @@ case $host in
   api="$api -D__UNIX_JACK__"
   AC_MSG_RESULT(using JACK)
   AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
+  AC_LANG_PUSH(C++)
+  AC_TRY_COMPILE([
+#include <jack/jack.h>
+	 ],[
+return jack_port_uuid(NULL);
+       ],api="$api -D__UNIX_JACK_HAS_UUID__")
+  AC_LANG_POP(C++)
 
   # Look for ALSA flag
   AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)], [
@@ -92,6 +99,13 @@ case $host in
   api="$api -D__UNIX_JACK__"
   AC_MSG_RESULT(using JACK)
   AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
+  AC_LANG_PUSH(C++)
+  AC_TRY_COMPILE([
+#include <jack/jack.h>
+	 ],[
+return jack_port_uuid(NULL);
+       ],api="$api -D__UNIX_JACK_HAS_UUID__")
+  AC_LANG_POP(C++)
 
   # Look for Core flag
   AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)], [

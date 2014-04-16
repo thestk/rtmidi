@@ -12,11 +12,13 @@ AC_SUBST(noinst_LIBRARIES)
 # Checks for programs.
 AC_PROG_CXX(g++ CC c++ cxx)
 AM_PROG_AR
-AC_PROG_RANLIB
 AC_PATH_PROG(AR, ar, no)
 if [[ $AR = "no" ]] ; then
     AC_MSG_ERROR("Could not find ar - needed to create a library");
 fi
+
+LT_INIT([win32-dll])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for header files.
 AC_HEADER_STDC

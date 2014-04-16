@@ -1,4 +1,5 @@
-noinst_LIBRARIES += %D%/librtmidi.a
-%C%_librtmidi_a_SOURCES = \
+lib_LTLIBRARIES = %D%/librtmidi.la
+%C%_librtmidi_la_LDFLAGS = -no-undefined
+%C%_librtmidi_la_SOURCES = \
   %D%/RtMidi.cpp \
   %D%/RtMidi.h

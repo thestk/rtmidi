@@ -14,6 +14,7 @@
 #if defined(__WINDOWS_MM__)
 #include <windows.h>
 #define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
+#undef UNIQUE_NAME
 #else // Unix variants
 #include <unistd.h>
 #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )

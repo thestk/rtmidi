@@ -2547,9 +2547,431 @@ NAMSPACE_RTMIDI_END
 #define  RT_SYSEX_BUFFER_SIZE 1024
 #define  RT_SYSEX_BUFFER_COUNT 4
 NAMESPACE_RTMIDI_START
-// A structure to hold variables related to the CoreMIDI API
-// implementation.
-struct WinMidiData {
+
+/* some header defines UNIQUE_NAME as a macro */
+#ifdef UNIQUE_NAME
+#undef UNIQUE_NAME
+#endif
+/*! An abstraction layer for the ALSA sequencer layer. It provides
+  the following functionality:
+  - dynamic allocation of the sequencer
+  - optionallay avoid concurrent access to the ALSA sequencer,
+  which is not thread proof. This feature is controlled by
+  the parameter \ref locking.
+*/
+
+template <int locking=1>
+class WinMMSequencer {
+public:
+  WinMMSequencer():mutex(0),name()
+  {
+    if (locking) {
+#if 0
+      // use mthreads instead
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+      pthread_mutex_init(&mutex, &attr);
+#endif
+    }
+  }
+
+  WinMMSequencer(const std::string & n):name(n)
+  {
+    if (locking) {
+#if 0
+      // use mthreads instead
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+      pthread_mutex_init(&mutex, &attr);
+#endif
+    }
+    init();
+    {
+      scoped_lock lock(mutex);
+    }
+  }
+
+  ~WinMMSequencer()
+  {
+    if (locking) {
+#if 0
+      // use mthreads instead
+      pthread_mutex_destroy(&mutex);
+#endif
+    }
+  }
+
+  bool setName(const std::string & n) {
+    /* we don't want to rename the client after opening it. */
+    name = n;
+    return true;
+  }
+
+  std::string getPortName(int port, bool is_input, int flags) {
+    init();
+    int naming = flags & PortDescriptor::NAMING_MASK;
+    std::string name;
+
+    unsigned int nDevices = is_input?midiInGetNumDevs()
+      : midiOutGetNumDevs();
+    if ( port >= nDevices ) {
+      std::ostringstream ost;
+      std::cerr << port << "<" << nDevices << std::endl;
+      throw Error("WinMMSequencer::getPortName: the 'port' argument is invalid.",
+		  Error::WARNING);
+    }
+
+    if (is_input) {
+      MIDIINCAPS deviceCaps;
+      midiInGetDevCaps( port, &deviceCaps, sizeof(MIDIINCAPS));
+
+#if defined( UNICODE ) || defined( _UNICODE )
+      int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
+      name.assign( length, 0 );
+      length = WideCharToMultiByte(CP_UTF8,
+				   0,
+				   deviceCaps.szPname,
+				   static_cast<int>(wcslen(deviceCaps.szPname)),
+				   &name[0],
+				   length,
+				   NULL,
+				   NULL);
+#else
+      name = deviceCaps.szPname;
+#endif
+    } else {
+      MIDIOUTCAPS deviceCaps;
+      midiOutGetDevCaps( port, &deviceCaps, sizeof(MIDIOUTCAPS));
+
+#if defined( UNICODE ) || defined( _UNICODE )
+      int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
+      name.assign( length, 0 );
+      length = WideCharToMultiByte(CP_UTF8,
+				   0,
+				   deviceCaps.szPname,
+				   static_cast<int>(wcslen(deviceCaps.szPname)),
+				   &name[0],
+				   length,
+				   NULL,
+				   NULL);
+#else
+      name = deviceCaps.szPname;
+#endif
+
+    }
+
+
+    std::ostringstream os;
+    switch (naming) {
+    case PortDescriptor::SESSION_PATH:
+      if (flags & PortDescriptor::INCLUDE_API)
+	os << "WinMM:";
+      os << port << ":" << name.c_str();
+      break;
+    case PortDescriptor::STORAGE_PATH:
+      if (flags & PortDescriptor::INCLUDE_API)
+	os << "WinMM:";
+      os << name.c_str();
+      if (flags & PortDescriptor::UNIQUE_NAME)
+	os << ";" << port;
+      break;
+    case PortDescriptor::LONG_NAME:
+    case PortDescriptor::SHORT_NAME:
+    default:
+      os << name.c_str();
+      if (flags & PortDescriptor::UNIQUE_NAME) {
+	os << " ";
+	os << port;
+      }
+      if (flags & PortDescriptor::INCLUDE_API)
+	os << " (WinMM)";
+
+      break;
+    }
+    return os.str();
+  }
+
+#if 0
+  int getPortCapabilities(int client, int port) {
+    init();
+    snd_seq_port_info_t *pinfo;
+    snd_seq_port_info_alloca( &pinfo );
+    {
+      scoped_lock lock (mutex);
+      snd_seq_get_any_port_info(seq,client,port,pinfo);
+    }
+    unsigned int caps = snd_seq_port_info_get_capability(pinfo);
+    int retval = (caps & (SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ))?
+      PortDescriptor::INPUT:0;
+    if (caps & (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
+      retval |= PortDescriptor::OUTPUT;
+    return retval;
+  }
+
+  int getNextClient(snd_seq_client_info_t * cinfo ) {
+    init();
+    scoped_lock lock (mutex);
+    return snd_seq_query_next_client (seq, cinfo);
+  }
+  int getNextPort(snd_seq_port_info_t * pinfo ) {
+    init();
+    scoped_lock lock (mutex);
+    return snd_seq_query_next_port (seq, pinfo);
+  }
+
+  int createPort (snd_seq_port_info_t *pinfo) {
+    init();
+    scoped_lock lock (mutex);
+    return snd_seq_create_port(seq, pinfo);
+  }
+
+  void deletePort(int port) {
+    init();
+    scoped_lock lock (mutex);
+    snd_seq_delete_port( seq, port );
+  }
+
+  snd_seq_port_subscribe_t * connectPorts(const snd_seq_addr_t & from,
+					  const snd_seq_addr_t & to,
+					  bool real_time) {
+    init();
+    snd_seq_port_subscribe_t *subscription;
+
+    if (snd_seq_port_subscribe_malloc( &subscription ) < 0) {
+      throw Error("MidiInWinMM::openPort: WINMM error allocation port subscription.",
+		  Error::DRIVER_ERROR );
+      return 0;
+    }
+    snd_seq_port_subscribe_set_sender(subscription, &from);
+    snd_seq_port_subscribe_set_dest(subscription, &to);
+    if (real_time) {
+      snd_seq_port_subscribe_set_time_update(subscription, 1);
+      snd_seq_port_subscribe_set_time_real(subscription, 1);
+    }
+    {
+      scoped_lock lock (mutex);
+      if ( snd_seq_subscribe_port(seq, subscription) ) {
+	snd_seq_port_subscribe_free( subscription );
+	subscription = 0;
+	throw Error("MidiInWinMM::openPort: WINMM error making port connection.",
+		    Error::DRIVER_ERROR);
+	return 0;
+      }
+    }
+    return subscription;
+  }
+
+  void closePort(snd_seq_port_subscribe_t * subscription ) {
+    init();
+    scoped_lock lock(mutex);
+    snd_seq_unsubscribe_port( seq, subscription );
+  }
+
+  void startQueue(int queue_id) {
+    init();
+    scoped_lock lock(mutex);
+    snd_seq_start_queue( seq, queue_id, NULL );
+    snd_seq_drain_output( seq );
+  }
+
+  /*! Use WinMMSequencer like a C pointer.
+    \note This function breaks the design to control thread safety
+    by the selection of the \ref locking parameter to the class.
+    It should be removed as soon as possible in order ensure the
+    thread policy that has been intended by creating this class.
+  */
+  operator snd_seq_t * ()
+  {
+    return seq;
+  }
+#endif
+protected:
+  struct scoped_lock {
+    //			pthread_mutex_t * mutex;
+    scoped_lock(unsigned int &)
+    {
+#if 0
+      if (locking)
+	pthread_mutex_lock(mutex);
+#endif
+    }
+    ~scoped_lock()
+    {
+#if 0
+      if (locking)
+	pthread_mutex_unlock(mutex);
+#endif
+    }
+  };
+  // to keep the API simple
+  int mutex;
+  std::string name;
+
+#if 0
+  snd_seq_client_info_t * GetClient(int id) {
+    init();
+    snd_seq_client_info_t * cinfo;
+    scoped_lock lock(mutex);
+    snd_seq_get_any_client_info(seq,id,cinfo);
+    return cinfo;
+  }
+#endif
+
+  void init()
+  {
+    // init (seq);
+  }
+
+#if 0
+  void init(snd_seq_t * &s)
+  {
+    if (s) return;
+    {
+      scoped_lock lock(mutex);
+      int result = snd_seq_open(&s, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
+      if ( result < 0 ) {
+	throw Error( "MidiInWinMM::initialize: error creating WINMM sequencer client object.",
+		     Error::DRIVER_ERROR );
+	return;
+      }
+      snd_seq_set_client_name( seq, name.c_str() );
+    }
+  }
+#endif
+};
+//	typedef WinMMSequencer<1> LockingWinMMSequencer;
+typedef WinMMSequencer<0> NonLockingWinMMSequencer;
+
+struct WinMMPortDescriptor:public PortDescriptor
+{
+  static NonLockingWinMMSequencer seq;
+  WinMMPortDescriptor(const std::string & cname):name(),port(0),clientName(name)
+  {
+  }
+  WinMMPortDescriptor(unsigned int p, const std::string & pn, bool i_o, const std::string & n):
+    name(pn),
+    port(p),
+    is_input(i_o),
+    clientName(n)
+  {
+  }
+  ~WinMMPortDescriptor() {}
+  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+    if (is_input)
+      return new MidiInWinMM(clientName,queueSizeLimit);
+    else
+      return 0;
+  }
+  MidiOutApi * getOutputApi() {
+    if (!is_input)
+      return new MidiOutWinMM(clientName);
+    else
+      return 0;
+  }
+  std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+    return seq.getPortName(port,is_input,flags);
+  }
+
+  const std::string & getClientName() const {
+    return clientName;
+  }
+  int getCapabilities() const {
+    return is_input ? INPUT : OUTPUT;
+  }
+
+  int getCapabilities() {
+    const WinMMPortDescriptor * self = this;
+    return self->getCapabilities();
+  }
+
+  bool is_valid() const {
+    if (is_input) {
+      if (midiInGetNumDevs() <= port) {
+	std::cerr << "In: " << midiInGetNumDevs() << "<=" << port << std::endl;
+	return false;
+      }
+    } else {
+      if (midiOutGetNumDevs() <= port) {
+	std::cerr << "Out: " << midiOutGetNumDevs() << "<=" << port << std::endl;
+	return false;
+      }
+    }
+    std::cerr << seq.getPortName(port,is_input,PortDescriptor::STORAGE_PATH)
+	      << "==" << name << std::endl;
+    return seq.getPortName(port,is_input,PortDescriptor::STORAGE_PATH)
+      == name;
+  }
+
+  void setRemote(const WinMMPortDescriptor * remote) {
+    port = remote->port;
+    name = remote->name;
+    is_input = remote->is_input;
+  }
+
+
+  unsigned int getPortNumber() const { return port; }
+
+  static PortList getPortList(int capabilities, const std::string & clientName);
+protected:
+  /* There is no perfect port descriptor available in this API.
+     We use the port number and issue an error if the port name has changed
+     between the creation of the port descriptor and opening the port. */
+  std::string name;
+  unsigned int port;
+  bool is_input;
+  std::string clientName;
+};
+
+NonLockingWinMMSequencer WinMMPortDescriptor::seq;
+
+
+
+PortList WinMMPortDescriptor :: getPortList(int capabilities, const std::string & clientName)
+{
+  PortList list;
+
+  if (capabilities & INPUT && capabilities & OUTPUT) return list;
+
+  if (capabilities & INPUT) {
+    size_t n = midiInGetNumDevs();
+    for (size_t i = 0 ; i < n ; i++) {
+      std::string name = seq.getPortName(i,true,PortDescriptor::STORAGE_PATH);
+      list.push_back(new WinMMPortDescriptor(i,name,true,clientName));
+    }
+  } else {
+    size_t n = midiOutGetNumDevs();
+    for (size_t i = 0 ; i < n ; i++) {
+      std::string name = seq.getPortName(i,false,PortDescriptor::STORAGE_PATH);
+      std::cout << name << std::endl;
+      list.push_back(new WinMMPortDescriptor(i,name,false,clientName));
+    }
+  }
+  return list;
+}
+
+static void *winMMMidiHandler( void *ptr );
+
+
+/*! A structure to hold variables related to the WINMM API
+  implementation.
+
+  \note After all sequencer handling is covered by the \ref
+  WinMMSequencer class, we should make seq to be a pointer in order
+  to allow a common client implementation.
+*/
+
+struct WinMidiData:public WinMMPortDescriptor {
+  /*
+    WinMMMidiData():seq()
+    {
+    init();
+    }
+  */
+  WinMidiData(const std::string &clientName):WinMMPortDescriptor(clientName) {}
+  ~WinMidiData() {}
+
   HMIDIIN inHandle;    // Handle to Midi Input Device
   HMIDIOUT outHandle;  // Handle to Midi Output Device
   DWORD lastTime;
@@ -2557,6 +2979,7 @@ struct WinMidiData {
   LPMIDIHDR sysexBuffer[RT_SYSEX_BUFFER_COUNT];
   CRITICAL_SECTION _mutex; // [Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
 };
+
 
 //*********************************************************************//
 //  API: Windows MM
@@ -2679,7 +3102,7 @@ MidiInWinMM :: ~MidiInWinMM()
   delete data;
 }
 
-void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
+void MidiInWinMM :: initialize( const std::string& clientName )
 {
   // We'll issue a warning here if no devices are available but not
   // throw an error since the user can plugin something later.
@@ -2690,7 +3113,7 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
   }
 
   // Save our api-specific connection information.
-  WinMidiData *data = (WinMidiData *) new WinMidiData;
+  WinMidiData *data = (WinMidiData *) new WinMidiData(clientName);
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
   data->message.bytes.clear();  // needs to be empty for first input message
@@ -2701,7 +3124,7 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
   }
 }
 
-void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portName*/ )
+void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*portName*/ )
 {
   if ( connected_ ) {
     errorString_ = "MidiInWinMM::openPort: a valid connection already exists!";
@@ -2778,6 +3201,67 @@ void MidiInWinMM :: openVirtualPort( std::string /*portName*/ )
   // This function cannot be implemented for the Windows MM MIDI API.
   errorString_ = "MidiInWinMM::openVirtualPort: cannot be implemented in Windows MM MIDI API!";
   error( Error::WARNING, errorString_ );
+}
+
+void MidiInWinMM :: openPort(const PortDescriptor & p, const std::string & portName) {
+  const WinMMPortDescriptor * port = dynamic_cast <const WinMMPortDescriptor * >(&p);
+  if ( !port) {
+    error( Error::DRIVER_ERROR,
+	   "MidiINWinMM::openPort:  an invalid (i.e. non-WinMM) port descriptor has been passed to openPort!");
+    return;
+  }
+  if ( connected_ ) {
+    errorString_ = "MidiInWinMM::openPort: a valid connection already exists!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+  if (port->getCapabilities() != PortDescriptor::INPUT) {
+    error( Error::DRIVER_ERROR,
+	   "MidiINWinMM::openPort: the port descriptor cannot be used to open an input port.");
+    return;
+  }
+
+  // there is a possible race condition between opening the port and
+  // reordering of ports so we must check whether we opened the right port.
+  openPort(port->getPortNumber(),portName);
+  if (!port->is_valid()) {
+    closePort();
+    error (Error::DRIVER_ERROR,
+	   "MidiINWinMM::openPort: some change in the arrangement of MIDI input ports invalidated the port descriptor.");
+    return;
+  }
+  connected_ = true;
+}
+
+Pointer<PortDescriptor> MidiInWinMM :: getDescriptor(bool local)
+{
+  if (local || !connected_) return 0;
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  if (!data) return 0;
+  UINT devid;
+  switch (midiInGetID(data->inHandle,&devid)) {
+  case MMSYSERR_INVALHANDLE:
+    error (Error::DRIVER_ERROR,
+	   "MidiInWinMM::getDescriptor: The internal handle is invalid.");
+    return 0;
+  case MMSYSERR_NODRIVER:
+    error (Error::DRIVER_ERROR,
+	   "MidiInWinMM::getDescriptor: The system has no driver for our handle :-(.");
+    return 0;
+  case MMSYSERR_NOMEM:
+    error (Error::DRIVER_ERROR,
+	   "MidiInWinMM::getDescriptor: The system could not handle enough memory.");
+    return 0;
+  }
+  return new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
+
+}
+
+PortList MidiInWinMM :: getPortList(int capabilities)
+{
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  if (!data) return PortList();
+  return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
 }
 
 void MidiInWinMM :: closePort( void )
@@ -2865,7 +3349,7 @@ MidiOutWinMM :: ~MidiOutWinMM()
   delete data;
 }
 
-void MidiOutWinMM :: initialize( const std::string& /*clientName*/ )
+void MidiOutWinMM :: initialize( const std::string& clientName )
 {
   // We'll issue a warning here if no devices are available but not
   // throw an error since the user can plug something in later.
@@ -2876,7 +3360,7 @@ void MidiOutWinMM :: initialize( const std::string& /*clientName*/ )
   }
 
   // Save our api-specific connection information.
-  WinMidiData *data = (WinMidiData *) new WinMidiData;
+  WinMidiData *data = (WinMidiData *) new WinMidiData(clientName);
   apiData_ = (void *) data;
 }
 
@@ -2911,7 +3395,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
   return stringName;
 }
 
-void MidiOutWinMM :: openPort( unsigned int portNumber, const std::string /*portName*/ )
+void MidiOutWinMM :: openPort( unsigned int portNumber, const std::string & /*portName*/ )
 {
   if ( connected_ ) {
     errorString_ = "MidiOutWinMM::openPort: a valid connection already exists!";
@@ -2966,11 +3450,74 @@ void MidiOutWinMM :: openVirtualPort( std::string /*portName*/ )
   error( Error::WARNING, errorString_ );
 }
 
-void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
+
+void MidiOutWinMM :: openPort(const PortDescriptor & p, const std::string & portName) {
+  const WinMMPortDescriptor * port = dynamic_cast <const WinMMPortDescriptor * >(&p);
+  if ( !port) {
+    error( Error::DRIVER_ERROR,
+	   "MidiOUTWinMM::openPort:  an invalid (i.e. non-WinMM) port descriptor has been passed to openPort!");
+    return;
+  }
+  if ( connected_ ) {
+    errorString_ = "MidiOutWinMM::openPort: a valid connection already exists!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+  if (port->getCapabilities() != PortDescriptor::OUTPUT) {
+    error( Error::DRIVER_ERROR,
+	   "MidiOUTWinMM::openPort: the port descriptor cannot be used to open an output port.");
+    return;
+  }
+
+  // there is a possible race condition between opening the port and
+  // reordering of ports so we must check whether we opened the right port.
+  openPort(port->getPortNumber(),portName);
+  if (!port->is_valid()) {
+    closePort();
+    error (Error::DRIVER_ERROR,
+	   "MidiOUTWinMM::openPort: some change in the arrangement of MIDI input ports invalidated the port descriptor.");
+    return;
+  }
+  connected_ = true;
+}
+
+Pointer<PortDescriptor> MidiOutWinMM :: getDescriptor(bool local)
+{
+  if (local || !connected_) return 0;
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  if (!data) return 0;
+  UINT devid;
+  switch (midiOutGetID(data->outHandle,&devid)) {
+  case MMSYSERR_INVALHANDLE:
+    error (Error::DRIVER_ERROR,
+	   "MidiOutWinMM::getDescriptor: The internal handle is invalid.");
+    return 0;
+  case MMSYSERR_NODRIVER:
+    error (Error::DRIVER_ERROR,
+	   "MidiOutWinMM::getDescriptor: The system has no driver for our handle :-(.");
+    return 0;
+  case MMSYSERR_NOMEM:
+    error (Error::DRIVER_ERROR,
+	   "MidiOutWinMM::getDescriptor: The system could not handle enough memory.");
+    return 0;
+  }
+  return new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
+
+}
+
+PortList MidiOutWinMM :: getPortList(int capabilities)
+{
+  WinMidiData *data = static_cast<WinMidiData *> (apiData_);
+  if (!data) return PortList();
+  return WinMMPortDescriptor::getPortList(PortDescriptor::OUTPUT,data->getClientName());
+}
+
+
+void MidiOutWinMM :: sendMessage( std::vector<unsigned char> &message )
 {
   if ( !connected_ ) return;
 
-  unsigned int nBytes = static_cast<unsigned int>(message->size());
+  unsigned int nBytes = static_cast<unsigned int>(message.size());
   if ( nBytes == 0 ) {
     errorString_ = "MidiOutWinMM::sendMessage: message argument is empty!";
     error( Error::WARNING, errorString_ );
@@ -2979,7 +3526,7 @@ void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
 
   MMRESULT result;
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  if ( message->at(0) == 0xF0 ) { // Sysex message
+  if ( message.at(0) == 0xF0 ) { // Sysex message
 
     // Allocate buffer for sysex data.
     char *buffer = (char *) malloc( nBytes );
@@ -2990,7 +3537,7 @@ void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
     }
 
     // Copy data to buffer.
-    for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message->at(i);
+    for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message.at(i);
 
     // Create and prepare MIDIHDR structure.
     MIDIHDR sysex;
@@ -3031,7 +3578,7 @@ void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
     DWORD packet;
     unsigned char *ptr = (unsigned char *) &packet;
     for ( unsigned int i=0; i<nBytes; ++i ) {
-      *ptr = message->at(i);
+      *ptr = message.at(i);
       ++ptr;
     }
 

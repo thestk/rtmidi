@@ -16,6 +16,7 @@
 #if defined(__WINDOWS_MM__)
 #include <windows.h>
 #define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
+#undef UNIQUE_NAME
 #else // Unix variants
 #include <unistd.h>
 #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )
@@ -31,11 +32,12 @@ void usage( rtmidi::PortList list ) {
 	std::cout << "    where port = the device to use (default = first available port).\n\n";
 
 	std::cout << "Available ports:" << std::endl;
+	int flags = rtmidi::PortDescriptor::SESSION_PATH |
+		rtmidi::PortDescriptor::UNIQUE_NAME |
+		rtmidi::PortDescriptor::INCLUDE_API;
 	for (rtmidi::PortList::iterator i = list.begin();
 	     i != list.end(); i++) {
-		std::cout << (*i)->getName(rtmidi::PortDescriptor::SESSION_PATH |
-					   rtmidi::PortDescriptor::UNIQUE_NAME |
-					   rtmidi::PortDescriptor::INCLUDE_API);
+		std::cout << (*i)->getName(flags);
 		std::cout << "\t";
 		std::cout << (*i)->getName() << std::endl;
 	}

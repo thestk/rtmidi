@@ -49,7 +49,7 @@ install: all
 	$(LN) -sf @sharedname@ $(PREFIX)/lib/$(SHARED).$(MAJOR)
 	install --mode=644 $(LIBNAME).pc $(PREFIX)/lib/pkgconfig
 	install --mode=755 rtmidi-config $(PREFIX)/bin/
-	install --mode=644 RtMidi.h RtError.h $(PREFIX)/include
+	install --mode=644 RtMidi.h $(PREFIX)/include
 
 uninstall:
 	-@rm -vf $(patsubst %,$(PREFIX)/lib/%, $(LIBRARIES) $(SHARED).$(MAJOR) $(SHARED).$(RELEASE))

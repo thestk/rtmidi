@@ -43,18 +43,18 @@ $(LIBRARIES): $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEFS) -c $(<) -o $@
 
 install: all
-	install -D --mode=755 $(STATIC) $(PREFIX)/lib/$(STATIC)
-	install -D --mode=755 @sharedname@ $(PREFIX)/lib/@sharedname@
-	$(LN) -sf @sharedname@ $(PREFIX)/lib/$(SHARED)
-	$(LN) -sf @sharedname@ $(PREFIX)/lib/$(SHARED).$(MAJOR)
-	install -D --mode=644 $(LIBNAME).pc $(PREFIX)/lib/pkgconfig/$(LIBNAME).pc
-	install -D --mode=755 rtmidi-config $(PREFIX)/bin/rtmidi-config
-	install -D --mode=644 RtMidi.h $(PREFIX)/include/RtMidi.h
+	install -D --mode=755 $(STATIC) $(DESTDIR)/lib/$(STATIC)
+	install -D --mode=755 @sharedname@ $(DESTDIR)/lib/@sharedname@
+	$(LN) -sf @sharedname@ $(DESTDIR)/lib/$(SHARED)
+	$(LN) -sf @sharedname@ $(DESTDIR)/lib/$(SHARED).$(MAJOR)
+	install -D --mode=644 $(LIBNAME).pc $(DESTDIR)/lib/pkgconfig/$(LIBNAME).pc
+	install -D --mode=755 rtmidi-config $(DESTDIR)/bin/rtmidi-config
+	install -D --mode=644 RtMidi.h $(DESTDIR)/include/RtMidi.h
 
 uninstall:
-	-@rm -vf $(patsubst %,$(PREFIX)/lib/%, $(LIBRARIES) $(SHARED).$(MAJOR) $(SHARED).$(RELEASE))
-	-@rm -vf $(PREFIX)/lib/pkgconfig/$(LIBNAME).pc
-	-@rm -vf $(PREFIX)/bin/rtmidi-config
+	-@rm -vf $(patsubst %,$(DESTDIR)/lib/%, $(LIBRARIES) $(SHARED).$(MAJOR) $(SHARED).$(RELEASE))
+	-@rm -vf $(DESTDIR)/lib/pkgconfig/$(LIBNAME).pc
+	-@rm -vf $(DESTDIR)/bin/rtmidi-config
 
 clean : 
 	$(RM) -f $(LIBRARIES) @sharedname@ $(SHARED)*

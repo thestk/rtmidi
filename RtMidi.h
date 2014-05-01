@@ -1014,7 +1014,7 @@ class MidiInCore: public MidiInApi
 public:
   MidiInCore( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInCore( void );
-  ApiType getCurrentApi( void ) { return MACOSX_CORE; };
+  ApiType getCurrentApi( void ) throw() { return MACOSX_CORE; };
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1033,7 +1033,7 @@ class MidiOutCore: public MidiOutApi
 public:
   MidiOutCore( const std::string clientName );
   ~MidiOutCore( void );
-  ApiType getCurrentApi( void ) { return MACOSX_CORE; };
+  ApiType getCurrentApi( void ) throw() { return MACOSX_CORE; };
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);

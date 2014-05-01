@@ -407,13 +407,984 @@ NAMSPACE_RTMIDI_END
 
 
 NAMSPACE_RTMIDI_START
+/*! An abstraction layer for the CORE sequencer layer. It provides
+  the following functionality:
+  - dynamic allocation of the sequencer
+  - optionallay avoid concurrent access to the CORE sequencer,
+  which is not thread proof. This feature is controlled by
+  the parameter \ref locking.
+*/
+
+// This function was submitted by Douglas Casey Tucker and apparently
+// derived largely from PortMidi.
+// or copied from the Apple developer Q&A website
+// https://developer.apple.com/library/mac/qa/qa1374/_index.html
+
+CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
+{
+  CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
+  CFStringRef str;
+
+  // Begin with the endpoint's name.
+  str = NULL;
+  MIDIObjectGetStringProperty( endpoint, kMIDIPropertyName, &str );
+  if ( str != NULL ) {
+    CFStringAppend( result, str );
+    CFRelease( str );
+  }
+
+  MIDIEntityRef entity = 0;
+  MIDIEndpointGetEntity( endpoint, &entity );
+  if ( entity == 0 )
+    // probably virtual
+    return result;
+
+  if ( CFStringGetLength( result ) == 0 ) {
+    // endpoint name has zero length -- try the entity
+    str = NULL;
+    MIDIObjectGetStringProperty( entity, kMIDIPropertyName, &str );
+    if ( str != NULL ) {
+      CFStringAppend( result, str );
+      CFRelease( str );
+    }
+  }
+  // now consider the device's name
+  MIDIDeviceRef device = 0;
+  MIDIEntityGetDevice( entity, &device );
+  if ( device == 0 )
+    return result;
+
+  str = NULL;
+  MIDIObjectGetStringProperty( device, kMIDIPropertyName, &str );
+  if ( CFStringGetLength( result ) == 0 ) {
+    CFRelease( result );
+    return str;
+  }
+  if ( str != NULL ) {
+    // if an external device has only one entity, throw away
+    // the endpoint name and just use the device name
+    if ( isExternal && MIDIDeviceGetNumberOfEntities( device ) < 2 ) {
+      CFRelease( result );
+      return str;
+    } else {
+      if ( CFStringGetLength( str ) == 0 ) {
+	CFRelease( str );
+	return result;
+      }
+      // does the entity name already start with the device name?
+      // (some drivers do this though they shouldn't)
+      // if so, do not prepend
+      if ( CFStringCompareWithOptions( result, /* endpoint name */
+				       str /* device name */,
+				       CFRangeMake(0, CFStringGetLength( str ) ), 0 ) != kCFCompareEqualTo ) {
+	// prepend the device name to the entity name
+	if ( CFStringGetLength( result ) > 0 )
+	  CFStringInsert( result, 0, CFSTR(" ") );
+	CFStringInsert( result, 0, str );
+      }
+      CFRelease( str );
+    }
+  }
+  return result;
+}
+
+// This function was submitted by Douglas Casey Tucker and apparently
+// derived largely from PortMidi.
+// Nearly the same text can be found in the Apple Q&A qa1374:
+// https://developer.apple.com/library/mac/qa/qa1374/_index.html
+static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
+{
+  CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
+  CFStringRef str;
+  OSStatus err;
+  int i;
+
+  // Does the endpoint have connections?
+  CFDataRef connections = NULL;
+  int nConnected = 0;
+  bool anyStrings = false;
+  err = MIDIObjectGetDataProperty( endpoint, kMIDIPropertyConnectionUniqueID, &connections );
+  if ( connections != NULL ) {
+    // It has connections, follow them
+    // Concatenate the names of all connected devices
+    nConnected = CFDataGetLength( connections ) / sizeof(MIDIUniqueID);
+    if ( nConnected ) {
+      const SInt32 *pid = (const SInt32 *)(CFDataGetBytePtr(connections));
+      for ( i=0; i<nConnected; ++i, ++pid ) {
+	MIDIUniqueID id = EndianS32_BtoN( *pid );
+	MIDIObjectRef connObject;
+	MIDIObjectType connObjectType;
+	err = MIDIObjectFindByUniqueID( id, &connObject, &connObjectType );
+	if ( err == noErr ) {
+	  if ( connObjectType == kMIDIObjectType_ExternalSource  ||
+	       connObjectType == kMIDIObjectType_ExternalDestination ) {
+	    // Connected to an external device's endpoint (10.3 and later).
+	    str = EndpointName( (MIDIEndpointRef)(connObject), true );
+	  } else {
+	    // Connected to an external device (10.2) (or something else, catch-
+	    str = NULL;
+	    MIDIObjectGetStringProperty( connObject, kMIDIPropertyName, &str );
+	  }
+	  if ( str != NULL ) {
+	    if ( anyStrings )
+	      CFStringAppend( result, CFSTR(", ") );
+	    else anyStrings = true;
+	    CFStringAppend( result, str );
+	    CFRelease( str );
+	  }
+	}
+      }
+    }
+    CFRelease( connections );
+  }
+  if ( anyStrings )
+    return result;
+
+  // Here, either the endpoint had no connections, or we failed to obtain names
+  return EndpointName( endpoint, false );
+}
+
+static void midiInputCallback( const MIDIPacketList *list, void *procRef, void */*srcRef*/ );
+
+
+template <int locking=1>
+class CoreSequencer {
+public:
+  CoreSequencer():seq(0)
+  {
+    if (locking) {
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+      pthread_mutex_init(&mutex, &attr);
+    }
+  }
+
+  CoreSequencer(const std::string & n):seq(0),name(n)
+  {
+    if (locking) {
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+      pthread_mutex_init(&mutex, &attr);
+    }
+    init();
+  }
+
+  ~CoreSequencer()
+  {
+    if (seq) {
+      scoped_lock lock(mutex);
+      MIDIClientDispose(seq);
+      seq = 0;
+    }
+    if (locking) {
+      pthread_mutex_destroy(&mutex);
+    }
+  }
+
+  bool setName(const std::string & n) {
+    /* we don't want to rename the client after opening it. */
+    if (seq) return false;
+    name = n;
+    return true;
+  }
+
+  static std::string str(CFStringRef s) {
+    const char * cstr =
+      CFStringGetCStringPtr(s,kCFStringEncodingUTF8);
+    if (cstr) return cstr;
+
+    CFIndex len = CFStringGetLength(s);
+    std::string retval;
+    retval.resize(CFStringGetMaximumSizeForEncoding(len,
+						    kCFStringEncodingUTF8)+1);
+    CFStringGetBytes(s,
+		     CFRangeMake(0, len),
+		     kCFStringEncodingUTF8,
+		     0,
+		     false,
+		     reinterpret_cast<uint8*>(&retval[0]),
+		     retval.size()-1,
+		     &len);
+    retval.resize(len);
+    return retval;
+  }
+
+
+#if 0
+  // Obtain the name of an endpoint, following connections.
+
+  // The result should be released by the caller.
+
+  static CFStringRef CreateConnectedEndpointName(MIDIEndpointRef endpoint)
+  {
+    CFMutableStringRef result = CFStringCreateMutable(NULL, 0);
+    CFStringRef str;
+    OSStatus err;
+
+
+    // Does the endpoint have connections?
+    CFDataRef connections = NULL;
+    int nConnected = 0;
+    bool anyStrings = false;
+    err = MIDIObjectGetDataProperty(endpoint, kMIDIPropertyConnectionUniqueID, &connections);
+    if (connections != NULL) {
+      // It has connections, follow them
+      // Concatenate the names of all connected devices
+      nConnected = CFDataGetLength(connections) / sizeof(MIDIUniqueID);
+
+      if (nConnected) {
+	const SInt32 *pid = reinterpret_cast<const SInt32 *>(CFDataGetBytePtr(connections));
+	for (int i = 0; i < nConnected; ++i, ++pid) {
+	  MIDIUniqueID id = EndianS32_BtoN(*pid);
+	  MIDIObjectRef connObject;
+	  MIDIObjectType connObjectType;
+	  err = MIDIObjectFindByUniqueID(id, &connObject, &connObjectType);
+	  if (err == noErr) {
+	    if (connObjectType == kMIDIObjectType_ExternalSource  ||
+		connObjectType == kMIDIObjectType_ExternalDestination) {
+	      // Connected to an external device's endpoint (10.3 and later).
+	      str = EndpointName(static_cast<MIDIEndpointRef>(connObject), true);
+	    } else {
+	      // Connected to an external device (10.2) (or something else, catch-all)
+	      str = NULL;
+	      MIDIObjectGetStringProperty(connObject, kMIDIPropertyName, &str);
+	    }
+
+	    if (str != NULL) {
+	      if (anyStrings)
+		CFStringAppend(result, CFSTR(", "));
+	      else anyStrings = true;
+	      CFStringAppend(result, str);
+	      CFRelease(str);
+	    }
+	  }
+	}
+      }
+      CFRelease(connections);
+    }
+
+
+    if (anyStrings)
+      return result;
+    else
+      CFRelease(result);
+
+    // Here, either the endpoint had no connections, or we failed to obtain names for any of them.
+    return CreateEndpointName(endpoint, false);
+  }
+
+
+
+  //////////////////////////////////////
+
+  // Obtain the name of an endpoint without regard for whether it has connections.
+
+  // The result should be released by the caller.
+
+  static CFStringRef CreateEndpointName(MIDIEndpointRef endpoint, bool isExternal)
+  {
+    CFMutableStringRef result = CFStringCreateMutable(NULL, 0);
+    CFStringRef str;
+
+    // begin with the endpoint's name
+    str = NULL;
+    MIDIObjectGetStringProperty(endpoint, kMIDIPropertyName, &str);
+    if (str != NULL) {
+      CFStringAppend(result, str);
+      CFRelease(str);
+    }
+
+    MIDIEntityRef entity = NULL;
+    MIDIEndpointGetEntity(endpoint, &entity);
+    if (entity == NULL)
+      // probably virtual
+      return result;
+
+    if (CFStringGetLength(result) == 0) {
+      // endpoint name has zero length -- try the entity
+      str = NULL;
+      MIDIObjectGetStringProperty(entity, kMIDIPropertyName, &str);
+      if (str != NULL) {
+	CFStringAppend(result, str);
+	CFRelease(str);
+      }
+    }
+
+
+
+    // now consider the device's name
+    MIDIDeviceRef device = NULL;
+    MIDIEntityGetDevice(entity, &device);
+    if (device == NULL) return result;
+
+    str = NULL;
+    MIDIObjectGetStringProperty(device, kMIDIPropertyName, &str);
+    if (str != NULL) {
+      // if an external device has only one entity, throw away
+      // the endpoint name and just use the device name
+      if (isExternal && MIDIDeviceGetNumberOfEntities(device) < 2) {
+	CFRelease(result);
+	return str;
+      } else {
+	// does the entity name already start with the device name?
+	// (some drivers do this though they shouldn't)
+	// if so, do not prepend
+
+	if (CFStringCompareWithOptions(str /* device name */,
+				       result /* endpoint name */,
+				       CFRangeMake(0,
+						   CFStringGetLength(str)),
+				       0)
+	    != kCFCompareEqualTo) {
+	  // prepend the device name to the entity name
+	  if (CFStringGetLength(result) > 0)
+	    CFStringInsert(result, 0, CFSTR(" "));
+	  CFStringInsert(result, 0, str);
+	}
+	CFRelease(str);
+      }
+    }
+
+    return result;
+  }
+#endif
+
+  static std::string getConnectionsString(MIDIEndpointRef port)
+  {
+    /* This function is derived from
+       CreateConnectedEndpointName at Apple Q&A */
+    std::ostringstream result;
+    CFDataRef connections = NULL;
+    OSStatus err = MIDIObjectGetDataProperty(port,
+					     kMIDIPropertyConnectionUniqueID,
+					     &connections);
+    if (err != noErr)
+      return result.str();
+
+    if (!connections)
+      return result.str();
+    CFIndex size = CFDataGetLength( connections ) / sizeof(MIDIUniqueID);
+    if (!size) {
+      CFRelease(connections);
+      return result.str();
+    }
+
+    CFStringRef strRef;
+    const SInt32 *pid
+      = reinterpret_cast<const SInt32 *>(CFDataGetBytePtr(connections));
+    bool anyStrings = false;
+    for (int i = 0; i < size; ++i, ++pid) {
+      MIDIUniqueID id = EndianS32_BtoN(*pid);
+      MIDIObjectRef connObject;
+      MIDIObjectType connObjectType;
+      err = MIDIObjectFindByUniqueID(id, &connObject, &connObjectType);
+      if (err != noErr)
+	continue;
+
+      if (connObjectType == kMIDIObjectType_ExternalSource  ||
+	  connObjectType == kMIDIObjectType_ExternalDestination) {
+	// Connected to an external
+	// device's endpoint
+	// (10.3 and later).
+	strRef = EndpointName(static_cast<MIDIEndpointRef>(connObject),
+			      true);
+      } else {
+	// Connected to an external device
+	// (10.2) (or something else, catch-all)
+	strRef = NULL;
+	MIDIObjectGetStringProperty(connObject,
+				    kMIDIPropertyName, &strRef);
+      }
+
+      if (strRef != NULL) {
+	if (anyStrings)
+	  result << ", ";
+	else anyStrings = true;
+	result << str(strRef);
+	CFRelease(strRef);
+      }
+    }
+    CFRelease(connections);
+    return result.str();
+  }
+
+  static std::string getPortName(MIDIEndpointRef port, int flags) {
+    std::string clientname;
+    std::string devicename;
+    std::string portname;
+    std::string entityname;
+    std::string externaldevicename;
+    std::string connections;
+    std::string recommendedname;
+    //			bool isVirtual;
+    bool hasManyEndpoints = false;
+    CFStringRef nameRef;
+    MIDIObjectGetStringProperty(port,
+				kMIDIPropertyDisplayName,
+				&nameRef);
+    recommendedname = str(nameRef);
+    connections = getConnectionsString(port);
+
+    MIDIObjectGetStringProperty(port,
+				kMIDIPropertyName,
+				&nameRef);
+    portname = str(nameRef);
+    CFRelease( nameRef );
+
+    MIDIEntityRef entity = NULL;
+    MIDIEndpointGetEntity(port, &entity);
+    // entity == NULL: probably virtual
+    if (entity != NULL) {
+      nameRef = NULL;
+      MIDIObjectGetStringProperty(entity, kMIDIPropertyName, &nameRef);
+      if (str != NULL) {
+	entityname = str(nameRef);
+	CFRelease(nameRef);
+      }
+
+      // now consider the device's name
+      MIDIDeviceRef device = NULL;
+      MIDIEntityGetDevice(entity, &device);
+      if (device != NULL) {
+	hasManyEndpoints = MIDIDeviceGetNumberOfEntities(device) >= 2;
+	MIDIObjectGetStringProperty(device,
+				    kMIDIPropertyName,
+				    &nameRef);
+	devicename = str(nameRef);
+	CFRelease(nameRef);
+      }
+      // does the entity name already start with the device name?
+      // (some drivers do this though they shouldn't)
+      if (entityname.substr(0,devicename.length())
+	  == devicename) {
+	int start = devicename.length();
+	while (isspace(entityname[start]))
+	  start++;
+	entityname = entityname.substr(start);
+      }
+    }
+
+    int naming = flags & PortDescriptor::NAMING_MASK;
+
+    std::ostringstream os;
+    switch (naming) {
+    case PortDescriptor::SESSION_PATH:
+      if (flags & PortDescriptor::INCLUDE_API)
+	os << "CORE:";
+      os << port;
+      break;
+    case PortDescriptor::STORAGE_PATH:
+      if (flags & PortDescriptor::INCLUDE_API)
+	os << "CORE:";
+      os << clientname;
+      os << ":" << devicename;
+      os << ":" << portname;
+      os << ":" << entityname;
+      os << ":" << externaldevicename;
+      os << ":" << connections;
+      os << ":" << recommendedname;
+      if (flags & PortDescriptor::UNIQUE_NAME)
+	os << ";" << port;
+      break;
+    case PortDescriptor::LONG_NAME:
+      os << devicename;
+      if (hasManyEndpoints) {
+	if (!portname.empty()) {
+	  os << ": ";
+	  os << portname;
+	} else {
+	  os << ": ";
+	  os << entityname;
+	}
+      }
+      if (!connections.empty()) {
+	os << " ⇒ ";
+	os << connections;
+      }
+      if (flags &
+	  (PortDescriptor::INCLUDE_API
+	   | PortDescriptor::UNIQUE_NAME)) {
+	os << " (";
+	if (flags &
+	    PortDescriptor::INCLUDE_API) {
+	  os << "CORE";
+	  if (flags & PortDescriptor::UNIQUE_NAME)
+	    os << ":";
+	}
+	if (flags & PortDescriptor::UNIQUE_NAME) {
+	  os << port;
+	}
+	os << ")";
+      }
+      break;
+    case PortDescriptor::SHORT_NAME:
+    default:
+      if (!recommendedname.empty()) {
+	os << recommendedname;
+      } else if (!connections.empty()) {
+	os << connections;
+      } else {
+	os << devicename;
+	if (hasManyEndpoints) {
+	  if (!portname.empty()) {
+	    os << portname;
+	  } else {
+	    os << entityname;
+	  }
+	}
+      }
+      if (flags &
+	  (PortDescriptor::INCLUDE_API
+	   | PortDescriptor::UNIQUE_NAME)) {
+	os << " (";
+	if (flags &
+	    PortDescriptor::INCLUDE_API) {
+	  os << "CORE";
+	  if (flags & PortDescriptor::UNIQUE_NAME)
+	    os << ":";
+	}
+	if (flags & PortDescriptor::UNIQUE_NAME) {
+	  os << port;
+	}
+	os << ")";
+      }
+      break;
+    }
+    return os.str();
+  }
+
+  int getPortCapabilities(MIDIEndpointRef port) {
+    int retval = 0;
+    MIDIEntityRef entity = 0;
+    OSStatus stat =
+      MIDIEndpointGetEntity(port,&entity);
+    if (stat == kMIDIObjectNotFound) {
+      // plan B for virtual ports
+      MIDIUniqueID uid;
+      stat = MIDIObjectGetIntegerProperty (port,
+					   kMIDIPropertyUniqueID,
+					   &uid);
+      if (stat != noErr) {
+	throw
+	  Error("CoreSequencer::getPortCapabilties: \
+Could not get the UID of a midi endpoint.",
+		Error::DRIVER_ERROR);
+	return 0;
+      }
+      MIDIObjectRef obj;
+      MIDIObjectType type;
+      stat = MIDIObjectFindByUniqueID (uid,
+				       &obj,
+				       &type);
+      if (stat != noErr || obj != port) {
+	throw
+	  Error("CoreSequencer::getPortCapabilties: \
+Could not get the endpoint back from UID of a midi endpoint.",
+		Error::DRIVER_ERROR);
+	return 0;
+      }
+      if (type == kMIDIObjectType_Source
+	  || type == kMIDIObjectType_ExternalSource)
+	return PortDescriptor::INPUT;
+      else if (type == kMIDIObjectType_Destination
+	       || type == kMIDIObjectType_ExternalDestination)
+	return PortDescriptor::OUTPUT;
+      else {
+	return 0;
+      }
+
+    } else if (stat != noErr) {
+      throw
+	Error("CoreSequencer::getPortCapabilties: \
+Could not get the entity of a midi endpoint.",
+	      Error::DRIVER_ERROR);
+      return 0;
+    }
+    /* Theoretically Mac OS X could silently use
+       the same endpoint reference for input and
+       output. We might benefit from this
+       behaviour.
+       \todo: Find a way to query the object
+       whether it can act as source or destination.
+    */
+    ItemCount count =
+      MIDIEntityGetNumberOfDestinations(entity);
+    for (ItemCount i = 0; i < count ; i++) {
+      MIDIEndpointRef dest=
+	MIDIEntityGetDestination(entity,i);
+      if (dest == port) {
+	retval |=
+	  PortDescriptor::OUTPUT;
+	break;
+      }
+    }
+    count =
+      MIDIEntityGetNumberOfSources(entity);
+    for (ItemCount i = 0; i < count ; i++) {
+      MIDIEndpointRef src=
+	MIDIEntityGetSource(entity,i);
+      if (src == port) {
+	retval |=
+	  PortDescriptor::INPUT;
+      }
+    }
+    return retval;
+  }
+
+#if 0
+  int getNextClient(snd_seq_client_info_t * cinfo ) {
+    init();
+    scoped_lock lock (mutex);
+    return snd_seq_query_next_client (seq, cinfo);
+  }
+  int getNextPort(snd_seq_port_info_t * pinfo ) {
+    init();
+    scoped_lock lock (mutex);
+    return snd_seq_query_next_port (seq, pinfo);
+  }
+#endif
+
+  MIDIPortRef createPort (std::string portName,
+			  int flags,
+			  MidiInApi::MidiInData * data = NULL)
+  {
+    init();
+    scoped_lock lock (mutex);
+    MIDIPortRef port = 0;
+    OSStatus result;
+    switch (flags) {
+    case PortDescriptor::INPUT:
+      result = MIDIInputPortCreate(seq,
+				   CFStringCreateWithCString(
+							     NULL,
+							     portName.c_str(),
+							     kCFStringEncodingUTF8 ),
+				   midiInputCallback,
+				   (void *)data,
+				   &port);
+      break;
+    case PortDescriptor::OUTPUT:
+      result
+	= MIDIOutputPortCreate(seq,
+			       CFStringCreateWithCString(
+							 NULL,
+							 portName.c_str(),
+							 kCFStringEncodingUTF8 ),
+			       &port);
+      break;
+    default:
+      throw Error("CoreSequencer::createPort:\
+ Error creating OS X MIDI port because of invalid port flags",
+		  Error::DRIVER_ERROR);
+    }
+    if ( result != noErr ) {
+      throw Error(
+		  "CoreSequencer::createPort:\
+ error creating OS-X MIDI port.",
+		  Error::DRIVER_ERROR);
+    }
+    return port;
+  }
+
+  MIDIEndpointRef createVirtualPort (std::string portName,
+				     int flags,
+				     MidiInApi::MidiInData * data = NULL)
+  {
+    init();
+    scoped_lock lock (mutex);
+    MIDIEndpointRef port = 0;
+    OSStatus result;
+    switch (flags) {
+    case PortDescriptor::INPUT:
+      result
+	= MIDIDestinationCreate(seq,
+				CFStringCreateWithCString(
+							  NULL,
+							  portName.c_str(),
+							  kCFStringEncodingUTF8 ),
+				midiInputCallback,
+				(void *)data,
+				&port);
+      break;
+    case PortDescriptor::OUTPUT:
+      result
+	= MIDISourceCreate(seq,
+			   CFStringCreateWithCString(
+						     NULL,
+						     portName.c_str(),
+						     kCFStringEncodingUTF8 ),
+			   &port);
+      break;
+    default:
+      throw Error(Error::DRIVER_ERROR,
+		  "CoreSequencer::createVirtualPort:\
+ Error creating OS X MIDI port because of invalid port flags");
+    }
+    if ( result != noErr ) {
+      throw Error( Error::DRIVER_ERROR,
+		   "CoreSequencer::createVirtualPort: error creating OS-X MIDI port." );
+    }
+    return port;
+  }
+
+#if 0
+  void deletePort(int port) {
+    init();
+    scoped_lock lock (mutex);
+    snd_seq_delete_port( seq, port );
+  }
+
+  snd_seq_port_subscribe_t * connectPorts(const snd_seq_addr_t & from,
+					  const snd_seq_addr_t & to,
+					  bool real_time) {
+    init();
+    snd_seq_port_subscribe_t *subscription;
+
+    if (snd_seq_port_subscribe_malloc( &subscription ) < 0) {
+      throw Error("MidiInCore::openPort: CORE error allocation port subscription.",
+		  Error::DRIVER_ERROR );
+      return 0;
+    }
+    snd_seq_port_subscribe_set_sender(subscription, &from);
+    snd_seq_port_subscribe_set_dest(subscription, &to);
+    if (real_time) {
+      snd_seq_port_subscribe_set_time_update(subscription, 1);
+      snd_seq_port_subscribe_set_time_real(subscription, 1);
+    }
+    {
+      scoped_lock lock (mutex);
+      if ( snd_seq_subscribe_port(seq, subscription) ) {
+	snd_seq_port_subscribe_free( subscription );
+	subscription = 0;
+	throw Error("MidiInCore::openPort: CORE error making port connection.",
+		    Error::DRIVER_ERROR);
+	return 0;
+      }
+    }
+    return subscription;
+  }
+
+  void closePort(snd_seq_port_subscribe_t * subscription ) {
+    init();
+    scoped_lock lock(mutex);
+    snd_seq_unsubscribe_port( seq, subscription );
+  }
+
+
+  void startQueue(int queue_id) {
+    init();
+    scoped_lock lock(mutex);
+    snd_seq_start_queue( seq, queue_id, NULL );
+    snd_seq_drain_output( seq );
+  }
+#endif
+
+  /*! Use CoreSequencer like a C pointer.
+    \note This function breaks the design to control thread safety
+    by the selection of the \ref locking parameter to the class.
+    It should be removed as soon as possible in order ensure the
+    thread policy that has been intended by creating this class.
+  */
+  operator MIDIClientRef ()
+  {
+    return seq;
+  }
+protected:
+  struct scoped_lock {
+    pthread_mutex_t * mutex;
+    scoped_lock(pthread_mutex_t & m): mutex(&m)
+    {
+      if (locking)
+	pthread_mutex_lock(mutex);
+    }
+    ~scoped_lock()
+    {
+      if (locking)
+	pthread_mutex_unlock(mutex);
+    }
+  };
+  pthread_mutex_t mutex;
+  MIDIClientRef seq;
+  std::string name;
+
+#if 0
+  snd_seq_client_info_t * GetClient(int id) {
+    init();
+    snd_seq_client_info_t * cinfo;
+    scoped_lock lock(mutex);
+    snd_seq_get_any_client_info(seq,id,cinfo);
+    return cinfo;
+  }
+#endif
+
+  void init()
+  {
+    init (seq);
+  }
+
+  void init(MIDIClientRef &s)
+  {
+    if (s) return;
+    {
+      scoped_lock lock(mutex);
+      OSStatus result = MIDIClientCreate(
+					 CFStringCreateWithCString( NULL,
+								    name.c_str(),
+								    kCFStringEncodingUTF8),
+					 NULL, NULL, &s );
+      if ( result != noErr ) {
+	throw Error(
+		    "CoreSequencer::initialize: \
+Error creating OS-X MIDI client object.",
+		    Error::DRIVER_ERROR);
+	return;
+      }
+    }
+  }
+};
+typedef CoreSequencer<1> LockingCoreSequencer;
+typedef CoreSequencer<0> NonLockingCoreSequencer;
+
+struct CorePortDescriptor:public PortDescriptor	{
+  CorePortDescriptor(const std::string & name):api(0),
+					       clientName(name),
+					       endpoint(0)
+  {
+  }
+  CorePortDescriptor(MIDIEndpointRef p,
+		     const std::string & name):api(0),
+					       clientName(name),
+					       endpoint(p)
+  {
+    seq.setName(name);
+  }
+  CorePortDescriptor(CorePortDescriptor &
+		     other):PortDescriptor(other),
+			    api(other.api),
+			    clientName(other.clientName),
+			    endpoint(other.endpoint)
+  {
+    seq.setName(clientName);
+  }
+  ~CorePortDescriptor() {}
+
+  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+    if (getCapabilities() & INPUT)
+      return new MidiInCore(clientName,queueSizeLimit);
+    else
+      return 0;
+  }
+
+  MidiOutApi * getOutputApi() {
+    if (getCapabilities() & OUTPUT)
+      return new MidiOutCore(clientName);
+    else
+      return 0;
+  }
+
+  void setEndpoint(MIDIEndpointRef e)
+  {
+    endpoint = e;
+  }
+  MIDIEndpointRef getEndpoint() const
+  {
+    return endpoint;
+  }
+
+  std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+    return seq.getPortName(endpoint,flags);
+  }
+
+  const std::string & getClientName() {
+    return clientName;
+  }
+  int getCapabilities() {
+    if (!endpoint) return 0;
+    return seq.getPortCapabilities(endpoint);
+  }
+  static PortList getPortList(int capabilities, const std::string & clientName);
+protected:
+  MidiApi * api;
+  static LockingCoreSequencer seq;
+
+  std::string clientName;
+  MIDIEndpointRef endpoint;
+};
+
+LockingCoreSequencer CorePortDescriptor::seq;
+
+
+
+PortList CorePortDescriptor :: getPortList(int capabilities, const std::string & clientName)
+{
+  PortList list;
+
+  CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
+  int caps = capabilities & PortDescriptor::INOUTPUT;
+  bool unlimited = capabilities & PortDescriptor::UNLIMITED;
+  bool forceInput = PortDescriptor::INPUT & caps;
+  bool forceOutput = PortDescriptor::OUTPUT & caps;
+  bool allowOutput = forceOutput || !forceInput;
+  bool allowInput = forceInput || !forceOutput;
+  if (allowOutput) {
+    ItemCount count =
+      MIDIGetNumberOfDestinations();
+    for (ItemCount i = 0 ; i < count; i++) {
+      MIDIEndpointRef destination =
+	MIDIGetDestination(i);
+      if ((seq.getPortCapabilities(destination)
+	   & caps) == caps)
+	list.push_back(new CorePortDescriptor(destination,
+					      clientName));
+    }
+    // Combined sources and destinations
+    // should be both occur as destinations and as
+    // sources. So we have finished the search, here.
+  } else if (allowInput) {
+    ItemCount count =
+      MIDIGetNumberOfSources();
+    for (ItemCount i = 0 ; i < count; i++) {
+      MIDIEndpointRef src =
+	MIDIGetSource(i);
+      if ((seq.getPortCapabilities(src)
+	   & caps) == caps)
+	list.push_back(new CorePortDescriptor(src,
+					      clientName));
+    }
+  }
+  return list;
+}
+
+
 // A structure to hold variables related to the CoreMIDI API
 // implementation.
-struct CoreMidiData {
-  MIDIClientRef client;
-  MIDIPortRef port;
-  MIDIEndpointRef endpoint;
-  MIDIEndpointRef destinationId;
+struct CoreMidiData:public CorePortDescriptor {
+  CoreMidiData(std::string clientname):CorePortDescriptor(clientname),
+				       client(clientname),
+				       localEndpoint(0),
+				       localPort(0) {}
+  ~CoreMidiData() {
+    if (localEndpoint)
+      MIDIEndpointDispose(localEndpoint);
+    localEndpoint = 0;
+  }
+
+  void openPort(const std::string & name,
+		int flags,
+		MidiInApi::MidiInData * data = NULL) {
+    localPort = client.createPort(name, flags, data);
+  }
+
+  void setRemote(const CorePortDescriptor & remote)
+  {
+    setEndpoint(remote.getEndpoint());
+  }
+
+  NonLockingCoreSequencer client;
+  MIDIEndpointRef localEndpoint;
+  MIDIPortRef localPort;
   unsigned long long lastTime;
   MIDISysexSendRequest sysexreq;
 };
@@ -575,7 +1546,9 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
   }
 }
 
-MidiInCore :: MidiInCore( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
+MidiInCore :: MidiInCore( const std::string clientName,
+			  unsigned int queueSizeLimit ) :
+  MidiInApi( queueSizeLimit )
 {
   initialize( clientName );
 }
@@ -587,31 +1560,19 @@ MidiInCore :: ~MidiInCore( void )
 
   // Cleanup.
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-  MIDIClientDispose( data->client );
-  if ( data->endpoint ) MIDIEndpointDispose( data->endpoint );
   delete data;
 }
 
 void MidiInCore :: initialize( const std::string& clientName )
 {
-  // Set up our client.
-  MIDIClientRef client;
-  OSStatus result = MIDIClientCreate( CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII ), NULL, NULL, &client );
-  if ( result != noErr ) {
-    errorString_ = "MidiInCore::initialize: error creating OS-X MIDI client object.";
-    error( Error::DRIVER_ERROR, errorString_ );
-    return;
-  }
-
   // Save our api-specific connection information.
-  CoreMidiData *data = (CoreMidiData *) new CoreMidiData;
-  data->client = client;
-  data->endpoint = 0;
+  CoreMidiData *data = (CoreMidiData *) new CoreMidiData(clientName);
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
 }
 
-void MidiInCore :: openPort( unsigned int portNumber, const std::string portName )
+void MidiInCore :: openPort( unsigned int portNumber,
+			     const std::string & portName )
 {
   if ( connected_ ) {
     errorString_ = "MidiInCore::openPort: a valid connection already exists!";
@@ -638,7 +1599,7 @@ void MidiInCore :: openPort( unsigned int portNumber, const std::string portName
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result = MIDIInputPortCreate( data->client,
-					 CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+					 CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingUTF8 ),
 					 midiInputCallback, (void *)&inputData_, &port );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
@@ -668,7 +1629,8 @@ void MidiInCore :: openPort( unsigned int portNumber, const std::string portName
   }
 
   // Save our api-specific port information.
-  data->port = port;
+  data->localPort = port;
+  data->setEndpoint(endpoint);
 
   connected_ = true;
 }
@@ -680,7 +1642,7 @@ void MidiInCore :: openVirtualPort( const std::string portName )
   // Create a virtual MIDI input destination.
   MIDIEndpointRef endpoint;
   OSStatus result = MIDIDestinationCreate( data->client,
-					   CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+					   CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingUTF8 ),
 					   midiInputCallback, (void *)&inputData_, &endpoint );
   if ( result != noErr ) {
     errorString_ = "MidiInCore::openVirtualPort: error creating virtual OS-X MIDI destination.";
@@ -689,14 +1651,83 @@ void MidiInCore :: openVirtualPort( const std::string portName )
   }
 
   // Save our api-specific connection information.
-  data->endpoint = endpoint;
+  data->localEndpoint = endpoint;
 }
+
+void MidiInCore :: openPort( const PortDescriptor & port,
+			     const std::string & portName)
+{
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  const CorePortDescriptor * remote = dynamic_cast<const CorePortDescriptor *>(&port);
+
+  if ( !data ) {
+    errorString_ = "MidiInCore::openPort: Internal error: data has not been allocated!";
+    error( Error::DRIVER_ERROR, errorString_ );
+    return;
+  }
+  if ( connected_ || data -> localEndpoint) {
+    errorString_ = "MidiInCore::openPort: a valid connection already exists!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+  if (!remote) {
+    errorString_ = "MidiInCore::openPort: an invalid (i.e. non-CORE) port descriptor has been passed to openPort!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+
+  data->openPort (portName,
+		  PortDescriptor::INPUT,
+		  &inputData_);
+  data->setRemote(*remote);
+  OSStatus result =
+    MIDIPortConnectSource(data->localPort,
+			  data->getEndpoint(),
+			  NULL);
+  if ( result != noErr ) {
+    error(Error::DRIVER_ERROR,
+	  "CoreSequencer::createPort:\
+ error creating OS-X MIDI port.");
+  }
+
+  connected_ = true;
+}
+
+Pointer<PortDescriptor> MidiInCore :: getDescriptor(bool local)
+{
+  CoreMidiData *data = static_cast<CoreMidiData *>
+    (apiData_);
+  if (!data) {
+    return NULL;
+  }
+  if (local) {
+    if (data && data->localEndpoint) {
+      return new
+	CorePortDescriptor(data->localEndpoint,
+			   data->getClientName());
+    }
+  } else {
+    if (data->getEndpoint()) {
+      return new CorePortDescriptor(*data);
+    }
+  }
+  return NULL;
+}
+
+PortList MidiInCore :: getPortList(int capabilities)
+{
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  return CorePortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
+					 data->getClientName());
+}
+
 
 void MidiInCore :: closePort( void )
 {
   if ( connected_ ) {
     CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-    MIDIPortDispose( data->port );
+    MIDIPortDispose( data->localPort );
+    data->localPort = 0;
     connected_ = false;
   }
 }
@@ -705,130 +1736,6 @@ unsigned int MidiInCore :: getPortCount()
 {
   CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
   return MIDIGetNumberOfSources();
-}
-
-// This function was submitted by Douglas Casey Tucker and apparently
-// derived largely from PortMidi.
-CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
-{
-  CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
-  CFStringRef str;
-
-  // Begin with the endpoint's name.
-  str = NULL;
-  MIDIObjectGetStringProperty( endpoint, kMIDIPropertyName, &str );
-  if ( str != NULL ) {
-    CFStringAppend( result, str );
-    CFRelease( str );
-  }
-
-  MIDIEntityRef entity = 0;
-  MIDIEndpointGetEntity( endpoint, &entity );
-  if ( entity == 0 )
-    // probably virtual
-    return result;
-
-  if ( CFStringGetLength( result ) == 0 ) {
-    // endpoint name has zero length -- try the entity
-    str = NULL;
-    MIDIObjectGetStringProperty( entity, kMIDIPropertyName, &str );
-    if ( str != NULL ) {
-      CFStringAppend( result, str );
-      CFRelease( str );
-    }
-  }
-  // now consider the device's name
-  MIDIDeviceRef device = 0;
-  MIDIEntityGetDevice( entity, &device );
-  if ( device == 0 )
-    return result;
-
-  str = NULL;
-  MIDIObjectGetStringProperty( device, kMIDIPropertyName, &str );
-  if ( CFStringGetLength( result ) == 0 ) {
-    CFRelease( result );
-    return str;
-  }
-  if ( str != NULL ) {
-    // if an external device has only one entity, throw away
-    // the endpoint name and just use the device name
-    if ( isExternal && MIDIDeviceGetNumberOfEntities( device ) < 2 ) {
-      CFRelease( result );
-      return str;
-    } else {
-      if ( CFStringGetLength( str ) == 0 ) {
-	CFRelease( str );
-	return result;
-      }
-      // does the entity name already start with the device name?
-      // (some drivers do this though they shouldn't)
-      // if so, do not prepend
-      if ( CFStringCompareWithOptions( result, /* endpoint name */
-				       str /* device name */,
-				       CFRangeMake(0, CFStringGetLength( str ) ), 0 ) != kCFCompareEqualTo ) {
-	// prepend the device name to the entity name
-	if ( CFStringGetLength( result ) > 0 )
-	  CFStringInsert( result, 0, CFSTR(" ") );
-	CFStringInsert( result, 0, str );
-      }
-      CFRelease( str );
-    }
-  }
-  return result;
-}
-
-// This function was submitted by Douglas Casey Tucker and apparently
-// derived largely from PortMidi.
-static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
-{
-  CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
-  CFStringRef str;
-  OSStatus err;
-  int i;
-
-  // Does the endpoint have connections?
-  CFDataRef connections = NULL;
-  int nConnected = 0;
-  bool anyStrings = false;
-  err = MIDIObjectGetDataProperty( endpoint, kMIDIPropertyConnectionUniqueID, &connections );
-  if ( connections != NULL ) {
-    // It has connections, follow them
-    // Concatenate the names of all connected devices
-    nConnected = CFDataGetLength( connections ) / sizeof(MIDIUniqueID);
-    if ( nConnected ) {
-      const SInt32 *pid = (const SInt32 *)(CFDataGetBytePtr(connections));
-      for ( i=0; i<nConnected; ++i, ++pid ) {
-	MIDIUniqueID id = EndianS32_BtoN( *pid );
-	MIDIObjectRef connObject;
-	MIDIObjectType connObjectType;
-	err = MIDIObjectFindByUniqueID( id, &connObject, &connObjectType );
-	if ( err == noErr ) {
-	  if ( connObjectType == kMIDIObjectType_ExternalSource  ||
-	       connObjectType == kMIDIObjectType_ExternalDestination ) {
-	    // Connected to an external device's endpoint (10.3 and later).
-	    str = EndpointName( (MIDIEndpointRef)(connObject), true );
-	  } else {
-	    // Connected to an external device (10.2) (or something else, catch-
-	    str = NULL;
-	    MIDIObjectGetStringProperty( connObject, kMIDIPropertyName, &str );
-	  }
-	  if ( str != NULL ) {
-	    if ( anyStrings )
-	      CFStringAppend( result, CFSTR(", ") );
-	    else anyStrings = true;
-	    CFStringAppend( result, str );
-	    CFRelease( str );
-	  }
-	}
-      }
-    }
-    CFRelease( connections );
-  }
-  if ( anyStrings )
-    return result;
-
-  // Here, either the endpoint had no connections, or we failed to obtain names 
-  return EndpointName( endpoint, false );
 }
 
 std::string MidiInCore :: getPortName( unsigned int portNumber )
@@ -849,11 +1756,12 @@ std::string MidiInCore :: getPortName( unsigned int portNumber )
 
   portRef = MIDIGetSource( portNumber );
   nameRef = ConnectedEndpointName(portRef);
-  CFStringGetCString( nameRef, name, sizeof(name), CFStringGetSystemEncoding());
+  CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8);
   CFRelease( nameRef );
 
   return stringName = name;
 }
+
 
 //*********************************************************************//
 //  API: OS-X
@@ -872,26 +1780,13 @@ MidiOutCore :: ~MidiOutCore( void )
 
   // Cleanup.
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-  MIDIClientDispose( data->client );
-  if ( data->endpoint ) MIDIEndpointDispose( data->endpoint );
   delete data;
 }
 
 void MidiOutCore :: initialize( const std::string& clientName )
 {
-  // Set up our client.
-  MIDIClientRef client;
-  OSStatus result = MIDIClientCreate( CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII ), NULL, NULL, &client );
-  if ( result != noErr ) {
-    errorString_ = "MidiOutCore::initialize: error creating OS-X MIDI client object.";
-    error( Error::DRIVER_ERROR, errorString_ );
-    return;
-  }
-
   // Save our api-specific connection information.
-  CoreMidiData *data = (CoreMidiData *) new CoreMidiData;
-  data->client = client;
-  data->endpoint = 0;
+  CoreMidiData *data = (CoreMidiData *) new CoreMidiData(clientName);
   apiData_ = (void *) data;
 }
 
@@ -919,13 +1814,14 @@ std::string MidiOutCore :: getPortName( unsigned int portNumber )
 
   portRef = MIDIGetDestination( portNumber );
   nameRef = ConnectedEndpointName(portRef);
-  CFStringGetCString( nameRef, name, sizeof(name), CFStringGetSystemEncoding());
+  CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8);
   CFRelease( nameRef );
 
   return stringName = name;
 }
 
-void MidiOutCore :: openPort( unsigned int portNumber, const std::string portName )
+void MidiOutCore :: openPort( unsigned int portNumber,
+			      const std::string &portName )
 {
   if ( connected_ ) {
     errorString_ = "MidiOutCore::openPort: a valid connection already exists!";
@@ -952,7 +1848,7 @@ void MidiOutCore :: openPort( unsigned int portNumber, const std::string portNam
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result = MIDIOutputPortCreate( data->client,
-					  CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+					  CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingUTF8 ),
 					  &port );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
@@ -972,8 +1868,8 @@ void MidiOutCore :: openPort( unsigned int portNumber, const std::string portNam
   }
 
   // Save our api-specific connection information.
-  data->port = port;
-  data->destinationId = destination;
+  data->localPort = port;
+  data->setEndpoint(destination);
   connected_ = true;
 }
 
@@ -981,7 +1877,7 @@ void MidiOutCore :: closePort( void )
 {
   if ( connected_ ) {
     CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-    MIDIPortDispose( data->port );
+    MIDIPortDispose( data->localPort );
     connected_ = false;
   }
 }
@@ -990,7 +1886,7 @@ void MidiOutCore :: openVirtualPort( std::string portName )
 {
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
 
-  if ( data->endpoint ) {
+  if ( data->localEndpoint ) {
     errorString_ = "MidiOutCore::openVirtualPort: a virtual output port already exists!";
     error( Error::WARNING, errorString_ );
     return;
@@ -999,7 +1895,7 @@ void MidiOutCore :: openVirtualPort( std::string portName )
   // Create a virtual MIDI output source.
   MIDIEndpointRef endpoint;
   OSStatus result = MIDISourceCreate( data->client,
-				      CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+				      CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingUTF8 ),
 				      &endpoint );
   if ( result != noErr ) {
     errorString_ = "MidiOutCore::initialize: error creating OS-X virtual MIDI source.";
@@ -1008,8 +1904,65 @@ void MidiOutCore :: openVirtualPort( std::string portName )
   }
 
   // Save our api-specific connection information.
-  data->endpoint = endpoint;
+  data->localEndpoint = endpoint;
 }
+
+void MidiOutCore :: openPort( const PortDescriptor & port,
+			      const std::string & portName)
+{
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  const CorePortDescriptor * remote = dynamic_cast<const CorePortDescriptor *>(&port);
+
+  if ( !data ) {
+    errorString_ = "MidiOutCore::openPort: Internal error: data has not been allocated!";
+    error( Error::DRIVER_ERROR, errorString_ );
+    return;
+  }
+  if ( connected_ || data -> localEndpoint) {
+    errorString_ = "MidiOutCore::openPort: a valid connection already exists!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+  if (!remote) {
+    errorString_ = "MidiOutCore::openPort: an invalid (i.e. non-CORE) port descriptor has been passed to openPort!";
+    error( Error::WARNING, errorString_ );
+    return;
+  }
+
+  data->openPort (portName,
+		  PortDescriptor::OUTPUT);
+  data->setRemote(*remote);
+  connected_ = true;
+}
+
+Pointer<PortDescriptor> MidiOutCore :: getDescriptor(bool local)
+{
+  CoreMidiData *data = static_cast<CoreMidiData *>
+    (apiData_);
+  if (!data) {
+    return NULL;
+  }
+  if (local) {
+    if (data && data->localEndpoint) {
+      return new
+	CorePortDescriptor(data->localEndpoint,
+			   data->getClientName());
+    }
+  } else {
+    if (data->getEndpoint()) {
+      return new CorePortDescriptor(*data);
+    }
+  }
+  return NULL;
+}
+
+PortList MidiOutCore :: getPortList(int capabilities)
+{
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  return CorePortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT,
+					 data->getClientName());
+}
+
 
 // Not necessary if we don't treat sysex messages any differently than
 // normal messages ... see below.
@@ -1018,13 +1971,13 @@ void MidiOutCore :: openVirtualPort( std::string portName )
 //  free( sreq );
 //}
 
-void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
+void MidiOutCore :: sendMessage( std::vector<unsigned char> &message )
 {
   // We use the MIDISendSysex() function to asynchronously send sysex
   // messages.  Otherwise, we use a single CoreMidi MIDIPacket.
-  unsigned int nBytes = message->size();
+  unsigned int nBytes = message.size();
   if ( nBytes == 0 ) {
-    errorString_ = "MidiOutCore::sendMessage: no data in message argument!";      
+    errorString_ = "MidiOutCore::sendMessage: no data in message argument!";
     error( Error::WARNING, errorString_ );
     return;
   }
@@ -1040,7 +1993,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
   // messages through the normal mechanism.  In addition, this avoids
   // the problem of virtual ports not receiving sysex messages.
 
-  if ( message->at(0) == 0xF0 ) {
+  if ( message.at(0) == 0xF0 ) {
 
   // Apple's fantastic API requires us to free the allocated data in
   // the completion callback but trashes the pointer and size before
@@ -1053,7 +2006,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
   char * sysexBuffer = ((char *) newRequest) + sizeof(struct MIDISysexSendRequest);
 
   // Copy data to buffer.
-  for ( unsigned int i=0; i<nBytes; ++i ) sysexBuffer[i] = message->at(i);
+  for ( unsigned int i=0; i<nBytes; ++i ) sysexBuffer[i] = message.at(i);
 
   newRequest->destination = data->destinationId;
   newRequest->data = (Byte *)sysexBuffer;
@@ -1080,16 +2033,16 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 
   MIDIPacketList packetList;
   MIDIPacket *packet = MIDIPacketListInit( &packetList );
-  packet = MIDIPacketListAdd( &packetList, sizeof(packetList), packet, timeStamp, nBytes, (const Byte *) &message->at( 0 ) );
+  packet = MIDIPacketListAdd( &packetList, sizeof(packetList), packet, timeStamp, nBytes, (const Byte *) &message.at( 0 ) );
   if ( !packet ) {
-    errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";      
+    errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";
     error( Error::DRIVER_ERROR, errorString_ );
     return;
   }
 
   // Send to any destinations that may have connected to us.
-  if ( data->endpoint ) {
-    result = MIDIReceived( data->endpoint, &packetList );
+  if ( data->localEndpoint ) {
+    result = MIDIReceived( data->localEndpoint, &packetList );
     if ( result != noErr ) {
       errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
       error( Error::WARNING, errorString_ );
@@ -1098,7 +2051,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 
   // And send to an explicit destination port if we're connected.
   if ( connected_ ) {
-    result = MIDISend( data->port, data->destinationId, &packetList );
+    result = MIDISend( data->localPort, data->getEndpoint(), &packetList );
     if ( result != noErr ) {
       errorString_ = "MidiOutCore::sendMessage: error sending MIDI message to port.";
       error( Error::WARNING, errorString_ );

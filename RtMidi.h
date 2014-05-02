@@ -361,7 +361,7 @@ public:
     \param portName An optional name for the applicaction port that is
     used to connect to portId can be specified.
   */
-  virtual void openVirtualPort( const std::string portName = std::string( "RtMidi" ) ) = 0;
+  virtual void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) ) = 0;
 
   //! Pure virtual function to open a MIDI connection given by enumeration number.
   /*! \param portNumber An optional port number greater than 0
@@ -619,7 +619,7 @@ public:
     \param portName An optional name for the applicaction port that is
     used to connect to portId can be specified.
   */
-  void openVirtualPort( const std::string portName = std::string( "RtMidi" ) )
+  void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) )
   {
     if (rtapi_) rtapi_->openVirtualPort(portName);
   }

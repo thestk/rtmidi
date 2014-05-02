@@ -387,13 +387,31 @@ MidiOutApi :: ~MidiOutApi( void )
 {
 }
 
+
+// trim from start
+static inline std::string &ltrim(std::string &s) {
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+  return s;
+}
+
+// trim from end
+static inline std::string &rtrim(std::string &s) {
+  s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+  return s;
+}
+
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+  return ltrim(rtrim(s));
+}
+NAMSPACE_RTMIDI_END
+
 // *************************************************** //
 //
 // OS/API-specific methods.
 //
 // *************************************************** //
 
-NAMSPACE_RTMIDI_END
 #if defined(__MACOSX_CORE__)
 
 // The CoreMIDI API is based on the use of a callback function for
@@ -608,7 +626,7 @@ public:
 		     retval.size()-1,
 		     &len);
     retval.resize(len);
-    return retval;
+    return trim(retval);
   }
 
 
@@ -811,14 +829,15 @@ public:
   }
 
   static std::string getPortName(MIDIEndpointRef port, int flags) {
-    std::string clientname;
+    //			std::string clientname;
     std::string devicename;
     std::string portname;
     std::string entityname;
-    std::string externaldevicename;
+    //			std::string externaldevicename;
     std::string connections;
     std::string recommendedname;
     //			bool isVirtual;
+    bool hasManyEntities = false;
     bool hasManyEndpoints = false;
     CFStringRef nameRef;
     MIDIObjectGetStringProperty(port,
@@ -843,12 +862,16 @@ public:
 	entityname = str(nameRef);
 	CFRelease(nameRef);
       }
+      hasManyEndpoints =
+	MIDIEntityGetNumberOfSources(entity) >= 2 ||
+	MIDIEntityGetNumberOfDestinations(entity)
+	>= 2;
 
       // now consider the device's name
       MIDIDeviceRef device = NULL;
       MIDIEntityGetDevice(entity, &device);
       if (device != NULL) {
-	hasManyEndpoints = MIDIDeviceGetNumberOfEntities(device) >= 2;
+	hasManyEntities = MIDIDeviceGetNumberOfEntities(device) >= 2;
 	MIDIObjectGetStringProperty(device,
 				    kMIDIPropertyName,
 				    &nameRef);
@@ -869,6 +892,7 @@ public:
     int naming = flags & PortDescriptor::NAMING_MASK;
 
     std::ostringstream os;
+    bool needcolon;
     switch (naming) {
     case PortDescriptor::SESSION_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
@@ -878,25 +902,34 @@ public:
     case PortDescriptor::STORAGE_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
 	os << "CORE:";
-      os << clientname;
-      os << ":" << devicename;
+      // os << clientname;
+      os << devicename;
       os << ":" << portname;
       os << ":" << entityname;
-      os << ":" << externaldevicename;
+      //				os << ":" << externaldevicename;
       os << ":" << connections;
-      os << ":" << recommendedname;
+      //				os << ":" << recommendedname;
       if (flags & PortDescriptor::UNIQUE_NAME)
 	os << ";" << port;
       break;
     case PortDescriptor::LONG_NAME:
+      needcolon = !devicename.empty();
       os << devicename;
-      if (hasManyEndpoints) {
-	if (!portname.empty()) {
-	  os << ": ";
-	  os << portname;
-	} else {
-	  os << ": ";
+      if (hasManyEndpoints ||
+	  hasManyEntities ||
+	  devicename.empty()) {
+	if (!entityname.empty()) {
+	  if (needcolon)
+	    os << ": ";
 	  os << entityname;
+	  needcolon = true;
+	}
+	if ((hasManyEndpoints
+	     || entityname.empty())
+	    && !portname.empty()) {
+	  if (needcolon)
+	    os << ": ";
+	  os << portname;
 	}
       }
       if (!connections.empty()) {
@@ -923,18 +956,24 @@ public:
     default:
       if (!recommendedname.empty()) {
 	os << recommendedname;
-      } else if (!connections.empty()) {
-	os << connections;
-      } else {
-	os << devicename;
-	if (hasManyEndpoints) {
-	  if (!portname.empty()) {
-	    os << portname;
-	  } else {
-	    os << entityname;
+      } else
+	if (!connections.empty()) {
+	  os << connections;
+	} else {
+	  os << devicename;
+	  if (hasManyEntities ||
+	      hasManyEndpoints ||
+	      devicename.empty()) {
+	    if (!devicename.empty())
+	      os << " ";
+	    if (!portname.empty()) {
+	      os << portname;
+	    } else  if (!entityname.empty()) {
+	      os << entityname;
+	    } else
+	      os << "???";
 	  }
 	}
-      }
       if (flags &
 	  (PortDescriptor::INCLUDE_API
 	   | PortDescriptor::UNIQUE_NAME)) {

@@ -71,7 +71,7 @@ bool chooseMidiPort( RtMidiIn &midi )
   std::string keyHit;
   std::getline( std::cin, keyHit );
   if ( keyHit == "y" ) {
-    midi.openVirtualPort();
+    midi.openVirtualPort("RtMidi virtual input");
     return true;
   }
 

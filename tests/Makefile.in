@@ -21,6 +21,7 @@ LIBRARY  = @LIBS@
 
 all : $(PROGRAMS)
 
+RtMidi.o: $(SRC_PATH)/RtMidi.cpp $(SRC_PATH)/RtMidi.h
 midiprobe : midiprobe.cpp $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEFS) -o midiprobe midiprobe.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
 

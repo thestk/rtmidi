@@ -113,7 +113,7 @@ bool chooseMidiPort( RtMidiOut &midi )
 	std::string keyHit;
 	std::getline( std::cin, keyHit );
 	if ( keyHit == "y" ) {
-		midi.openVirtualPort();
+		midi.openVirtualPort("RtMidi virtual output");
 		std::cout << "Press return to start the transmission." << std::endl;
 		std::getline( std::cin, keyHit );
 

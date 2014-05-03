@@ -14,7 +14,7 @@
 void usage( void ) {
   // Error function in case of incorrect command-line
   // argument specifications.
-  std::cout << "\nuseage: cmidiin <port>\n";
+  std::cout << "\nuseage: cmidiin2 <port>\n";
   std::cout << "    where port = the device to use (default = 0).\n\n";
   exit( 0 );
 }
@@ -31,11 +31,10 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
 // This function should be embedded in a try/catch block in case of
 // an exception.  It offers the user a choice of MIDI ports to open.
 // It returns false if there are no ports available.
-bool chooseMidiPort( RtMidiIn *rtmidi );
+bool chooseMidiPort( RtMidiIn &rtmidi );
 
-int main( int argc, char ** /*argv[]*/ )
+int main( int argc, char */*argv*/[] )
 {
-  RtMidiIn *midiin = 0;
 
   // Minimal command-line check.
   if ( argc > 2 ) usage();
@@ -43,18 +42,18 @@ int main( int argc, char ** /*argv[]*/ )
   try {
 
     // RtMidiIn constructor
-    midiin = new RtMidiIn();
+    RtMidiIn midiin;
 
     // Call function to select port.
-    if ( chooseMidiPort( midiin ) == false ) goto cleanup;
+    if ( chooseMidiPort( midiin ) == false ) return 0;
 
     // Set our callback function.  This should be done immediately after
     // opening the port to avoid having incoming messages written to the
     // queue instead of sent to the callback function.
-    midiin->setCallback( &mycallback );
+    midiin.setCallback( &mycallback );
 
     // Don't ignore sysex, timing, or active sensing messages.
-    midiin->ignoreTypes( false, false, false );
+    midiin.ignoreTypes( false, false, false );
 
     std::cout << "\nReading MIDI input ... press <enter> to quit.\n";
     char input;
@@ -63,49 +62,52 @@ int main( int argc, char ** /*argv[]*/ )
   } catch ( RtMidiError &error ) {
     error.printMessage();
   }
-
- cleanup:
-
-  delete midiin;
-
-  return 0;
 }
 
-bool chooseMidiPort( RtMidiIn *rtmidi )
+bool chooseMidiPort( RtMidiIn &midi )
 {
   std::cout << "\nWould you like to open a virtual input port? [y/N] ";
 
   std::string keyHit;
   std::getline( std::cin, keyHit );
   if ( keyHit == "y" ) {
-    rtmidi->openVirtualPort();
+    midi.openVirtualPort("RtMidi virtual input");
     return true;
   }
 
   std::string portName;
-  unsigned int i = 0, nPorts = rtmidi->getPortCount();
-  if ( nPorts == 0 ) {
+  rtmidi::PortList list = midi.getPortList(rtmidi::PortDescriptor::INPUT);
+  if ( list.empty() ) {
     std::cout << "No input ports available!" << std::endl;
     return false;
   }
 
-  if ( nPorts == 1 ) {
-    std::cout << "\nOpening " << rtmidi->getPortName() << std::endl;
+  rtmidi::Pointer<rtmidi::PortDescriptor> selected = list.front();
+  if ( list.size() == 1 ) {
+	  std::cout << "\nOpening " << selected->getName() << std::endl;
+  }  else {
+	  int nr;
+	  std::vector<rtmidi::Pointer<rtmidi::PortDescriptor> > pointers(list.size());
+	  // copy the data into a structure that is used by the user interface.
+	  std::copy(list.begin(),list.end(),pointers.begin());
+	  for (nr = 0 ; nr < (int)pointers.size(); nr++) {
+		  portName = pointers[nr]->getName(rtmidi::PortDescriptor::LONG_NAME
+						   | rtmidi::PortDescriptor::UNIQUE_NAME
+						   | rtmidi::PortDescriptor::INCLUDE_API);
+		  std::cout << "  Input port #" << nr << ": " << portName << '\n';
+	  }
+
+	  do {
+		  std::cout << "\nChoose a port number: ";
+		  std::cin >> nr;
+	  } while ( nr >= (int)pointers.size() );
+	  std::getline( std::cin, keyHit );  // used to clear out stdin
+	  selected = pointers[nr];
   }
-  else {
-    for ( i=0; i<nPorts; i++ ) {
-      portName = rtmidi->getPortName(i);
-      std::cout << "  Input port #" << i << ": " << portName << '\n';
-    }
 
-    do {
-      std::cout << "\nChoose a port number: ";
-      std::cin >> i;
-    } while ( i >= nPorts );
-    std::getline( std::cin, keyHit );  // used to clear out stdin
-  }
-
-  rtmidi->openPort( i );
-
+  /* The midi setup might have changed meanwhile.
+     Our portlist is under our control. So we enumerate this list. */
+  // midi.openPort( i );
+  midi.openPort(selected);
   return true;
 }

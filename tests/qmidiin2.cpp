@@ -49,9 +49,9 @@ int main( int argc, char *argv[] )
 	double stamp;
 
 
-	// RtMidiIn constructor
+	// rtmidi::MidiIn constructor
 	try {
-		RtMidiIn midiin;
+		rtmidi::MidiIn midiin;
 
 
 		rtmidi::PortList list = midiin.getPortList();
@@ -82,7 +82,7 @@ int main( int argc, char *argv[] )
 		try {
 			midiin.openPort( port );
 		}
-		catch ( RtMidiError &error ) {
+		catch ( rtmidi::Error &error ) {
 			error.printMessage();
 			return 1;
 		}
@@ -108,7 +108,7 @@ int main( int argc, char *argv[] )
 			SLEEP( 10 );
 		}
 	}
-	catch ( RtMidiError &error ) {
+	catch ( rtmidi::Error &error ) {
 		error.printMessage();
 		exit( EXIT_FAILURE );
 	}

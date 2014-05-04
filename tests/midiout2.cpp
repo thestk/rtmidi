@@ -22,21 +22,22 @@
 // This function should be embedded in a try/catch block in case of
 // an exception.  It offers the user a choice of MIDI ports to open.
 // It returns false if there are no ports available.
-bool chooseMidiPort( RtMidiOut &ortmidi );
+bool chooseMidiPort( rtmidi::MidiOut &ortmidi );
 
+//! The main program
 int main( int /* argc*/, char */*argv*/[] )
 {
 	std::vector<unsigned char> message;
 
-	// RtMidiOut constructor
+	// rtmidi::MidiOut constructor
 	try {
-		RtMidiOut midiout;
+		rtmidi::MidiOut midiout;
 
 		// Call function to select port.
 		try {
 			if ( chooseMidiPort( midiout ) == false ) return 1;
 		}
-		catch ( RtMidiError &error ) {
+		catch ( rtmidi::Error &error ) {
 			error.printMessage();
 			return 2;
 		}
@@ -98,7 +99,7 @@ int main( int /* argc*/, char */*argv*/[] )
 
 
 	}
-	catch ( RtMidiError &error ) {
+	catch ( rtmidi::Error &error ) {
 		error.printMessage();
 		exit( EXIT_FAILURE );
 	}
@@ -106,7 +107,7 @@ int main( int /* argc*/, char */*argv*/[] )
 	return 0;
 }
 
-bool chooseMidiPort( RtMidiOut &midi )
+bool chooseMidiPort( rtmidi::MidiOut &midi )
 {
 	std::cout << "\nWould you like to open a virtual output port? [y/N] ";
 

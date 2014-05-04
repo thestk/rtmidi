@@ -13,15 +13,15 @@ int main()
 {
   // Create an api map.
   std::map<int, std::string> apiMap;
-  apiMap[RtMidi::MACOSX_CORE] = "OS-X CoreMidi";
-  apiMap[RtMidi::WINDOWS_MM] = "Windows MultiMedia";
-  apiMap[RtMidi::WINDOWS_KS] = "Windows Kernel Straming";
-  apiMap[RtMidi::UNIX_JACK] = "Jack Client";
-  apiMap[RtMidi::LINUX_ALSA] = "Linux ALSA";
-  apiMap[RtMidi::RTMIDI_DUMMY] = "RtMidi Dummy";
+  apiMap[rtmidi::MACOSX_CORE] = "OS-X CoreMidi";
+  apiMap[rtmidi::WINDOWS_MM] = "Windows MultiMedia";
+  apiMap[rtmidi::WINDOWS_KS] = "Windows Kernel Straming";
+  apiMap[rtmidi::UNIX_JACK] = "Jack Client";
+  apiMap[rtmidi::LINUX_ALSA] = "Linux ALSA";
+  apiMap[rtmidi::RTMIDI_DUMMY] = "RtMidi Dummy";
 
-  std::vector< RtMidi::Api > apis;
-  RtMidi :: getCompiledApi( apis );
+  std::vector< rtmidi::ApiType > apis;
+  rtmidi::Midi :: getCompiledApi( apis );
 
   std::cout << "\nCompiled APIs:\n";
   for ( unsigned int i=0; i<apis.size(); i++ )
@@ -30,8 +30,8 @@ int main()
 
   try {
 
-    // RtMidiIn constructor ... exception possible
-    RtMidiIn midiin;
+    // rtmidi::MidiIn constructor ... exception possible
+    rtmidi::MidiIn midiin;
 
     std::cout << "\nCurrent input API: " << apiMap[ midiin.getCurrentApi() ] << std::endl;
 
@@ -56,8 +56,8 @@ int main()
 
     std::cout << "**********************************************************************" << std::endl;
 
-    // RtMidiOut constructor ... exception possible
-    RtMidiOut midiout;
+    // rtmidi::MidiOut constructor ... exception possible
+    rtmidi::MidiOut midiout;
 
     std::cout << "\nCurrent output API: " << apiMap[ midiout.getCurrentApi() ] << std::endl;
 
@@ -126,7 +126,7 @@ int main()
 
 
 
-  } catch ( RtMidiError &error ) {
+  } catch ( rtmidi::Error &error ) {
     error.printMessage();
   }
 

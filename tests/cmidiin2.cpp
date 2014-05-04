@@ -31,7 +31,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
 // This function should be embedded in a try/catch block in case of
 // an exception.  It offers the user a choice of MIDI ports to open.
 // It returns false if there are no ports available.
-bool chooseMidiPort( RtMidiIn &rtmidi );
+bool chooseMidiPort( rtmidi::MidiIn &rtmidi );
 
 int main( int argc, char */*argv*/[] )
 {
@@ -41,8 +41,8 @@ int main( int argc, char */*argv*/[] )
 
   try {
 
-    // RtMidiIn constructor
-    RtMidiIn midiin;
+    // rtmidi::MidiIn constructor
+    rtmidi::MidiIn midiin;
 
     // Call function to select port.
     if ( chooseMidiPort( midiin ) == false ) return 0;
@@ -59,12 +59,12 @@ int main( int argc, char */*argv*/[] )
     char input;
     std::cin.get(input);
 
-  } catch ( RtMidiError &error ) {
+  } catch ( rtmidi::Error &error ) {
     error.printMessage();
   }
 }
 
-bool chooseMidiPort( RtMidiIn &midi )
+bool chooseMidiPort( rtmidi::MidiIn &midi )
 {
   std::cout << "\nWould you like to open a virtual input port? [y/N] ";
 

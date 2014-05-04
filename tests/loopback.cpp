@@ -72,10 +72,10 @@ int main( int argc, char */*argv*/[] )
 
 	try {
 
-		// RtMidiIn constructor
-		RtMidiIn virtualin;
-		// RtMidiIn constructor
-		RtMidiOut virtualout;
+		// rtmidi::MidiIn constructor
+		rtmidi::MidiIn virtualin;
+		// rtmidi::MidiIn constructor
+		rtmidi::MidiOut virtualout;
 
 		virtualin.openVirtualPort("RtMidi Test Virtual In");
 		virtualout.openVirtualPort("RtMidi Test Virtual Out");
@@ -202,7 +202,7 @@ int main( int argc, char */*argv*/[] )
 		std::cout << std::endl;
 		if (i != virtualinstring.size()) abort();
 		
-	} catch ( RtMidiError &error ) {
+	} catch ( rtmidi::Error &error ) {
 		error.printMessage();
 	}
 }

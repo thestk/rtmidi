@@ -1,10 +1,14 @@
 //*****************************************//
 //  midiout.cpp
-//  by Gary Scavone, 2003-2004.
+//  by Gary Scavone, 2003-2014.
+//  and Tobias Schlemmer 2014
 //
-//  Simple program to test MIDI output.
-//
-//*****************************************//
+/*! \example midiout2.cpp
+    Simple program to test MIDI output.
+*/
+// *****************************************//
+
+
 
 #include <iostream>
 #include <cstdlib>

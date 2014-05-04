@@ -1,8 +1,10 @@
-// midiprobe.cpp
+/*! \example midiprobe2.cpp
+
+  Simple program to check MIDI inputs and outputs.
+*/
 //
-// Simple program to check MIDI inputs and outputs.
-//
-// by Gary Scavone, 2003-2012.
+// by Gary Scavone, 2003-2014.
+// and Tobias Schlemmer 2014
 
 #include <iostream>
 #include <cstdlib>

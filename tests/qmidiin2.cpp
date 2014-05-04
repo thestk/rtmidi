@@ -1,10 +1,12 @@
 //*****************************************//
 //  qmidiin.cpp
-//  by Gary Scavone, 2003-2004.
+//  by Gary Scavone, 2003-2014.
+//  and Tobias Schlemmer, 2014
 //
-//  Simple program to test MIDI input and
-//  retrieval from the queue.
-//
+/*! \example qmidiin2.cpp
+  Simple program to test MIDI input and
+  retrieval from the queue.
+*/
 //*****************************************//
 
 #include <iostream>

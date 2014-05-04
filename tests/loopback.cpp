@@ -4,9 +4,10 @@
 //  inspired by virtual-loopback-test-automated.js from the node-midi project.
 //  donated to RtMidi.
 //
-//  Simple program to test MIDI input and
-//  output using a user callback function.
-//
+/*! \example loopback.cpp
+  Simple program to test MIDI input and
+  output in an internal loop using a user callback function.
+*/
 //*****************************************//
 
 #include <iostream>

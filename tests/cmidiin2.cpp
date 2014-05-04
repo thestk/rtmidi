@@ -1,9 +1,12 @@
 //*****************************************//
 //  cmidiin.cpp
-//  by Gary Scavone, 2003-2004.
+//  by Gary Scavone, 2003-2014.
+//  and Tobias Schlemmer 2014.
 //
-//  Simple program to test MIDI input and
-//  use of a user callback function.
+/*! \example cmidiin2.cpp
+  Simple program to test MIDI input and
+  use of a user callback function.
+*/
 //
 //*****************************************//
 

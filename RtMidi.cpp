@@ -39,6 +39,7 @@
 #include "RtMidi.h"
 #include <sstream>
 #include <cstring>
+#include <algorithm>
 
 NAMSPACE_RTMIDI_START
 //*********************************************************************//
@@ -2849,7 +2850,6 @@ MidiInAlsa :: ~MidiInAlsa()
 #ifndef AVOID_TIMESTAMPING
   snd_seq_free_queue( data->seq, data->queue_id );
 #endif
-  snd_seq_close( data->seq );
   delete data;
 }
 
@@ -3247,7 +3247,6 @@ MidiOutAlsa :: ~MidiOutAlsa()
   if ( data->local.client > 0 ) snd_seq_delete_port( data->seq, data->local.port );
   if ( data->coder ) snd_midi_event_free( data->coder );
   if ( data->buffer ) free( data->buffer );
-  snd_seq_close( data->seq );
   delete data;
 }
 

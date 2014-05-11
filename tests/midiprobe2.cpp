@@ -20,7 +20,7 @@ int main()
   apiMap[rtmidi::WINDOWS_KS] = "Windows Kernel Straming";
   apiMap[rtmidi::UNIX_JACK] = "Jack Client";
   apiMap[rtmidi::LINUX_ALSA] = "Linux ALSA";
-  apiMap[rtmidi::RTMIDI_DUMMY] = "RtMidi Dummy";
+  apiMap[rtmidi::DUMMY] = "RtMidi Dummy";
 
   std::vector< rtmidi::ApiType > apis;
   rtmidi::Midi :: getCompiledApi( apis );

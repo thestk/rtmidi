@@ -9,13 +9,8 @@ OBJECTS	= RtMidi.o
 LIBNAME = librtmidi
 STATIC = $(LIBNAME).a
 SHARED = @sharedlib@
-<<<<<<< HEAD
-RELEASE = 2.1.0
-MAJOR = 2
-=======
 RELEASE = 3.0.0
 MAJOR = 3
->>>>>>> Bump library version.
 LIBRARIES = $(STATIC) $(SHARED)
 
 CC       = @CXX@

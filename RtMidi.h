@@ -66,16 +66,33 @@
 #define NAMESPACE_RTMIDI_END   }
 
 NAMESPACE_RTMIDI_START
+
 //! MIDI API specifier arguments.
 enum ApiType {
-  UNSPECIFIED,    /*!< Search for a working compiled API. */
-  MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
-  LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
-  UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
-  WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-  WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
-  DUMMY           /*!< A compilable but non-functional API. */
+UNSPECIFIED,    /*!< Search for a working compiled API. */
+MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
+LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
+UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
+WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
+WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
+DUMMY,          /*!< A compilable but non-functional API. */
+ALL_API         /*!< Use all available APIs for port selection. */
 };
+
+//! Return the name on a MIDI API
+inline std::string getApiName(ApiType type) {
+  switch (type) {
+  case UNSPECIFIED: return "Automatic API selection";
+  case MACOSX_CORE: return "Core MIDI";
+  case LINUX_ALSA:  return "ALSA";
+  case UNIX_JACK:   return "JACK";
+  case WINDOWS_MM:  return "Windows Multimedia";
+  case WINDOWS_KS:  return "DirectX/Kernel Streaming";
+  case DUMMY:       return "NULL device";
+  case ALL_API:     return "All available APIs";
+  }
+  return "";
+}
 
 //! User callback function type definition.
 /*!
@@ -565,6 +582,8 @@ public:
   virtual void sendMessage( std::vector<unsigned char> &message ) = 0;
 };
 
+typedef Pointer<MidiApi> MidiApiPtr;
+typedef std::list <MidiApiPtr> MidiApiList;
 
 /*! \class Midi
   \brief A global class that implements basic backend API handling.
@@ -634,6 +653,9 @@ public:
   void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) )
   {
     if (rtapi_) rtapi_->openVirtualPort(portName);
+    else {
+      error(Error::INVALID_DEVICE,"Midi::OpenVirtualPort: No valid API selected");
+    }
   }
 
   //! Pure virtual function to open a MIDI connection given by enumeration number.
@@ -653,31 +675,6 @@ public:
     if (rtapi_) rtapi_->openPort(portNumber,portName);
   }
 
-  //! Pure virtual function to open a MIDI connection given by a port descriptor.
-  /*!
-    \param port     A port descriptor of the port must be specified.
-    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
-  */
-  void openPort( const PortDescriptor & port,
-		 const std::string & portName = std::string( "RtMidi" ) )
-  {
-    if (rtapi_) rtapi_->openPort(port,portName);
-  }
-
-  //!  Open a MIDI connection given by a port descriptor pointer.
-  /*!
-    \param port     A pointer to a port descriptor of the port must be specified.
-    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
-    \sa openPort(const PortDescriptor &,const std::string &);
-  */
-  void openPort( Pointer<PortDescriptor> p,
-		 const std::string & portName = std::string( "RtMidi" ) ) {
-    if (!p) {
-      error( Error::INVALID_PARAMETER, "MidiApi::openPort: passed NULL pointer" );
-      return;
-    }
-    openPort(*p, portName);
-  }
 
   //! Pure virtual function to return a port descirptor if the port is open
   Pointer<PortDescriptor> getDescriptor(bool local=false)
@@ -709,6 +706,16 @@ public:
   PortList getPortList(int capabilities = 0)
   {
     if (rtapi_) return rtapi_->getPortList(capabilities);
+    if (list && !list->empty()) {
+      PortList retval;
+      for (MidiApiList::iterator i = list->begin();
+	   i != list->end();
+	   ++i) {
+	PortList tmp = (*i)->getPortList(capabilities);
+	retval.splice(retval.end(), tmp);
+      }
+      return retval;
+    }
     return PortList();
   }
 
@@ -782,8 +789,9 @@ public:
   void error( Error::Type type, std::string errorString );
 protected:
   MidiApi *rtapi_;
+  MidiApiList * list;
 
-  Midi():rtapi_(0) {}
+  Midi(MidiApiList * l):rtapi_(0),list(l) {}
   ~Midi()
   {
     if (rtapi_) {
@@ -854,6 +862,43 @@ public:
 
   //! If a MIDI connection is still open, it will be closed by the destructor.
   ~MidiIn ( void ) throw();
+
+  using Midi::openPort;
+
+  //! Open a MIDI connection given by a port descriptor.
+  /*!
+    \param port     A port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+  */
+  void openPort( const PortDescriptor & port,
+		 const std::string & portName = std::string( "RtMidi" ) )
+  {
+    if (!rtapi_) rtapi_ = port.getInputApi();
+    if (rtapi_) rtapi_->openPort(port,portName);
+  }
+
+
+  //!  Open a MIDI connection given by a port descriptor pointer.
+  /*!
+    \param port     A pointer to a port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+    \sa openPort(const PortDescriptor &,const std::string &);
+  */
+  void openPort( Pointer<PortDescriptor> p,
+		 const std::string & portName = std::string( "RtMidi" ) ) {
+    if (!p) {
+      error( Error::INVALID_PARAMETER, "MidiApi::openPort: passed NULL pointer" );
+      return;
+    }
+    openPort(*p, portName);
+  }
+
+  //! Pure virtual function to return a port descirptor if the port is open
+  Pointer<PortDescriptor> getDescriptor(bool local=false)
+  {
+    if (rtapi_) return rtapi_->getDescriptor(local);
+    return 0;
+  }
 
   //! Set a callback function to be invoked for incoming MIDI messages.
   /*!
@@ -940,6 +985,7 @@ public:
   }
 
 protected:
+  static MidiApiList queryApis;
   void openMidiApi( ApiType api, const std::string clientName, unsigned int queueSizeLimit );
 
 };
@@ -978,6 +1024,36 @@ public:
   //! The destructor closes any open MIDI connections.
   ~MidiOut( void ) throw();
 
+  using Midi::openPort;
+
+  //! Open a MIDI connection given by a port descriptor.
+  /*!
+    \param port     A port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+  */
+  void openPort( const PortDescriptor & port,
+		 const std::string & portName = std::string( "RtMidi" ) )
+  {
+    if (!rtapi_) rtapi_ = port.getOutputApi();
+    if (rtapi_) rtapi_->openPort(port,portName);
+  }
+
+  //!  Open a MIDI connection given by a port descriptor pointer.
+  /*!
+    \param port     A pointer to a port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+    \sa openPort(const PortDescriptor &,const std::string &);
+  */
+  void openPort( Pointer<PortDescriptor> p,
+		 const std::string & portName = std::string( "RtMidi" ) ) {
+    if (!p) {
+      error( Error::INVALID_PARAMETER, "MidiApi::openPort: passed NULL pointer" );
+      return;
+    }
+    openPort(*p, portName);
+  }
+
+
   //! Immediately send a single message out an open MIDI output port.
   /*!
     An exception is thrown if an error occurs during output or an
@@ -1009,6 +1085,7 @@ public:
     error( Error::WARNING, "MidiOut::sendMessage: The API has not been set.");
   }
 protected:
+  static MidiApiList queryApis;
   void openMidiApi( ApiType api, const std::string clientName );
 };
 

@@ -140,9 +140,29 @@ void MidiIn :: openMidiApi( ApiType api, const std::string clientName, unsigned 
 #endif
 }
 
+MidiApiList MidiIn::queryApis;
+
 MidiIn :: MidiIn( ApiType api, const std::string clientName, unsigned int queueSizeLimit )
-  : Midi()
+  : Midi(&queryApis)
 {
+  if ( api == rtmidi::ALL_API) {
+    if (!queryApis.empty()) {
+      rtapi_ = NULL;
+      return;
+    }
+
+    std::vector< ApiType > apis;
+    getCompiledApi( apis );
+    for ( unsigned int i=0; i<apis.size(); i++ ) {
+      openMidiApi( apis[i], clientName, queueSizeLimit );
+      if ( rtapi_ ) {
+	queryApis.push_back(MidiApiPtr(rtapi_));
+	rtapi_=NULL;
+      }
+    }
+    return;
+  }
+
   if ( api != rtmidi::UNSPECIFIED ) {
     // Attempt to open the specified API.
     openMidiApi( api, clientName, queueSizeLimit );
@@ -209,8 +229,30 @@ void MidiOut :: openMidiApi( ApiType api, const std::string clientName )
 #endif
 }
 
+
+MidiApiList MidiOut::queryApis;
+
 MidiOut :: MidiOut( ApiType api, const std::string clientName )
+  : Midi(&queryApis)
 {
+  if ( api == rtmidi::ALL_API) {
+    if (!queryApis.empty()) {
+      rtapi_ = NULL;
+      return;
+    }
+
+    std::vector< ApiType > apis;
+    getCompiledApi( apis );
+    for ( unsigned int i=0; i<apis.size(); i++ ) {
+      openMidiApi( apis[i], clientName );
+      if ( rtapi_ ) {
+	queryApis.push_back(MidiApiPtr(rtapi_));
+	rtapi_ = NULL;
+      }
+    }
+    return;
+  }
+
   if ( api != rtmidi::UNSPECIFIED ) {
     // Attempt to open the specified API.
     openMidiApi( api, clientName );

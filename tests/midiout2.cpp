@@ -26,16 +26,24 @@
 // This function should be embedded in a try/catch block in case of
 // an exception.  It offers the user a choice of MIDI ports to open.
 // It returns false if there are no ports available.
-bool chooseMidiPort( rtmidi::MidiOut &ortmidi );
+bool chooseMidiPort( rtmidi::MidiOut &midi );
 
 //! The main program
 int main( int /* argc*/, char */*argv*/[] )
 {
 	std::vector<unsigned char> message;
+	std::cout << "\nWould you like to check all output ports? [Y/n] ";
+
+	std::string keyHit;
+	std::getline( std::cin, keyHit );
+	rtmidi::ApiType type = rtmidi::ALL_API;
+	if ( keyHit == "n" ) {
+		type = rtmidi::UNSPECIFIED;
+	}
 
 	// rtmidi::MidiOut constructor
 	try {
-		rtmidi::MidiOut midiout;
+		rtmidi::MidiOut midiout(type);
 
 		// Call function to select port.
 		try {

@@ -1,10 +1,8 @@
-/*! \example midiprobe2.cpp
-
-  Simple program to check MIDI inputs and outputs.
-*/
+// midiprobe.cpp
 //
-// by Gary Scavone, 2003-2014.
-// and Tobias Schlemmer 2014
+// Simple program to check MIDI inputs and outputs.
+//
+// by Gary Scavone, 2003-2012.
 
 #include <iostream>
 #include <cstdlib>
@@ -14,30 +12,20 @@
 int main()
 {
   // Create an api map.
-  std::map<int, std::string> apiMap;
-  apiMap[rtmidi::MACOSX_CORE] = "OS-X CoreMidi";
-  apiMap[rtmidi::WINDOWS_MM] = "Windows MultiMedia";
-  apiMap[rtmidi::WINDOWS_KS] = "Windows Kernel Straming";
-  apiMap[rtmidi::UNIX_JACK] = "Jack Client";
-  apiMap[rtmidi::LINUX_ALSA] = "Linux ALSA";
-  apiMap[rtmidi::DUMMY] = "RtMidi Dummy";
-  apiMap[rtmidi::ALL_API] = "All RtMidi APIs";
 
-  std::vector< rtmidi::ApiType > apis;
+  std::vector< RtMidi::Api > apis;
   rtmidi::Midi :: getCompiledApi( apis );
 
   std::cout << "\nCompiled APIs:\n";
   for ( unsigned int i=0; i<apis.size(); i++ )
-    std::cout << "  " << apiMap[ apis[i] ] << std::endl;
-
+	  std::cout << "  " << rtmidi::getApiName(apis[i]) << std::endl;
 
   try {
 
-    // rtmidi::MidiIn constructor ... exception possible
-    rtmidi::MidiIn midiin;
+    // RtMidiIn constructor ... exception possible
+    rtmidi::MidiIn midiin (rtmidi::ALL_API);
 
-    std::cout << "\nCurrent input API: " << apiMap[ midiin.getCurrentApi() ] << std::endl;
-
+    std::cout << "\nCurrent input API: " << rtmidi::getApiName(midiin.getCurrentApi()) << std::endl;
 
     rtmidi::PortList list = midiin.getPortList();
     // Check inputs.
@@ -59,12 +47,11 @@ int main()
 
     std::cout << "**********************************************************************" << std::endl;
 
-    // rtmidi::MidiOut constructor ... exception possible
-    rtmidi::MidiOut midiout;
-
-    std::cout << "\nCurrent output API: " << apiMap[ midiout.getCurrentApi() ] << std::endl;
-
+    // RtMidiOut constructor ... exception possible
+    rtmidi::MidiOut midiout (rtmidi::ALL_API);
     list = midiout.getPortList();
+
+    std::cout << "\nCurrent output API: " << rtmidi::getApiName(midiout.getCurrentApi()) << std::endl;
 
     // Check inputs.
     std::cout << "\nThere are " << list.size() << " MIDI output sinks available.\n";
@@ -126,8 +113,6 @@ int main()
 	    }
 	    std::cout << std::endl;
     }
-
-
 
   } catch ( rtmidi::Error &error ) {
     error.printMessage();

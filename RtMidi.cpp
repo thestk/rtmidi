@@ -4842,13 +4842,15 @@ static int jackProcessOut( jack_nframes_t nframes, void *arg )
   if ( data->local == NULL ) return 0;
 
   void *buff = jack_port_get_buffer( data->local, nframes );
-  jack_midi_clear_buffer( buff );
+  if (buff != NULL) {
+    jack_midi_clear_buffer( buff );
 
-  while ( jack_ringbuffer_read_space( data->buffSize ) > 0 ) {
-    jack_ringbuffer_read( data->buffSize, (char *) &space, (size_t) sizeof(space) );
-    midiData = jack_midi_event_reserve( buff, 0, space );
+    while ( jack_ringbuffer_read_space( data->buffSize ) > 0 ) {
+      jack_ringbuffer_read( data->buffSize, (char *) &space, (size_t) sizeof(space) );
+      midiData = jack_midi_event_reserve( buff, 0, space );
 
-    jack_ringbuffer_read( data->buffMessage, (char *) midiData, (size_t) space );
+      jack_ringbuffer_read( data->buffMessage, (char *) midiData, (size_t) space );
+    }
   }
 
   switch (data->stateflags) {

@@ -46,6 +46,74 @@ fi
 
 CXXFLAGS="$CXXFLAGS $cxxflag"
 
+AC_ARG_ENABLE(address-sanitizer,
+	AS_HELP_STRING([--enable-address-sanitizer],[Enable gcc/clang address santizer]),
+	[AS_IF(test "$enableval" = yes,
+
+	       AC_LANG_PUSH(C++)
+	       for flag in  -fsanitize=address  -fno-omit-frame-pointer  -fno-common
+	       do
+		       tmpcxxflags="$CXXFLAGS"
+		       CXXFLAGS="$CXXFLAGS $flag"
+		       AC_MSG_CHECKING([whether $CXX supports $flag])
+		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [CXXFLAGS="$tmpcxxflags"
+			         AC_MSG_RESULT([no])])
+			AC_LANG_PUSH(C)
+			tmpcflags="$CFLAGS"
+			CFLAGS="$CFLAGS $flag"
+			AC_MSG_CHECKING([whether $CC supports $flag])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                          [AC_MSG_RESULT([yes])],
+					  [CFLAGS="$tmpcflags"
+			          AC_MSG_RESULT([no])])
+			AC_LANG_POP(C)
+	       done
+	       AC_LANG_POP(C++)
+	       )
+	]
+)
+
+AC_ARG_ENABLE(thread-sanitizer,
+	AS_HELP_STRING([--enable-thread-sanitizer],[Enable gcc/clang thread santizer]),
+	[AS_IF(test "$enableval" = yes,
+	       AC_LANG_PUSH(C++)
+	       for flag in  -fsanitize=thread  -fno-omit-frame-pointer  -fno-common -fPIC
+	       do
+		       tmpcxxflags="$CXXFLAGS"
+		       CXXFLAGS="$CXXFLAGS $flag"
+		       AC_MSG_CHECKING([whether $CXX supports $flag])
+		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [CXXFLAGS="$tmpcxxflags"
+			         AC_MSG_RESULT([no])])
+		       AC_LANG_PUSH(C)
+		       tmpcflags="$CFLAGS"
+		       CFLAGS="$CFLAGS $flag"
+		       AC_MSG_CHECKING([whether $CC supports $flag])
+		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [CFLAGS="$tmpcflags"
+			         AC_MSG_RESULT([no])])
+		       AC_LANG_POP(C)
+	       done
+	       for flag in  -pie
+	       do
+		       tmpldflags="$LDFLAGS"
+		       LDFLAGS="$LDFLAGS $flag"
+		       AC_MSG_CHECKING([whether $LD supports $flag])
+		       AC_LINK_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [LDFLAGS="$tmpldflags"
+			         AC_MSG_RESULT([no])])
+	       done
+	       AC_LANG_POP(C++)
+	       )
+	]
+)
+
+
 # Checks for package options and external software
 AC_CANONICAL_HOST
 

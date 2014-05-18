@@ -50,28 +50,47 @@ std::string Midi :: getVersion( void ) throw()
   return std::string( RTMIDI_VERSION );
 }
 
-void Midi :: getCompiledApi( std::vector<ApiType> &apis ) throw()
+void Midi :: getCompiledApi( std::vector<ApiType> &apis, bool preferSystem ) throw()
 {
   apis.clear();
 
   // The order here will control the order of RtMidi's API search in
   // the constructor.
+
+  if (!preferSystem) {
+    // first check software and network backends
+#if defined(__UNIX_JACK__)
+    apis.push_back( rtmidi::UNIX_JACK );
+#endif
+  }
+
+  // check OS provided backends
 #if defined(__MACOSX_CORE__)
   apis.push_back( rtmidi::MACOSX_CORE );
 #endif
 #if defined(__LINUX_ALSA__)
   apis.push_back( rtmidi::LINUX_ALSA );
 #endif
-#if defined(__UNIX_JACK__)
-  apis.push_back( rtmidi::UNIX_JACK );
-#endif
 #if defined(__WINDOWS_MM__)
   apis.push_back( rtmidi::WINDOWS_MM );
 #endif
+
+  if (preferSystem) {
+    // if we prefer OS provided backends,
+    // we should add the software backends, here.
+#if defined(__UNIX_JACK__)
+    apis.push_back( rtmidi::UNIX_JACK );
+#endif
+  }
+
+  // DUMMY is a no-backend class so we add it at
+  // the very end.
 #if defined(__RTMIDI_DUMMY__)
   apis.push_back( rtmidi::RTMIDI_DUMMY );
 #endif
 }
+
+
 
 void Midi :: error( Error::Type type, std::string errorString )
 {
@@ -112,38 +131,53 @@ void Midi :: error( Error::Type type, std::string errorString )
 //  MidiIn Definitions
 //*********************************************************************//
 
-void MidiIn :: openMidiApi( ApiType api, const std::string clientName, unsigned int queueSizeLimit )
+void MidiIn :: openMidiApi( ApiType api )
 {
   if ( rtapi_ )
     delete rtapi_;
   rtapi_ = 0;
 
+  switch (api) {
+  case rtmidi::UNIX_JACK:
 #if defined(__UNIX_JACK__)
-  if ( api == rtmidi::UNIX_JACK )
     rtapi_ = new MidiInJack( clientName, queueSizeLimit );
 #endif
+    break;
+  case rtmidi::LINUX_ALSA:
 #if defined(__LINUX_ALSA__)
-  if ( api == rtmidi::LINUX_ALSA )
     rtapi_ = new MidiInAlsa( clientName, queueSizeLimit );
 #endif
+    break;
+  case rtmidi::WINDOWS_MM:
 #if defined(__WINDOWS_MM__)
-  if ( api == rtmidi::WINDOWS_MM )
     rtapi_ = new MidiInWinMM( clientName, queueSizeLimit );
 #endif
+    break;
+  case rtmidi::MACOSX_CORE:
 #if defined(__MACOSX_CORE__)
-  if ( api == rtmidi::MACOSX_CORE )
     rtapi_ = new MidiInCore( clientName, queueSizeLimit );
 #endif
+    break;
+  case rtmidi::DUMMY:
 #if defined(__RTMIDI_DUMMY__)
-  if ( api == rtmidi::RTMIDI_DUMMY )
     rtapi_ = new MidiInDummy( clientName, queueSizeLimit );
 #endif
+    break;
+  case rtmidi::ALL_API:
+  case rtmidi::UNSPECIFIED:
+  default:
+    break;
+  }
 }
 
 MidiApiList MidiIn::queryApis;
 
-MidiIn :: MidiIn( ApiType api, const std::string clientName, unsigned int queueSizeLimit )
-  : Midi(&queryApis)
+MidiIn :: MidiIn( ApiType api,
+		  const std::string clientName,
+		  unsigned int queueSize,
+		  bool pfsystem )
+  : Midi(&queryApis,pfsystem,clientName),
+    queueSizeLimit(queueSize)
 {
   if ( api == rtmidi::ALL_API) {
     if (!queryApis.empty()) {
@@ -154,7 +188,7 @@ MidiIn :: MidiIn( ApiType api, const std::string clientName, unsigned int queueS
     std::vector< ApiType > apis;
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
-      openMidiApi( apis[i], clientName, queueSizeLimit );
+      openMidiApi( apis[i] );
       if ( rtapi_ ) {
 	queryApis.push_back(MidiApiPtr(rtapi_));
 	rtapi_=NULL;
@@ -165,7 +199,7 @@ MidiIn :: MidiIn( ApiType api, const std::string clientName, unsigned int queueS
 
   if ( api != rtmidi::UNSPECIFIED ) {
     // Attempt to open the specified API.
-    openMidiApi( api, clientName, queueSizeLimit );
+    openMidiApi( api );
     if ( rtapi_ ) return;
 
     // No compiled support for specified API value.  Issue a warning
@@ -178,7 +212,7 @@ MidiIn :: MidiIn( ApiType api, const std::string clientName, unsigned int queueS
   std::vector< ApiType > apis;
   getCompiledApi( apis );
   for ( unsigned int i=0; i<apis.size(); i++ ) {
-    openMidiApi( apis[i], clientName, queueSizeLimit );
+    openMidiApi( apis[i] );
     if ( rtapi_->getPortCount() ) break;
   }
 
@@ -201,39 +235,50 @@ MidiIn :: ~MidiIn() throw()
 //  MidiOut Definitions
 //*********************************************************************//
 
-void MidiOut :: openMidiApi( ApiType api, const std::string clientName )
+void MidiOut :: openMidiApi( ApiType api )
 {
   if ( rtapi_ )
     delete rtapi_;
   rtapi_ = 0;
 
+		switch (api) {
+		case rtmidi::UNIX_JACK:
 #if defined(__UNIX_JACK__)
-  if ( api == rtmidi::UNIX_JACK )
-    rtapi_ = new MidiOutJack( clientName );
+			rtapi_ = new MidiOutJack( clientName );
 #endif
+			break;
+		case rtmidi::LINUX_ALSA:
 #if defined(__LINUX_ALSA__)
-  if ( api == rtmidi::LINUX_ALSA )
-    rtapi_ = new MidiOutAlsa( clientName );
+			rtapi_ = new MidiOutAlsa( clientName );
 #endif
+			break;
+		case rtmidi::WINDOWS_MM:
 #if defined(__WINDOWS_MM__)
-  if ( api == rtmidi::WINDOWS_MM )
-    rtapi_ = new MidiOutWinMM( clientName );
+			rtapi_ = new MidiOutWinMM( clientName );
 #endif
+			break;
+		case rtmidi::MACOSX_CORE:
 #if defined(__MACOSX_CORE__)
-  if ( api == rtmidi::MACOSX_CORE )
-    rtapi_ = new MidiOutCore( clientName );
+			rtapi_ = new MidiOutCore( clientName );
 #endif
+			break;
+		case rtmidi::DUMMY:
 #if defined(__RTMIDI_DUMMY__)
-  if ( api == rtmidi::RTMIDI_DUMMY )
-    rtapi_ = new MidiOutDummy( clientName );
+		  rtapi_ = new MidiOutDummy( clientName );
 #endif
+		  break;
+		case rtmidi::UNSPECIFIED:
+		case rtmidi::ALL_API:
+		default:
+		  break;
+		}
 }
 
 
 MidiApiList MidiOut::queryApis;
 
-MidiOut :: MidiOut( ApiType api, const std::string clientName )
-  : Midi(&queryApis)
+MidiOut :: MidiOut( ApiType api, const std::string clientName, bool pfsystem )
+  : Midi(&queryApis, pfsystem, clientName)
 {
   if ( api == rtmidi::ALL_API) {
     if (!queryApis.empty()) {
@@ -244,7 +289,7 @@ MidiOut :: MidiOut( ApiType api, const std::string clientName )
     std::vector< ApiType > apis;
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
-      openMidiApi( apis[i], clientName );
+      openMidiApi( apis[i] );
       if ( rtapi_ ) {
 	queryApis.push_back(MidiApiPtr(rtapi_));
 	rtapi_ = NULL;
@@ -255,7 +300,7 @@ MidiOut :: MidiOut( ApiType api, const std::string clientName )
 
   if ( api != rtmidi::UNSPECIFIED ) {
     // Attempt to open the specified API.
-    openMidiApi( api, clientName );
+    openMidiApi( api );
     if ( rtapi_ ) return;
 
     // No compiled support for specified API value.  Issue a warning
@@ -268,7 +313,7 @@ MidiOut :: MidiOut( ApiType api, const std::string clientName )
   std::vector< ApiType > apis;
   getCompiledApi( apis );
   for ( unsigned int i=0; i<apis.size(); i++ ) {
-    openMidiApi( apis[i], clientName );
+    openMidiApi( apis[i] );
     if ( rtapi_->getPortCount() ) break;
   }
 

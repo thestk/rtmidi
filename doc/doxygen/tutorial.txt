@@ -455,9 +455,13 @@ If you are having problems getting RtMidi to run on your system, try passing the
 
 \section multi Using Simultaneous Multiple APIs
 
-Support for each MIDI API is encapsulated in specific MidiInApi or MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both CoreMIDI and JACK support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any JACK ports are available.  This can be done by specifying the api argument rtmidi::UNIX_JACK when attempting to create an instance of rtmidi::MidiIn or rtmidi::MidiOut.  If no available ports are found, then an instance of rtmidi::Midi with the api argument rtmidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for JACK ports and if none are found, then CoreMIDI ports (in linux, the search order is JACK and then ALSA).  In theory, it should also be possible to have separate instances of RtMidi open at the same time with different underlying API support, though this has not been tested.
+Support for each MIDI API is encapsulated in specific \ref rtmidi::MidiInApi or \ref rtmidi::MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both CoreMIDI and JACK support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any JACK ports are available.  This can be done by specifying the api argument rtmidi::UNIX_JACK when attempting to create an instance of rtmidi::MidiIn or rtmidi::MidiOut.  If no available ports are found, then an instance of rtmidi::Midi with the api argument rtmidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for OS provided ports and if none are found, then software demons (currently JACK) ports (in linux, the search order is ALSA and then JACK).
+
+It is also possible to use all compiled backends simultaneously by passing the special api argument rtmidi::ALL_API to the constructor. In that case rtmidi::midi::getPortList will return a list of all port descriptors from all backends that are available. On the other hand rtmidi::midi::openVirtualPort will open only one port on the first API that is tested in the automatic port selecton as described above.
 
 The static function rtmidi::Midi::getCompiledApi() is provided to determine the available compiled API support.  The function rtmidi::Midi::getCurrentApi() indicates the API selected for a given RtMidi instance.
+
+\note It is recommended to avoid the atomatic API selection for virtual ports. In most cases it is a better option to let the end user choose the API for this port or simply generate an array of ports, each with a different backend API.
 
 \section apinotes API Notes
 
@@ -465,7 +469,7 @@ RtMidi is designed to provide a common API across the various supported operatin
 
 \subsection linux Linux:
 
-Two different MIDI APIs are supported on Linux platforms: <A href="http://www.alsa-project.org/">ALSA</A> and <A href="http://jackit.sourceforge.net/">JACK</A>. A decision was made to not include support for the OSS API because the OSS API provides very limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is now incorporated in the Linux kernel.  The ALSA sequencer and JACK APIs allows for virtual software input and output ports.
+Two different MIDI APIs are supported on Linux platforms: <A href="http://www.alsa-project.org/">ALSA</A> and <A href="http://jackit.sourceforge.net/">JACK</A>. A decision was made to not include support for the OSS API because the OSS API provides very limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is incorporated in the Linux kernel.  The ALSA sequencer and JACK APIs allows for virtual software input and output ports.
 
 \subsection macosx Macintosh OS X (CoreAudio):
 

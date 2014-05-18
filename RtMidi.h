@@ -368,6 +368,14 @@ public:
   MidiApi();
   virtual ~MidiApi();
 
+  //! Return whether the API supports virtual ports
+  /*!
+    \retval true The funcion returns true if the API supports virtual ports.
+    \retval false The funcion returns false if the API doesn't support virtual ports.
+    \sa openVirtualPort
+  */
+  virtual bool hasVirtualPorts() const = 0;
+
   //! Pure virtal function to create a virtual port, with optional name.
   /*!
     This function creates a virtual MIDI port to which other
@@ -377,6 +385,8 @@ public:
 
     \param portName An optional name for the applicaction port that is
     used to connect to portId can be specified.
+
+    \sa hasVirtualPorts
   */
   virtual void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) ) = 0;
 
@@ -648,23 +658,9 @@ public:
     else return rtmidi::UNSPECIFIED;
   }
 
-  //! Function to create a virtual port, with optional name.
-  /*!
-    This function creates a virtual MIDI port to which other
-    software applications can connect. This type of functionality
-    is currently only supported by the Macintosh OS-X, any JACK,
-    and Linux ALSA APIs (the function returns an error for the other APIs).
-
-    \param portName An optional name for the applicaction port that is
-    used to connect to portId can be specified.
-  */
-  void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) )
-  {
-    if (rtapi_) rtapi_->openVirtualPort(portName);
-    else {
-      error(Error::INVALID_DEVICE,"Midi::OpenVirtualPort: No valid API selected");
-    }
-  }
+  //! Compatibilty function for older code
+  virtual
+  RTMIDI_DEPRECATED(void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) )) = 0;
 
   //! Pure virtual function to open a MIDI connection given by enumeration number.
   /*! \param portNumber An optional port number greater than 0
@@ -807,6 +803,7 @@ protected:
 				 list(l),
 				 preferSystem(pfsystem),
 				 clientName(name) {}
+  virtual ~Midi()
   {
     if (rtapi_) {
       delete rtapi_;
@@ -916,6 +913,36 @@ public:
     }
     openPort(*p, portName);
   }
+
+  //! Function to create a virtual port, with optional name.
+  /*!
+    This function creates a virtual MIDI port to which other
+    software applications can connect. This type of functionality
+    is currently only supported by the Macintosh OS-X, any JACK,
+    and Linux ALSA APIs (the function returns an error for the other APIs).
+
+    \param portName An optional name for the application port that is
+    used to connect to portId can be specified.
+  */
+  void openVirtualPort( const std::string portName = std::string( "RtMidi virtual input port" ) )
+  {
+    if (!rtapi_ && list && !list->empty()) {
+      Pointer<MidiApi> api = list->front();
+
+      std::vector< ApiType > apis;
+      getCompiledApi( apis );
+      for (size_t i = 0 ; i < apis.size() ; i++) {
+	openMidiApi( apis[0] );
+	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+      }
+    }
+
+    if (rtapi_) rtapi_->openVirtualPort(portName);
+    else {
+      error(Error::INVALID_DEVICE,"MidiIn::openVirtualPort: No valid API selected");
+    }
+  }
+
 
   //! Pure virtual function to return a port descirptor if the port is open
   Pointer<PortDescriptor> getDescriptor(bool local=false)
@@ -1042,6 +1069,21 @@ public:
     If no API argument is specified and multiple API support has been
     compiled, the default order of use is JACK, ALSA (Linux) and CORE,
     JACK (OS-X).
+
+    \param api        An optional API id can be specified.
+    \param clientName An optional Client name can be specified. This
+    will be used to group the ports that are created
+    by the application.
+    \param queueSizeLimit An optional size of the MIDI input queue can be specified.
+
+    \param pfsystem An optional boolean parameter can be
+    provided to indicate the API preferences of the user
+    code. If RtMidi is requested to autoselect a backend
+    this parameter tells which backend should be tried
+    first. If it is \c true the backend will prefer OS
+    provieded APIs (WinMM, ALSA, Core MIDI) over other
+    APIs (JACK).  If \c false, the order will be vice
+    versa.
   */
   MidiOut( ApiType api=rtmidi::UNSPECIFIED,
 	   const std::string clientName = std::string( "RtMidi Output Client"),
@@ -1078,6 +1120,37 @@ public:
     }
     openPort(*p, portName);
   }
+
+
+  //! Function to create a virtual port, with optional name.
+  /*!
+    This function creates a virtual MIDI port to which other
+    software applications can connect. This type of functionality
+    is currently only supported by the Macintosh OS-X, any JACK,
+    and Linux ALSA APIs (the function returns an error for the other APIs).
+
+    \param portName An optional name for the applicaction port that is
+    used to connect to portId can be specified.
+  */
+  void openVirtualPort( const std::string portName = std::string( "RtMidi virtual output port" ) )
+  {
+    if (!rtapi_ && list && !list->empty()) {
+      Pointer<MidiApi> api = list->front();
+
+      std::vector< ApiType > apis;
+      getCompiledApi( apis );
+      for (size_t i = 0 ; i < apis.size() ; i++) {
+	openMidiApi( apis[0] );
+	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+      }
+    }
+
+    if (rtapi_) rtapi_->openVirtualPort(portName);
+    else {
+      error(Error::INVALID_DEVICE,"MidiOut::openVirtualPort: No valid API selected");
+    }
+  }
+
 
 
   //! Immediately send a single message out an open MIDI output port.
@@ -1135,6 +1208,7 @@ public:
   MidiInCore( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInCore( void );
   ApiType getCurrentApi( void ) throw() { return MACOSX_CORE; };
+  bool hasVirtualPorts() const { return true; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1154,6 +1228,7 @@ public:
   MidiOutCore( const std::string clientName );
   ~MidiOutCore( void );
   ApiType getCurrentApi( void ) throw() { return MACOSX_CORE; };
+  bool hasVirtualPorts() const { return true; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1178,6 +1253,7 @@ public:
   MidiInJack( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInJack( void );
   ApiType getCurrentApi( void ) throw() { return UNIX_JACK; };
+  bool hasVirtualPorts() const { return true; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1200,6 +1276,7 @@ public:
   MidiOutJack( const std::string clientName );
   ~MidiOutJack( void );
   ApiType getCurrentApi( void ) throw() { return UNIX_JACK; };
+  bool hasVirtualPorts() const { return true; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1227,6 +1304,7 @@ public:
   MidiInAlsa( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInAlsa( void );
   ApiType getCurrentApi( void ) throw() { return LINUX_ALSA; };
+  bool hasVirtualPorts() const { return true; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1246,6 +1324,7 @@ public:
   MidiOutAlsa( const std::string clientName );
   ~MidiOutAlsa( void );
   ApiType getCurrentApi( void ) throw() { return LINUX_ALSA; };
+  bool hasVirtualPorts() const { return true; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1270,6 +1349,7 @@ public:
   MidiInWinMM( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInWinMM( void );
   ApiType getCurrentApi( void ) { return WINDOWS_MM; };
+  bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1289,6 +1369,7 @@ public:
   MidiOutWinMM( const std::string clientName );
   ~MidiOutWinMM( void );
   ApiType getCurrentApi( void ) { return WINDOWS_MM; };
+  bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
   void openPort( const PortDescriptor & port, const std::string & portName);
@@ -1316,6 +1397,7 @@ public:
     error( Error::WARNING, errorString_ );
   }
   ApiType getCurrentApi( void ) { return RTMIDI_DUMMY; }
+  bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int /*portNumber*/, const & std::string /*portName*/ ) {}
   void openVirtualPort( const std::string /*portName*/ ) {}
   void openPort( const PortDescriptor & port, const & std::string portName) {}
@@ -1337,6 +1419,7 @@ public:
     error( Error::WARNING, errorString_ );
   }
   ApiType getCurrentApi( void ) { return RTMIDI_DUMMY; }
+  bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int /*portNumber*/, const & std::string /*portName*/ ) {}
   void openVirtualPort( const std::string /*portName*/ ) {}
   void openPort( const PortDescriptor & port, const & std::string portName) {}

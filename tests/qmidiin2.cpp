@@ -17,7 +17,7 @@
 // Platform-dependent sleep routines.
 #if defined(__WINDOWS_MM__)
 #include <windows.h>
-#define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
+#define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds )
 #else // Unix variants
 #include <unistd.h>
 #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )
@@ -35,9 +35,11 @@ void usage( rtmidi::PortList list ) {
 	std::cout << "Available ports:" << std::endl;
 	for (rtmidi::PortList::iterator i = list.begin();
 	     i != list.end(); i++) {
-		std::cout << (*i)->getName(rtmidi::PortDescriptor::SESSION_PATH |
+		std::cout << "\""
+			  << (*i)->getName(rtmidi::PortDescriptor::SESSION_PATH |
 					   rtmidi::PortDescriptor::UNIQUE_NAME |
-					   rtmidi::PortDescriptor::INCLUDE_API);
+					   rtmidi::PortDescriptor::INCLUDE_API)
+			  << "\"";
 		std::cout << "\t";
 		std::cout << (*i)->getName() << std::endl;
 	}
@@ -53,10 +55,11 @@ int main( int argc, char *argv[] )
 
 	// rtmidi::MidiIn constructor
 	try {
-		rtmidi::MidiIn midiin;
+		rtmidi::MidiIn midiin(rtmidi::ALL_API);
 
 
 		rtmidi::PortList list = midiin.getPortList();
+
 
 		// Minimal command-line check.
 		if ( argc > 2 ) usage(list);

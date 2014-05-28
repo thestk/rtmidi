@@ -39,7 +39,7 @@ inline size_t getlength(const char * messages) {
 	return ++retval;
 }
 
-void mycallback1( double deltatime, std::vector< unsigned char > *message, void * /* userData */ )
+void mycallback1( double /* deltatime */, std::vector< unsigned char > *message, void * /* userData */ )
 {
 	unsigned int nBytes = message->size();
 	for ( unsigned int i=0; i<nBytes; i++ ) {
@@ -51,7 +51,7 @@ void mycallback1( double deltatime, std::vector< unsigned char > *message, void 
 	*/
 }
 
-void mycallback2( double deltatime, std::vector< unsigned char > *message, void * /* userData */ )
+void mycallback2( double /* deltatime */, std::vector< unsigned char > *message, void * /* userData */ )
 {
 	unsigned int nBytes = message->size();
 	for ( unsigned int i=0; i<nBytes; i++ ) {
@@ -66,7 +66,7 @@ void mycallback2( double deltatime, std::vector< unsigned char > *message, void 
 
 
 
-int main( int argc, char */*argv*/[] )
+int main( int /* argc */, char * /*argv*/[] )
 {
 
 	std::vector<unsigned char> message;

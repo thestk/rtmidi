@@ -940,13 +940,13 @@ public:
     portname = str(nameRef);
     CFRelease( nameRef );
 
-    MIDIEntityRef entity = NULL;
+    MIDIEntityRef entity = 0;
     MIDIEndpointGetEntity(port, &entity);
     // entity == NULL: probably virtual
-    if (entity != NULL) {
+    if (entity != 0) {
       nameRef = NULL;
       MIDIObjectGetStringProperty(entity, kMIDIPropertyName, &nameRef);
-      if (str != NULL) {
+      if (nameRef != NULL) {
 	entityname = str(nameRef);
 	CFRelease(nameRef);
       }
@@ -956,9 +956,9 @@ public:
 	>= 2;
 
       // now consider the device's name
-      MIDIDeviceRef device = NULL;
+      MIDIDeviceRef device = 0;
       MIDIEntityGetDevice(entity, &device);
-      if (device != NULL) {
+      if (device != 0) {
 	hasManyEntities = MIDIDeviceGetNumberOfEntities(device) >= 2;
 	MIDIObjectGetStringProperty(device,
 				    kMIDIPropertyName,
@@ -1245,13 +1245,13 @@ Could not get the entity of a midi endpoint.",
 			   &port);
       break;
     default:
-      throw Error(Error::DRIVER_ERROR,
-		  "CoreSequencer::createVirtualPort:\
- Error creating OS X MIDI port because of invalid port flags");
+      throw Error("CoreSequencer::createVirtualPort:\
+ Error creating OS X MIDI port because of invalid port flags",
+		  Error::DRIVER_ERROR);
     }
     if ( result != noErr ) {
-      throw Error( Error::DRIVER_ERROR,
-		   "CoreSequencer::createVirtualPort: error creating OS-X MIDI port." );
+      throw Error( "CoreSequencer::createVirtualPort: error creating OS-X MIDI port.",
+		   Error::DRIVER_ERROR);
     }
     return port;
   }
@@ -1450,7 +1450,7 @@ PortList CorePortDescriptor :: getPortList(int capabilities, const std::string &
 
   CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
   int caps = capabilities & PortDescriptor::INOUTPUT;
-  bool unlimited = capabilities & PortDescriptor::UNLIMITED;
+  // bool unlimited = capabilities & PortDescriptor::UNLIMITED;
   bool forceInput = PortDescriptor::INPUT & caps;
   bool forceOutput = PortDescriptor::OUTPUT & caps;
   bool allowOutput = forceOutput || !forceInput;
@@ -1549,7 +1549,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
     if ( nBytes == 0 ) continue;
 
     // Calculate time stamp.
-
+ 
     if ( data->firstMessage ) {
       message.timeStamp = 0.0;
       data->firstMessage = false;
@@ -1569,7 +1569,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
       apiData->lastTime = AudioGetCurrentHostTime();
     }
     //std::cout << "TimeStamp = " << packet->timeStamp << std::endl;
-
+ 
     iByte = 0;
     if ( continueSysex ) {
       // We have a continuing, segmented sysex message.
@@ -1599,7 +1599,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
 	      std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
 	  }
 	  message.bytes.clear();
-	}
+        }
       }
     }
     else {

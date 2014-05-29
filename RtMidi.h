@@ -244,7 +244,8 @@ class MidiApi;
 class MidiInApi;
 class MidiOutApi;
 
-struct PortDescriptor {
+class PortDescriptor {
+public:
   //! Flags for formatting a string description of the port.
   /*! These flags just mark the requirements that the string
     should fulfil. An API may return the same string for

@@ -224,7 +224,7 @@ RtMidiOut :: ~RtMidiOut() throw()
 //*********************************************************************//
 
 MidiApi :: MidiApi( void )
-  : apiData_( 0 ), connected_( false ), errorCallback_(0)
+  : apiData_( 0 ), connected_( false ), errorCallback_(0), errorCallbackUserData_(0)
 {
 }
 
@@ -232,9 +232,10 @@ MidiApi :: ~MidiApi( void )
 {
 }
 
-void MidiApi :: setErrorCallback( RtMidiErrorCallback errorCallback )
+void MidiApi :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData = 0 )
 {
     errorCallback_ = errorCallback;
+    errorCallbackUserData_ = userData;
 }
 
 void MidiApi :: error( RtMidiError::Type type, std::string errorString )
@@ -248,7 +249,7 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
     firstErrorOccured = true;
     const std::string errorMessage = errorString;
 
-    errorCallback_( type, errorMessage );
+    errorCallback_( type, errorMessage, errorCallbackUserData_);
     firstErrorOccured = false;
     return;
   }
@@ -567,7 +568,8 @@ void MidiInCore :: initialize( const std::string& clientName )
 {
   // Set up our client.
   MIDIClientRef client;
-  OSStatus result = MIDIClientCreate( CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII ), NULL, NULL, &client );
+  CFStringRef name = CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII );
+  OSStatus result = MIDIClientCreate(name, NULL, NULL, &client );
   if ( result != noErr ) {
     errorString_ = "MidiInCore::initialize: error creating OS-X MIDI client object.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
@@ -580,6 +582,7 @@ void MidiInCore :: initialize( const std::string& clientName )
   data->endpoint = 0;
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
+  CFRelease(name);
 }
 
 void MidiInCore :: openPort( unsigned int portNumber, const std::string portName )
@@ -852,7 +855,8 @@ void MidiOutCore :: initialize( const std::string& clientName )
 {
   // Set up our client.
   MIDIClientRef client;
-  OSStatus result = MIDIClientCreate( CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII ), NULL, NULL, &client );
+  CFStringRef name = CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII );
+  OSStatus result = MIDIClientCreate(name, NULL, NULL, &client );
   if ( result != noErr ) {
     errorString_ = "MidiOutCore::initialize: error creating OS-X MIDI client object.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
@@ -864,6 +868,7 @@ void MidiOutCore :: initialize( const std::string& clientName )
   data->client = client;
   data->endpoint = 0;
   apiData_ = (void *) data;
+  CFRelease( name );
 }
 
 unsigned int MidiOutCore :: getPortCount()

@@ -15,7 +15,6 @@ int main()
   std::map<int, std::string> apiMap;
   apiMap[RtMidi::MACOSX_CORE] = "OS-X CoreMidi";
   apiMap[RtMidi::WINDOWS_MM] = "Windows MultiMedia";
-  apiMap[RtMidi::WINDOWS_KS] = "Windows Kernel Straming";
   apiMap[RtMidi::UNIX_JACK] = "Jack Client";
   apiMap[RtMidi::LINUX_ALSA] = "Linux ALSA";
   apiMap[RtMidi::RTMIDI_DUMMY] = "RtMidi Dummy";
@@ -61,7 +60,7 @@ int main()
     }
     std::cout << std::endl;
 
-  } catch ( RtError &error ) {
+  } catch ( RtMidiError &error ) {
     error.printMessage();
   }
 

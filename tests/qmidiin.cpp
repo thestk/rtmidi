@@ -22,7 +22,7 @@
 #endif
 
 bool done;
-static void finish( int ignore ){ done = true; }
+static void finish( int /*ignore*/ ){ done = true; }
 
 void usage( void ) {
   // Error function in case of incorrect command-line
@@ -46,7 +46,7 @@ int main( int argc, char *argv[] )
   try {
     midiin = new RtMidiIn();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     exit( EXIT_FAILURE );
   }
@@ -64,7 +64,7 @@ int main( int argc, char *argv[] )
   try {
     midiin->openPort( port );
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
   }

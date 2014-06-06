@@ -19,7 +19,7 @@ void usage( void ) {
   exit( 0 );
 }
 
-void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
+void mycallback( double deltatime, std::vector< unsigned char > *message, void */*userData*/ )
 {
   unsigned int nBytes = message->size();
   for ( unsigned int i=0; i<nBytes; i++ )
@@ -33,7 +33,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidiIn *rtmidi );
 
-int main( int argc, char *argv[] )
+int main( int argc, char ** /*argv[]*/ )
 {
   RtMidiIn *midiin = 0;
 
@@ -60,7 +60,7 @@ int main( int argc, char *argv[] )
     char input;
     std::cin.get(input);
 
-  } catch ( RtError &error ) {
+  } catch ( RtMidiError &error ) {
     error.printMessage();
   }
 
@@ -102,9 +102,9 @@ bool chooseMidiPort( RtMidiIn *rtmidi )
       std::cout << "\nChoose a port number: ";
       std::cin >> i;
     } while ( i >= nPorts );
+    std::getline( std::cin, keyHit );  // used to clear out stdin
   }
 
-  std::getline( std::cin, keyHit );  // used to clear out stdin
   rtmidi->openPort( i );
 
   return true;

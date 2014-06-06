@@ -31,7 +31,7 @@ void usage( void ) {
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidi *rtmidi );
 
-void mycallback( double deltatime, std::vector< unsigned char > *message, void *userData )
+void mycallback( double deltatime, std::vector< unsigned char > *message, void * /*userData*/ )
 {
   unsigned int nBytes = message->size();
   for ( unsigned int i=0; i<nBytes; i++ )
@@ -56,7 +56,7 @@ int main( int argc, char *argv[] )
     midiout = new RtMidiOut();
     midiin = new RtMidiIn();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
   }
@@ -64,12 +64,11 @@ int main( int argc, char *argv[] )
   // Don't ignore sysex, timing, or active sensing messages.
   midiin->ignoreTypes( false, true, true );
 
-  // Call function to select ports
   try {
     if ( chooseMidiPort( midiin ) == false ) goto cleanup;
     if ( chooseMidiPort( midiout ) == false ) goto cleanup;
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
   }
@@ -80,18 +79,17 @@ int main( int argc, char *argv[] )
   midiout->sendMessage( &message );
   SLEEP( 500 ); // pause a little
 
-  // Create a long sysex messages of numbered bytes and send it out.
+  // Create a long sysex message of numbered bytes and send it out ... twice.
   for ( int n=0; n<2; n++ ) {
-  message.clear();
-  message.push_back( 240 );
-  for ( i=0; i<nBytes; i++ )
-    message.push_back( i % 128 );
-  message.push_back( 247 );
-  midiout->sendMessage( &message );
+    message.clear();
+    message.push_back( 240 );
+    for ( i=0; i<nBytes; i++ )
+      message.push_back( i % 128 );
+    message.push_back( 247 );
+    midiout->sendMessage( &message );
 
-  SLEEP( 500 ); // pause a little
-
-}
+    SLEEP( 500 ); // pause a little
+  }
 
   // Clean up
  cleanup:

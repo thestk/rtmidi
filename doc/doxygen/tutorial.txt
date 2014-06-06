@@ -4,12 +4,12 @@
 
 \section intro Introduction
 
-RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & Jack), Macintosh OS X (CoreMidi & Jack), and Windows (Multimedia Library & Kernel Streaming) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK), and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
 <UL>
   <LI>object oriented C++ design</LI>
   <LI>simple, common API across all supported platforms</LI>
-  <LI>only two header files and one source file for easy inclusion in programming projects</LI>
+  <LI>only one header and one source file for easy inclusion in programming projects</LI>
   <LI>MIDI device enumeration</LI>
 </UL>
 
@@ -17,17 +17,17 @@ Where applicable, multiple API support can be compiled and a particular API spec
 
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
 
-\section whatsnew What's New (Version 2.0)
+\section whatsnew What's New (Version 2.1)
 
-No incompatable API changes were made in version 2.0, however, support for multiple compiled APIs (where available) was added (see \ref multi).  Other changes include: 1. Added Windows Kernel Streaming support (thanks to Sebastien Alaiwan), though not tested in Visual Studio (and timestamping is not implemented); and 2. Support for the IRIX (SGI) operating system was discontinued.
+A minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.  The Windows Kernel Streaming support was removed because it was uncompilable and incomplete.
 
 \section download Download
 
-Latest Release (26 July 2012): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.0.1.tar.gz">Version 2.0.1</A>
+Latest Release (30 March 2014): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.0.tar.gz">Version 2.1.0</A>
 
 \section start Getting Started
 
-The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated.  The following code example demonstrates default object construction and destruction:
+The first thing that must be done when using RtMidi is to create an instance of the RtMidiIn or RtMidiOut subclasses.  RtMidi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An RtMidiError can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated.  The following code example demonstrates default object construction and destruction:
 
 \code
 
@@ -41,7 +41,7 @@ int main()
   try {
     midiin = new RtMidiIn();
   }
-  catch (RtError &error) {
+  catch (RtMidiError &error) {
     // Handle the exception here
     error.printMessage();
   }
@@ -56,24 +56,24 @@ Obviously, this example doesn't demonstrate any of the real functionality of RtM
 
 \section error Error Handling
 
-RtMidi uses a C++ exception handler called RtError, which is declared
-and defined in RtError.h.  The RtError class is quite simple but it
-does allow errors to be "caught" by RtError::Type.  Many RtMidi
-methods can "throw" an RtError, most typically if a driver error
-occurs or an invalid function argument is specified.  There are a
-number of cases within RtMidi where warning messages may be displayed
-but an exception is not thrown.  There is a protected RtMidi method,
-error(), that can be modified to globally control how these messages
-are handled and reported.  By default, error messages are not
-automatically displayed in RtMidi unless the preprocessor definition
-__RTMIDI_DEBUG__ is defined during compilation.  Messages associated
-with caught exceptions can be displayed with, for example, the
-RtError::printMessage() function.
+RtMidi uses a C++ exception handler called RtMidiError, which is
+declared and defined in RtMidi.h.  The RtMidiError class is quite
+simple but it does allow errors to be "caught" by RtMidiError::Type.
+Many RtMidi methods can "throw" an RtMidiError, most typically if a
+driver error occurs or an invalid function argument is specified.
+There are a number of cases within RtMidi where warning messages may
+be displayed but an exception is not thrown.  A client error callback
+function can be specified (via the RtMidi::setErrorCallback function)
+that is invoked when an error occurs. By default, error messages are
+not automatically displayed in RtMidi unless the preprocessor
+definition __RTMIDI_DEBUG__ is defined during compilation.  Messages
+associated with caught exceptions can be displayed with, for example,
+the RtMidiError::printMessage() function.
 
 
 \section probing Probing Ports
 
-A programmer may wish to query the available MIDI ports before deciding which to use.  The following example outlines how this can be done.
+A client generally must query the available MIDI ports before deciding which to use.  The following example outlines how this can be done.
 
 \code
 // midiprobe.cpp
@@ -91,7 +91,7 @@ int main()
   try {
     midiin = new RtMidiIn();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     exit( EXIT_FAILURE );
   }
@@ -104,7 +104,7 @@ int main()
     try {
       portName = midiin->getPortName(i);
     }
-    catch ( RtError &error ) {
+    catch ( RtMidiError &error ) {
       error.printMessage();
       goto cleanup;
     }
@@ -115,7 +115,7 @@ int main()
   try {
     midiout = new RtMidiOut();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     exit( EXIT_FAILURE );
   }
@@ -127,7 +127,7 @@ int main()
     try {
       portName = midiout->getPortName(i);
     }
-    catch (RtError &error) {
+    catch (RtMidiError &error) {
       error.printMessage();
       goto cleanup;
     }
@@ -212,7 +212,7 @@ int main()
 
 The RtMidiIn class uses an internal callback function or thread to receive incoming MIDI messages from a port or device.  These messages are then either queued and read by the user via calls to the RtMidiIn::getMessage() function or immediately passed to a user-specified callback function (which must be "registered" using the RtMidiIn::setCallback() function).  We'll provide examples of both usages.
 
-The RtMidiIn class provides the RtMidiIn::ignoreTypes() function to specify that certain MIDI message types be ignored.  By default, sysem exclusive, timing, and active sensing messages are ignored.
+The RtMidiIn class provides the RtMidiIn::ignoreTypes() function to specify that certain MIDI message types be ignored.  By default, system exclusive, timing, and active sensing messages are ignored.
 
 \subsection qmidiin Queued MIDI Input
 
@@ -332,7 +332,7 @@ int main()
 
 \section virtual Virtual Ports
 
-The Linux ALSA and Macintosh CoreMIDI APIs allow for the establishment of virtual input and output MIDI ports to which other software clients can connect.  RtMidi incorporates this functionality with the RtMidiIn::openVirtualPort() and RtMidiOut::openVirtualPort() functions.  Any messages sent with the RtMidiOut::sendMessage() function will also be transmitted through an open virtual output port.  If a virtual input port is open and a user callback function is set, the callback function will be invoked when messages arrive via that port.  If a callback function is not set, the user must poll the input queue to check whether messages have arrived.  No notification is provided for the establishment of a client connection via a virtual port.
+The Linux ALSA, Macintosh CoreMIDI and JACK APIs allow for the establishment of virtual input and output MIDI ports to which other software clients can connect.  RtMidi incorporates this functionality with the RtMidiIn::openVirtualPort() and RtMidiOut::openVirtualPort() functions.  Any messages sent with the RtMidiOut::sendMessage() function will also be transmitted through an open virtual output port.  If a virtual input port is open and a user callback function is set, the callback function will be invoked when messages arrive via that port.  If a callback function is not set, the user must poll the input queue to check whether messages have arrived.  No notification is provided for the establishment of a client connection via a virtual port.
 
 \section compiling Compiling
 
@@ -356,16 +356,16 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 </TR>
 <TR>
   <TD>Linux or Mac</TD>
-  <TD>Jack MIDI</TD>
+  <TD>JACK MIDI</TD>
   <TD>__UNIX_JACK__</TD>
   <TD><TT>jack</TT></TD>
   <TD><TT>g++ -Wall -D__UNIX_JACK__ -o midiprobe midiprobe.cpp RtMidi.cpp -ljack</TT></TD>
 </TR>
 <TR>
   <TD>Macintosh OS X</TD>
-  <TD>CoreMidi</TD>
+  <TD>CoreMIDI</TD>
   <TD>__MACOSX_CORE__</TD>
-  <TD><TT>CoreMidi, CoreAudio, CoreFoundation</TT></TD>
+  <TD><TT>CoreMIDI, CoreAudio, CoreFoundation</TT></TD>
   <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
@@ -375,25 +375,18 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
   <TD><TT>winmm.lib, multithreaded</TT></TD>
   <TD><I>compiler specific</I></TD>
 </TR>
-<TR>
-  <TD>Windows</TD>
-  <TD>Kernel Streaming</TD>
-  <TD>__WINDOWS_KS__</TD>
-  <TD><TT>ks.h, ksmedia.h, setupapi.lib, ksuser.lib, multithreaded</TT></TD>
-  <TD><I>compiler specific</I></TD>
-</TR>
 </TABLE>
 <P>
 
-The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT>, <tt>RtError.h</tt>, and <TT>RtMidi.cpp</TT> all exist in the same directory.
+The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT> and <TT>RtMidi.cpp</TT> all exist in the same directory.
 
 \section debug Debugging
 
-If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or define it in RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>test</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
+If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or define it in RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>tests</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
 
 \section multi Using Simultaneous Multiple APIs
 
-Support for each MIDI API is encapsulated in specific MidiInApi or MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both the CoreMIDI and Jack support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any Jack ports are available.  This can be done by specifying the api argument RtMidi::UNIX_JACK when attempting to create an instance of RtMidiIn or RtMidiOut.  If no available ports are found, then an instance of RtMidi with the api argument RtMidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for CoreMIDI ports and if none are found, then Jack ports (in linux, the search order is ALSA and then Jack; in windows, the search order is WinMM and then WinKS).  In theory, it should also be possible to have separate instances of RtMidi open at the same time with different underlying API support, though this has not been tested.
+Support for each MIDI API is encapsulated in specific MidiInApi or MidiOutApi subclasses, making it possible to compile and instantiate multiple API-specific subclasses on a given operating system.  For example, one can compile both CoreMIDI and JACK support on the OS-X operating system by providing the appropriate preprocessor definitions for each.  In a run-time situation, one might first attempt to determine whether any JACK ports are available.  This can be done by specifying the api argument RtMidi::UNIX_JACK when attempting to create an instance of RtMidiIn or RtMidiOut.  If no available ports are found, then an instance of RtMidi with the api argument RtMidi::MACOSX_CORE can be created.  Alternately, if no api argument is specified, RtMidi will first look for JACK ports and if none are found, then CoreMIDI ports (in linux, the search order is JACK and then ALSA.  In theory, it should also be possible to have separate instances of RtMidi open at the same time with different underlying API support, though this has not been tested.
 
 The static function RtMidi::getCompiledApi() is provided to determine the available compiled API support.  The function RtMidi::getCurrentApi() indicates the API selected for a given RtMidi instance.
 
@@ -403,13 +396,13 @@ RtMidi is designed to provide a common API across the various supported operatin
 
 \subsection linux Linux:
 
-RtMidi for Linux was developed using the Fedora distribution.  Two different MIDI APIs are supported on Linux platforms: <A href="http://www.alsa-project.org/">ALSA</A> and <A href="http://jackit.sourceforge.net/">Jack</A>. A decision was made to not include support for the OSS API because the OSS API provides such limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is now incorporated in the Linux kernel.  The ALSA sequencer and Jack APIs allows for virtual software input and output ports. 
+RtMidi for Linux was developed using the Fedora distribution.  Two different MIDI APIs are supported on Linux platforms: <A href="http://www.alsa-project.org/">ALSA</A> and <A href="http://jackit.sourceforge.net/">JACK</A>. A decision was made to not include support for the OSS API because the OSS API provides very limited functionality and because <A href="http://www.alsa-project.org/">ALSA</A> support is now incorporated in the Linux kernel.  The ALSA sequencer and JACK APIs allows for virtual software input and output ports. 
 
 \subsection macosx Macintosh OS X (CoreAudio):
 
-The Apple CoreMidi API allows for the establishment of virtual input and output ports to which other software applications can connect.
+The Apple CoreMIDI API allows for the establishment of virtual input and output ports to which other software applications can connect.
 
-The RtMidi Jack support can be compiled on Macintosh OS-X systems, as well as in Linux.
+The RtMidi JACK support can be compiled on Macintosh OS-X systems, as well as in Linux.
 
 \subsection windowsds Windows (Multimedia Library):
 
@@ -417,15 +410,17 @@ The \c configure script provides support for the MinGW compiler.
 
 The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.   Incoming system exclusive messages read by RtMidiIn are limited to a length as defined by the preprocessor definition RT_SYSEX_BUFFER_SIZE (set in RtMidi.cpp).  The default value is 1024.  There is no such limit for outgoing sysex messages via RtMidiOut.
 
-RtMidi was originally developed with Visual C++ version 6.0.
+RtMidi was originally developed with Visual C++ version 6.0 but has been tested with Virtual Studio 2010.
 
 The \c configure script provides support for the MinGW compiler.
 
-\section acknowledge Acknowledgements
+\section acknowledge Development & Acknowledgements
 
-Many thanks to the following people for providing bug fixes and improvements:
+RtMidi is on github (https://github.com/thestk/rtmidi).  Many thanks to the developers that are helping to maintain and improve RtMidi.
+
+In years past, the following people provided bug fixes and improvements:
 <UL>
-<LI>Sebastien Alaiwan (Jack memory leaks, Windows kernel streaming)</LI>
+<LI>Sebastien Alaiwan (JACK memory leaks, Windows kernel streaming)</LI>
 <LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
 <LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
 <LI>Jason Champion (MSW project file for library build)</LI>
@@ -438,7 +433,7 @@ Many thanks to the following people for providing bug fixes and improvements:
 <LI>Immanuel Litzroth (OS-X sysex fix)</LI>
 <LI>Jon McCormack (Snow Leopard updates)</LI>
 <LI>Axel Schmidt (client naming)</LI>
-<LI>Alexander Svetalkin (Jack MIDI)</LI>
+<LI>Alexander Svetalkin (JACK MIDI)</LI>
 <LI>Casey Tucker (OS-X driver information, sysex sending)</LI>
 <LI>Bastiaan Verreijt (Windows sysex multi-buffer code)</LI>
 <LI>Dan Wilcox</LI>
@@ -447,7 +442,7 @@ Many thanks to the following people for providing bug fixes and improvements:
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2012 Gary P. Scavone
+    Copyright (c) 2003-2014 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

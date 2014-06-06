@@ -24,7 +24,7 @@
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidiOut *rtmidi );
 
-int main( int argc, char *argv[] )
+int main( void )
 {
   RtMidiOut *midiout = 0;
   std::vector<unsigned char> message;
@@ -33,7 +33,7 @@ int main( int argc, char *argv[] )
   try {
     midiout = new RtMidiOut();
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     exit( EXIT_FAILURE );
   }
@@ -42,7 +42,7 @@ int main( int argc, char *argv[] )
   try {
     if ( chooseMidiPort( midiout ) == false ) goto cleanup;
   }
-  catch ( RtError &error ) {
+  catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
   }

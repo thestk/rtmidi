@@ -241,37 +241,37 @@ void MidiOut :: openMidiApi( ApiType api )
     delete rtapi_;
   rtapi_ = 0;
 
-		switch (api) {
-		case rtmidi::UNIX_JACK:
+  switch (api) {
+  case rtmidi::UNIX_JACK:
 #if defined(__UNIX_JACK__)
-			rtapi_ = new MidiOutJack( clientName );
+    rtapi_ = new MidiOutJack( clientName );
 #endif
-			break;
-		case rtmidi::LINUX_ALSA:
+    break;
+  case rtmidi::LINUX_ALSA:
 #if defined(__LINUX_ALSA__)
-			rtapi_ = new MidiOutAlsa( clientName );
+    rtapi_ = new MidiOutAlsa( clientName );
 #endif
-			break;
-		case rtmidi::WINDOWS_MM:
+    break;
+  case rtmidi::WINDOWS_MM:
 #if defined(__WINDOWS_MM__)
-			rtapi_ = new MidiOutWinMM( clientName );
+    rtapi_ = new MidiOutWinMM( clientName );
 #endif
-			break;
-		case rtmidi::MACOSX_CORE:
+    break;
+  case rtmidi::MACOSX_CORE:
 #if defined(__MACOSX_CORE__)
-			rtapi_ = new MidiOutCore( clientName );
+    rtapi_ = new MidiOutCore( clientName );
 #endif
-			break;
-		case rtmidi::DUMMY:
+    break;
+  case rtmidi::DUMMY:
 #if defined(__RTMIDI_DUMMY__)
-		  rtapi_ = new MidiOutDummy( clientName );
+    rtapi_ = new MidiOutDummy( clientName );
 #endif
-		  break;
-		case rtmidi::UNSPECIFIED:
-		case rtmidi::ALL_API:
-		default:
-		  break;
-		}
+    break;
+  case rtmidi::UNSPECIFIED:
+  case rtmidi::ALL_API:
+  default:
+    break;
+  }
 }
 
 
@@ -331,12 +331,9 @@ MidiOut :: ~MidiOut() throw()
 {
 }
 
-//*********************************************************************//
-//  Common MidiApi Definitions
-//*********************************************************************//
 
 MidiApi :: MidiApi( void )
-  : apiData_( 0 ), connected_( false ), errorCallback_(0)
+  : apiData_( 0 ), connected_( false ), errorCallback_(0), errorCallbackUserData_(0)
 {
 }
 
@@ -344,9 +341,10 @@ MidiApi :: ~MidiApi( void )
 {
 }
 
-void MidiApi :: setErrorCallback( ErrorCallback errorCallback )
+void MidiApi :: setErrorCallback( ErrorCallback errorCallback, void *userData )
 {
   errorCallback_ = errorCallback;
+  errorCallbackUserData_ = userData;
 }
 
 void MidiApi :: error( Error::Type type, std::string errorString )
@@ -360,7 +358,7 @@ void MidiApi :: error( Error::Type type, std::string errorString )
     firstErrorOccured = true;
     const std::string errorMessage = errorString;
 
-    errorCallback_( type, errorMessage );
+    errorCallback_( type, errorMessage, errorCallbackUserData_ );
     firstErrorOccured = false;
     return;
   }
@@ -1351,16 +1349,17 @@ protected:
     init (seq);
   }
 
-  void init(MIDIClientRef &s)
+  void init(MIDIClientRef &client)
   {
-    if (s) return;
+    if (client) return;
     {
       scoped_lock lock(mutex);
-      OSStatus result = MIDIClientCreate(
-					 CFStringCreateWithCString( NULL,
-								    name.c_str(),
-								    kCFStringEncodingUTF8),
-					 NULL, NULL, &s );
+
+      CFStringRef name = CFStringCreateWithCString( NULL,
+						    name.c_str(),
+						    kCFStringEncodingUTF8);
+      OSStatus result = MIDIClientCreate(name, NULL, NULL, &client );
+      CFRelease(name);
       if ( result != noErr ) {
 	throw Error(
 		    "CoreSequencer::initialize: \
@@ -1549,7 +1548,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
     if ( nBytes == 0 ) continue;
 
     // Calculate time stamp.
- 
+
     if ( data->firstMessage ) {
       message.timeStamp = 0.0;
       data->firstMessage = false;
@@ -1569,7 +1568,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
       apiData->lastTime = AudioGetCurrentHostTime();
     }
     //std::cout << "TimeStamp = " << packet->timeStamp << std::endl;
- 
+
     iByte = 0;
     if ( continueSysex ) {
       // We have a continuing, segmented sysex message.
@@ -1599,7 +1598,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
 	      std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
 	  }
 	  message.bytes.clear();
-        }
+	}
       }
     }
     else {
@@ -1847,7 +1846,6 @@ PortList MidiInCore :: getPortList(int capabilities)
   return CorePortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
 					 data->getClientName());
 }
-
 
 void MidiInCore :: closePort( void )
 {
@@ -2530,6 +2528,7 @@ protected:
 LockingAlsaSequencer AlsaPortDescriptor::seq;
 
 
+
 PortList AlsaPortDescriptor :: getPortList(int capabilities, const std::string & clientName)
 {
   PortList list;
@@ -3093,7 +3092,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string & portNa
     snd_seq_port_info_set_midi_channels(pinfo, 16);
 #ifndef AVOID_TIMESTAMPING
     snd_seq_port_info_set_timestamping(pinfo, 1);
-    snd_seq_port_info_set_timestamp_real(pinfo, 1);    
+    snd_seq_port_info_set_timestamp_real(pinfo, 1);
     snd_seq_port_info_set_timestamp_queue(pinfo, data->queue_id);
 #endif
     snd_seq_port_info_set_name(pinfo,  portName.c_str() );
@@ -3236,7 +3235,7 @@ void MidiInAlsa :: openVirtualPort( std::string portName )
     snd_seq_port_info_set_midi_channels(pinfo, 16);
 #ifndef AVOID_TIMESTAMPING
     snd_seq_port_info_set_timestamping(pinfo, 1);
-    snd_seq_port_info_set_timestamp_real(pinfo, 1);    
+    snd_seq_port_info_set_timestamp_real(pinfo, 1);
     snd_seq_port_info_set_timestamp_queue(pinfo, data->queue_id);
 #endif
     snd_seq_port_info_set_name(pinfo, portName.c_str());
@@ -3645,7 +3644,7 @@ struct WinMidiData {
 //*********************************************************************//
 
 static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
-					UINT inputStatus, 
+					UINT inputStatus,
 					DWORD_PTR instancePtr,
 					DWORD_PTR midiMessage,
 					DWORD timestamp )
@@ -3695,8 +3694,8 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     for ( int i=0; i<nBytes; ++i ) apiData->message.bytes.push_back( *ptr++ );
   }
   else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
-    MIDIHDR *sysex = ( MIDIHDR *) midiMessage; 
-    if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {  
+    MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
+    if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
       // Sysex message and we're not ignoring it
       for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
 	apiData->message.bytes.push_back( sysex->lpData[i] );
@@ -4828,7 +4827,7 @@ unsigned int MidiInJack :: getPortCount()
     count++;
 
   free( ports );
- 
+
   return count;
 }
 
@@ -5079,6 +5078,7 @@ void MidiOutJack :: openPort( const PortDescriptor & p,
   jack_connect( data->client, name.c_str(), jack_port_name( data->port ) );
 #endif
 }
+
 Pointer<PortDescriptor> MidiOutJack :: getDescriptor(bool local)
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
@@ -5116,7 +5116,7 @@ unsigned int MidiOutJack :: getPortCount()
   if ( ports == NULL ) return 0;
   while ( ports[count] != NULL )
     count++;
- 
+
   free( ports );
 
   return count;

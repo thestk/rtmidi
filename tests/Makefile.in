@@ -4,11 +4,11 @@
 PROGRAMS = midiprobe midiout qmidiin cmidiin sysextest midiprobe2 midiprobe-all cmidiin2 qmidiin2 midiout2 loopback
 RM = /bin/rm
 SRC_PATH = ..
-INCLUDE = ..
+INCLUDE = @top_srcdir@
 OBJECT_PATH = @object_path@
 vpath %.o $(OBJECT_PATH)
 
-OBJECTS	=	RtMidi.o
+OBJECTS	=	@top_builddir@/RtMidi.o
 
 CC       = @CXX@
 DEFS     = @CPPFLAGS@
@@ -21,39 +21,39 @@ LIBRARY  = @LIBS@
 
 all : $(PROGRAMS)
 
-RtMidi.o: $(SRC_PATH)/RtMidi.cpp $(SRC_PATH)/RtMidi.h
-midiprobe : midiprobe.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o midiprobe midiprobe.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+#RtMidi.o: $(SRC_PATH)/RtMidi.cpp $(SRC_PATH)/RtMidi.h
+midiprobe : @srcdir@/midiprobe.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o midiprobe $^ $(LIBRARY)
 
-midiprobe2 : midiprobe2.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o midiprobe2 midiprobe2.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+midiprobe2 : @srcdir@/midiprobe2.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o midiprobe2 $^ $(LIBRARY)
 
-midiprobe-all : midiprobe-all.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o midiprobe-all midiprobe-all.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+midiprobe-all : @srcdir@/midiprobe-all.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o midiprobe-all $^ $(LIBRARY)
 
-midiout : midiout.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o midiout midiout.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+midiout : @srcdir@/midiout.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o midiout $^ $(LIBRARY)
 
-midiout2 : midiout2.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o midiout2 midiout2.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+midiout2 : @srcdir@/midiout2.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o midiout2 $^ $(LIBRARY)
 
-qmidiin : qmidiin.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o qmidiin qmidiin.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+qmidiin : @srcdir@/qmidiin.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o qmidiin $^ $(LIBRARY)
 
-qmidiin2 : qmidiin2.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o qmidiin2 qmidiin2.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+qmidiin2 : @srcdir@/qmidiin2.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o qmidiin2 $^ $(LIBRARY)
 
-cmidiin : cmidiin.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o cmidiin cmidiin.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+cmidiin : @srcdir@/cmidiin.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o cmidiin $^ $(LIBRARY)
 
-cmidiin2 : cmidiin2.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o cmidiin2 cmidiin2.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+cmidiin2 : @srcdir@/cmidiin2.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o cmidiin2 $^ $(LIBRARY)
 
-sysextest : sysextest.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o sysextest sysextest.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+sysextest : @srcdir@/sysextest.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o sysextest $^ $(LIBRARY)
 
-loopback : loopback.cpp $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o loopback loopback.cpp $(OBJECT_PATH)/RtMidi.o $(LIBRARY)
+loopback :  @srcdir@/loopback.cpp $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o loopback $^ $(LIBRARY)
 
 clean : 
 	$(RM) -f $(OBJECT_PATH)/*.o

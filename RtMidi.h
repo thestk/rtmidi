@@ -276,7 +276,8 @@ public:
     UNIQUE_NAME = 0x10, /*!< Make all names uniqe. This
 			  is usually done by adding
 			  numbers to the end of the
-			  string */
+			  string \note: use #undef UNIQUE_NAME 
+			  on windows in case of any errors */
     INCLUDE_API = 0x20 /*!< Add a string describing the
 			 API at the beginning of the
 			 string. */
@@ -1350,7 +1351,7 @@ class MidiInWinMM: public MidiInApi
 public:
   MidiInWinMM( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInWinMM( void );
-  ApiType getCurrentApi( void ) { return WINDOWS_MM; };
+  ApiType getCurrentApi( void ) throw() { return WINDOWS_MM; };
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
@@ -1370,7 +1371,7 @@ class MidiOutWinMM: public MidiOutApi
 public:
   MidiOutWinMM( const std::string clientName );
   ~MidiOutWinMM( void );
-  ApiType getCurrentApi( void ) { return WINDOWS_MM; };
+  ApiType getCurrentApi( void ) throw() { return WINDOWS_MM; };
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );

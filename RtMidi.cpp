@@ -3938,13 +3938,13 @@ struct WinMMPortDescriptor:public PortDescriptor
   {
   }
   ~WinMMPortDescriptor() {}
-  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) const {
     if (is_input)
       return new MidiInWinMM(clientName,queueSizeLimit);
     else
       return 0;
   }
-  MidiOutApi * getOutputApi() {
+  MidiOutApi * getOutputApi() const {
     if (!is_input)
       return new MidiOutWinMM(clientName);
     else
@@ -4330,7 +4330,7 @@ Pointer<PortDescriptor> MidiInWinMM :: getDescriptor(bool local)
     return 0;
   case MMSYSERR_NOMEM:
     error (Error::DRIVER_ERROR,
-	   "MidiInWinMM::getDescriptor: The system could not handle enough memory.");
+	   "MidiInWinMM::getDescriptor: The system could not provide enough memory.");
     return 0;
   }
   return new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
@@ -4343,6 +4343,7 @@ PortList MidiInWinMM :: getPortList(int capabilities)
   if (!data) return PortList();
   return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
 }
+
 
 void MidiInWinMM :: closePort( void )
 {

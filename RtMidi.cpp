@@ -4338,7 +4338,7 @@ Pointer<PortDescriptor> MidiInWinMM :: getDescriptor(bool local)
 PortList MidiInWinMM :: getPortList(int capabilities)
 {
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  if (!data) return PortList();
+  if (!data || capabilities != PortDescriptor::INPUT) return PortList();
   return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
 }
 
@@ -4587,7 +4587,7 @@ Pointer<PortDescriptor> MidiOutWinMM :: getDescriptor(bool local)
 PortList MidiOutWinMM :: getPortList(int capabilities)
 {
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  if (!data) return PortList();
+  if (!data || capabilities != PortDescriptor::OUTPUT) return PortList();
   return WinMMPortDescriptor::getPortList(PortDescriptor::OUTPUT,data->getClientName());
 }
 

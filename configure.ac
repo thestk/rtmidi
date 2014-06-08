@@ -2,7 +2,7 @@
 AC_INIT(RtMidi, 2.1.0, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
+AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile po/Makefile.in])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Fill GXX with something before test.
@@ -235,7 +235,8 @@ return jack_port_uuid(NULL);
   ;;
 esac
 AM_CONDITIONAL(HAVE_VIRTUAL_DEVICES,test "$have_virtual_devices" == yes)
-
+AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.18])
 
 CPPFLAGS="$CPPFLAGS $api"
 

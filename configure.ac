@@ -3,17 +3,22 @@ AC_INIT(RtMidi, 2.1.0, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Fill GXX with something before test.
 AC_SUBST( GXX, ["no"] )
+AC_SUBST(noinst_LIBRARIES)
 
 # Checks for programs.
 AC_PROG_CXX(g++ CC c++ cxx)
-AC_PROG_RANLIB
+AM_PROG_AR
 AC_PATH_PROG(AR, ar, no)
 if [[ $AR = "no" ]] ; then
     AC_MSG_ERROR("Could not find ar - needed to create a library");
 fi
+
+LT_INIT([win32-dll])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -130,9 +135,11 @@ esac
 AC_SUBST( api, [""] )
 AC_SUBST( req, [""] )
 AC_MSG_CHECKING(for MIDI API)
+have_virtual_devices=no
 case $host in
   *-*-linux*)
   AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
+  have_virtual_devices=yes
   api="$api -D__UNIX_JACK__"
   AC_MSG_RESULT(using JACK)
   AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
@@ -146,6 +153,7 @@ return jack_port_uuid(NULL);
 
   # Look for ALSA flag
   AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)], [
+    have_virtual_devices=yes
     api="$api -D__LINUX_ALSA__"
     req="$req alsa"
     AC_MSG_RESULT(using ALSA)
@@ -155,6 +163,7 @@ return jack_port_uuid(NULL);
     AC_MSG_RESULT(using ALSA)
     AC_SUBST( api, [-D__LINUX_ALSA__] )
     req="$req alsa"
+    have_virtual_devices=yes
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA sequencer support requires the asound library!))
   fi
 
@@ -164,6 +173,7 @@ return jack_port_uuid(NULL);
 
   *-apple*)
   AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
+  have_virtual_devices=yes
   api="$api -D__UNIX_JACK__"
   AC_MSG_RESULT(using JACK)
   AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
@@ -177,6 +187,7 @@ return jack_port_uuid(NULL);
 
   # Look for Core flag
   AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)], [
+    have_virtual_devices=yes
     api="$api -D__MACOSX_CORE__"
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
@@ -184,6 +195,7 @@ return jack_port_uuid(NULL);
 
   # If no api flags specified, use CoreMidi
   if [test "$api" == ""; ] then
+    have_virtual_devices=yes
     AC_SUBST( api, [-D__MACOSX_CORE__] )
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
@@ -222,6 +234,8 @@ return jack_port_uuid(NULL);
   AC_MSG_ERROR(Unknown system type for MIDI support!)
   ;;
 esac
+AM_CONDITIONAL(HAVE_VIRTUAL_DEVICES,test "$have_virtual_devices" == yes)
+
 
 CPPFLAGS="$CPPFLAGS $api"
 

@@ -78,14 +78,14 @@ NAMESPACE_RTMIDI_START
 
 //! MIDI API specifier arguments.
 enum ApiType {
-UNSPECIFIED,    /*!< Search for a working compiled API. */
-MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
-LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
-UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
-WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
-DUMMY,          /*!< A compilable but non-functional API. */
-ALL_API         /*!< Use all available APIs for port selection. */
+  UNSPECIFIED,    /*!< Search for a working compiled API. */
+  MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
+  LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
+  UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
+  WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
+  WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
+  DUMMY,          /*!< A compilable but non-functional API. */
+  ALL_API         /*!< Use all available APIs for port selection. */
 };
 
 //! Return the name on a MIDI API
@@ -194,7 +194,7 @@ protected:
   Note that class behaviour is undefined after a critical error (not
   a warning) is reported.
 */
-typedef void (*ErrorCallback)( Error::Type type, const std::string &errorText );
+typedef void (*ErrorCallback)( Error::Type type, const std::string &errorText, void * userdata );
 
 
 
@@ -307,7 +307,8 @@ public:
     UNIQUE_NAME = 0x10, /*!< Make all names uniqe. This
 			  is usually done by adding
 			  numbers to the end of the
-			  string */
+			  string \note: use #undef UNIQUE_NAME 
+			  on windows in case of any errors */
     INCLUDE_API = 0x20 /*!< Add a string describing the
 			 API at the beginning of the
 			 string. */
@@ -523,7 +524,7 @@ public:
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  virtual void setErrorCallback( ErrorCallback errorCallback = NULL );
+  virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 );
 
 
   //! Returns the MIDI API specifier for the current instance of RtMidiIn.
@@ -539,6 +540,7 @@ protected:
   bool connected_;
   std::string errorString_;
   ErrorCallback errorCallback_;
+  void * errorCallbackUserData_;
 };
 #undef RTMIDI_CLASSNAME
 
@@ -823,9 +825,9 @@ public:
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  void setErrorCallback( ErrorCallback errorCallback = NULL )
+  void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 )
   {
-    if (rtapi_) rtapi_->setErrorCallback(errorCallback);
+    if (rtapi_) rtapi_->setErrorCallback(errorCallback, userData);
   }
 
   //! A basic error reporting function for RtMidi classes.
@@ -1399,7 +1401,7 @@ class MidiInWinMM: public MidiInApi
 public:
   MidiInWinMM( const std::string clientName, unsigned int queueSizeLimit );
   ~MidiInWinMM( void );
-  ApiType getCurrentApi( void ) { return WINDOWS_MM; };
+  ApiType getCurrentApi( void ) throw() { return WINDOWS_MM; };
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );
@@ -1419,7 +1421,7 @@ class MidiOutWinMM: public MidiOutApi
 public:
   MidiOutWinMM( const std::string clientName );
   ~MidiOutWinMM( void );
-  ApiType getCurrentApi( void ) { return WINDOWS_MM; };
+  ApiType getCurrentApi( void ) throw() { return WINDOWS_MM; };
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int portNumber, const std::string & portName );
   void openVirtualPort( const std::string portName );

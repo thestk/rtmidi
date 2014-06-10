@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#: RtMidi.cpp:3403
+#: RtMidi.cpp:3346
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: rtmidi 2.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/thestk/rtmidi\n"
-"POT-Creation-Date: 2014-06-08 21:28+0200\n"
+"POT-Creation-Date: 2014-06-10 21:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,11 +18,43 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: RtMidi.h:450 RtMidi.h:557
+#: RtMidi.h:91
+msgid "Automatic selection"
+msgstr ""
+
+#: RtMidi.h:92
+msgid "Core MIDI"
+msgstr ""
+
+#: RtMidi.h:93
+msgid "ALSA"
+msgstr ""
+
+#: RtMidi.h:94
+msgid "JACK"
+msgstr ""
+
+#: RtMidi.h:95
+msgid "Windows Multimedia"
+msgstr ""
+
+#: RtMidi.h:96
+msgid "DirectX/Kernel Streaming"
+msgstr ""
+
+#: RtMidi.h:97
+msgid "NULL device"
+msgstr ""
+
+#: RtMidi.h:98
+msgid "All available MIDI systems"
+msgstr ""
+
+#: RtMidi.h:450 RtMidi.h:557 RtMidi.h:1070 RtMidi.h:1162
 msgid "Passed NULL pointer."
 msgstr ""
 
-#: RtMidi.h:623 RtMidi.cpp:2150
+#: RtMidi.h:623 RtMidi.cpp:2093
 msgid "No data in message argument."
 msgstr ""
 
@@ -30,24 +62,20 @@ msgstr ""
 msgid "A NULL pointer has been passed as port descriptor"
 msgstr ""
 
-#: RtMidi.h:983 RtMidi.h:1196
-msgid "No valid API selected."
+#: RtMidi.h:983 RtMidi.h:1195 RtMidi.h:1218 RtMidi.h:1231
+msgid "No valid MIDI system has been selected."
 msgstr ""
 
-#: RtMidi.h:1053 RtMidi.h:1076
-msgid "No valid API found."
+#: RtMidi.h:1052
+msgid "Could not find any valid MIDI system."
 msgstr ""
 
-#: RtMidi.h:1071 RtMidi.h:1163
-msgid "passed NULL pointer"
+#: RtMidi.h:1075
+msgid "No valid MIDI system has been found."
 msgstr ""
 
-#: RtMidi.h:1213
-msgid "No data in message argument!"
-msgstr ""
-
-#: RtMidi.h:1219 RtMidi.h:1232
-msgid "The API has not been set."
+#: RtMidi.h:1212
+msgid "No data in MIDI message."
 msgstr ""
 
 #: RtMidi.cpp:71
@@ -63,366 +91,350 @@ msgstr ""
 msgid "Error: could not format the error message"
 msgstr ""
 
-#: RtMidi.cpp:274 RtMidi.cpp:375
-msgid "No compiled API support found."
+#: RtMidi.cpp:258 RtMidi.cpp:361
+#, c-format
+msgid ""
+"Support for the selected MIDI system %d has not been compiled into the "
+"RtMidi library."
 msgstr ""
 
-#: RtMidi.cpp:454
+#: RtMidi.cpp:276 RtMidi.cpp:378
+msgid "No supported MIDI system has been found."
+msgstr ""
+
+#: RtMidi.cpp:457
 msgid "A callback function is already set."
 msgstr ""
 
-#: RtMidi.cpp:460
+#: RtMidi.cpp:463
 msgid "The callback function value is invalid."
 msgstr ""
 
-#: RtMidi.cpp:473
+#: RtMidi.cpp:476
 msgid "No callback function was set."
 msgstr ""
 
-#: RtMidi.cpp:496
-msgid "A user callback is currently set for this port."
+#: RtMidi.cpp:499
+msgid ""
+"Returning an empty MIDI message as all input is handled by a callback "
+"function."
 msgstr ""
 
-#: RtMidi.cpp:1151
-msgid "Could not get the UID of a midi endpoint."
+#: RtMidi.cpp:1154
+msgid "Could not get the unique identifier of a midi endpoint."
 msgstr ""
 
-#: RtMidi.cpp:1162
-msgid "Could not get the endpoint back from UID of a midi endpoint."
+#: RtMidi.cpp:1165
+msgid ""
+"Could not get the endpoint back from the unique identifier of a midi "
+"endpoint."
 msgstr ""
 
-#: RtMidi.cpp:1178
+#: RtMidi.cpp:1181
 msgid "Could not get the entity of a midi endpoint."
 msgstr ""
 
-#: RtMidi.cpp:1255 RtMidi.cpp:1295
-msgid "Error creating OS X MIDI port because of invalid port flags"
+#: RtMidi.cpp:1258 RtMidi.cpp:1298
+msgid "Error creating OS X MIDI port because of invalid port flags."
 msgstr ""
 
-#: RtMidi.cpp:1259 RtMidi.cpp:1299 RtMidi.cpp:1861
+#: RtMidi.cpp:1262 RtMidi.cpp:1302 RtMidi.cpp:1804
 msgid "Error creating OS-X MIDI port."
 msgstr ""
 
-#: RtMidi.cpp:1319
-msgid "CORE error allocation port subscription."
-msgstr ""
-
-#: RtMidi.cpp:1334
-msgid "CORE error making port connection."
-msgstr ""
-
-#: RtMidi.cpp:1412
+#: RtMidi.cpp:1355
 msgid "Error creating OS-X MIDI client object."
 msgstr ""
 
-#: RtMidi.cpp:1750 RtMidi.cpp:1842 RtMidi.cpp:1996 RtMidi.cpp:3109
-#: RtMidi.cpp:3226 RtMidi.cpp:3476 RtMidi.cpp:3624 RtMidi.cpp:4274
-#: RtMidi.cpp:4550 RtMidi.cpp:4609 RtMidi.cpp:5369 RtMidi.cpp:5658
+#: RtMidi.cpp:1693 RtMidi.cpp:1785 RtMidi.cpp:1939 RtMidi.cpp:2035
+#: RtMidi.cpp:3052 RtMidi.cpp:3169 RtMidi.cpp:3419 RtMidi.cpp:3567
+#: RtMidi.cpp:4217 RtMidi.cpp:4492 RtMidi.cpp:4551 RtMidi.cpp:5311
+#: RtMidi.cpp:5600
 msgid "A valid connection already exists."
 msgstr ""
 
-#: RtMidi.cpp:1758 RtMidi.cpp:3116 RtMidi.cpp:4281
+#: RtMidi.cpp:1701 RtMidi.cpp:3059 RtMidi.cpp:4224
 msgid "No MIDI input sources found."
 msgstr ""
 
-#: RtMidi.cpp:1767 RtMidi.cpp:1924 RtMidi.cpp:1979 RtMidi.cpp:2013
-#: RtMidi.cpp:3126 RtMidi.cpp:3496 RtMidi.cpp:4450 RtMidi.cpp:4528
-#: RtMidi.cpp:4563 RtMidi.cpp:5469 RtMidi.cpp:5759
+#: RtMidi.cpp:1710 RtMidi.cpp:1867 RtMidi.cpp:1922 RtMidi.cpp:1956
+#: RtMidi.cpp:3069 RtMidi.cpp:3439 RtMidi.cpp:4392 RtMidi.cpp:4470
+#: RtMidi.cpp:4505 RtMidi.cpp:5411 RtMidi.cpp:5701
 #, c-format
 msgid "The 'portNumber' argument (%d) is invalid."
 msgstr ""
 
-#: RtMidi.cpp:1779
+#: RtMidi.cpp:1722
 msgid "Error creating OS-X MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:1789
+#: RtMidi.cpp:1732
 msgid "Error getting MIDI input source reference."
 msgstr ""
 
-#: RtMidi.cpp:1799
+#: RtMidi.cpp:1742
 msgid "Error connecting OS-X MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:1821
+#: RtMidi.cpp:1764
 msgid "Error creating virtual OS-X MIDI destination."
 msgstr ""
 
-#: RtMidi.cpp:1837 RtMidi.cpp:2087 RtMidi.cpp:3221 RtMidi.cpp:3619
-#: RtMidi.cpp:5363 RtMidi.cpp:5652
-msgid "Internal error: data has not been allocated."
+#: RtMidi.cpp:1780 RtMidi.cpp:2030 RtMidi.cpp:3164 RtMidi.cpp:3562
+#: RtMidi.cpp:5305 RtMidi.cpp:5594
+msgid "Data has not been allocated."
 msgstr ""
 
-#: RtMidi.cpp:1847 RtMidi.cpp:2097
-msgid "An invalid (i.e. non-CORE) port descriptor has been passed to openPort."
+#: RtMidi.cpp:1790 RtMidi.cpp:2040
+msgid ""
+"Core MIDI has been instructed to open a non-Core MIDI port. This doesn't "
+"work."
 msgstr ""
 
-#: RtMidi.cpp:2004
+#: RtMidi.cpp:1947
 msgid "No MIDI output destinations found."
 msgstr ""
 
-#: RtMidi.cpp:2025
+#: RtMidi.cpp:1968
 msgid "Error creating OS-X MIDI output port."
 msgstr ""
 
-#: RtMidi.cpp:2035
+#: RtMidi.cpp:1978
 msgid "Error getting MIDI output destination reference."
 msgstr ""
 
-#: RtMidi.cpp:2060
+#: RtMidi.cpp:2003
 msgid "A virtual output port already exists."
 msgstr ""
 
-#: RtMidi.cpp:2071
+#: RtMidi.cpp:2014
 msgid "Error creating OS-X virtual MIDI source."
 msgstr ""
 
-#: RtMidi.cpp:2092
-msgid "A valid connection already exists"
-msgstr ""
-
-#: RtMidi.cpp:2210
+#: RtMidi.cpp:2153
 msgid "Could not allocate packet list."
 msgstr ""
 
-#: RtMidi.cpp:2219
+#: RtMidi.cpp:2162
 msgid "Error sending MIDI to virtual destinations."
 msgstr ""
 
-#: RtMidi.cpp:2228 RtMidi.cpp:3605
+#: RtMidi.cpp:2171 RtMidi.cpp:3548
 msgid "Error sending MIDI message to port."
 msgstr ""
 
-#: RtMidi.cpp:2431 RtMidi.cpp:3170
-msgid "Error allocating ALSA port subscription."
+#: RtMidi.cpp:2374 RtMidi.cpp:2636 RtMidi.cpp:3113 RtMidi.cpp:3174
+#: RtMidi.cpp:3465
+msgid "Could not allocate ALSA port subscription."
 msgstr ""
 
-#: RtMidi.cpp:2446 RtMidi.cpp:3179 RtMidi.cpp:3532
+#: RtMidi.cpp:2389 RtMidi.cpp:3122 RtMidi.cpp:3475
 msgid "Error making ALSA port connection."
 msgstr ""
 
-#: RtMidi.cpp:2516 RtMidi.cpp:3003
+#: RtMidi.cpp:2459 RtMidi.cpp:2946
 msgid "Error creating ALSA sequencer client object."
 msgstr ""
 
-#: RtMidi.cpp:2693
-msgid "Error while trying to allocate ALSA port subscription."
-msgstr ""
-
-#: RtMidi.cpp:2755 RtMidi.cpp:3205 RtMidi.cpp:3335
+#: RtMidi.cpp:2698 RtMidi.cpp:3148 RtMidi.cpp:3278
 msgid "Error starting MIDI input thread!"
 msgstr ""
 
-#: RtMidi.cpp:3021
+#: RtMidi.cpp:2964
 msgid "Error creating pipe objects."
 msgstr ""
 
-#: RtMidi.cpp:3101 RtMidi.cpp:3468
+#: RtMidi.cpp:3044 RtMidi.cpp:3411
 msgid "Error looking for port name."
 msgstr ""
 
-#: RtMidi.cpp:3157
+#: RtMidi.cpp:3100
 msgid "Error creating ALSA input port."
 msgstr ""
 
-#: RtMidi.cpp:3231
-msgid "Error while allocating ALSA port subscription."
+#: RtMidi.cpp:3179 RtMidi.cpp:3577
+msgid ""
+"ALSA has been instructed to open a non-ALSA MIDI port. This doesn't work."
 msgstr ""
 
-#: RtMidi.cpp:3236 RtMidi.cpp:3634
-msgid "An invalid (i.e. non-ALSA) port descriptor has been passed to openPort."
-msgstr ""
-
-#: RtMidi.cpp:3301 RtMidi.cpp:3559
+#: RtMidi.cpp:3244 RtMidi.cpp:3502
 msgid "Error creating ALSA virtual port."
 msgstr ""
 
-#: RtMidi.cpp:3420
+#: RtMidi.cpp:3363
 msgid "Error initializing MIDI event parser."
 msgstr ""
 
-#: RtMidi.cpp:3427 RtMidi.cpp:3583
-msgid "Error allocating buffer memory."
+#: RtMidi.cpp:3370 RtMidi.cpp:3526
+msgid "Error while allocating buffer memory."
 msgstr ""
 
-#: RtMidi.cpp:3484
-msgid "No MIDI output sources found."
+#: RtMidi.cpp:3427
+msgid "No MIDI output sinks found."
 msgstr ""
 
-#: RtMidi.cpp:3511
+#: RtMidi.cpp:3454
 msgid "Error creating ALSA output port."
 msgstr ""
 
-#: RtMidi.cpp:3522
-msgid "Error allocating port subscription."
-msgstr ""
-
-#: RtMidi.cpp:3576
+#: RtMidi.cpp:3519
 msgid "ALSA error resizing MIDI event buffer."
 msgstr ""
 
-#: RtMidi.cpp:3597
+#: RtMidi.cpp:3540
 msgid "Event parsing error."
 msgstr ""
 
-#: RtMidi.cpp:3629
-msgid "ALSA error allocation port subscription."
+#: RtMidi.cpp:3572
+msgid "Error allocating ALSA port subscription."
 msgstr ""
 
-#: RtMidi.cpp:3766
+#: RtMidi.cpp:3709
 #, c-format
 msgid "The port argument %d is invalid."
 msgstr ""
 
-#: RtMidi.cpp:4255
+#: RtMidi.cpp:4198
 msgid "No MIDI input devices currently available."
 msgstr ""
 
-#: RtMidi.cpp:4266
-msgid "InitializeCriticalSectionAndSpinCount failed."
+#: RtMidi.cpp:4209
+msgid "Failed to initialize a critical section."
 msgstr ""
 
-#: RtMidi.cpp:4290
+#: RtMidi.cpp:4233
 #, c-format
 msgid "the 'portNumber' argument (%d) is invalid."
 msgstr ""
 
-#: RtMidi.cpp:4302
+#: RtMidi.cpp:4245
 msgid "Error creating Windows MM MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:4318
-msgid "Error starting Windows MM MIDI input port (PrepareHeader)."
+#: RtMidi.cpp:4261
+msgid "Error initializing data for Windows MM MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:4327
-msgid "Error starting Windows MM MIDI input port (AddBuffer)."
+#: RtMidi.cpp:4270
+msgid "Could not register the input buffer for Windows MM MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:4336
+#: RtMidi.cpp:4279
 msgid "Error starting Windows MM MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:4347 RtMidi.cpp:4596
-msgid "Cannot be implemented in Windows MM MIDI API."
+#: RtMidi.cpp:4290 RtMidi.cpp:4538
+msgid "Virtual ports are not available Windows Multimedia MIDI API."
 msgstr ""
 
-#: RtMidi.cpp:4354 RtMidi.cpp:4604
+#: RtMidi.cpp:4297 RtMidi.cpp:4546
 msgid ""
-"An invalid (i.e. non-WinMM) port descriptor has been passed to openPort."
+"Windows Multimedia (WinMM) has been instructed to open a non-WinMM MIDI "
+"port. This doesn't work."
 msgstr ""
 
-#: RtMidi.cpp:4359
+#: RtMidi.cpp:4302
 msgid ""
 "We are overwriting an existing connection. This is probably a programming "
 "error."
 msgstr ""
 
-#: RtMidi.cpp:4364
-msgid ""
-"The port descriptor pased to MidiInWinMM::openPort() cannot be used to open "
-"an input port."
+#: RtMidi.cpp:4307
+msgid "Trying to open a non-input port as input MIDI port. This doesn't work."
 msgstr ""
 
-#: RtMidi.cpp:4374 RtMidi.cpp:4624
+#: RtMidi.cpp:4317 RtMidi.cpp:4566
 msgid ""
 "Some change in the arrangement of MIDI input ports invalidated the port "
 "descriptor."
 msgstr ""
 
-#: RtMidi.cpp:4389
+#: RtMidi.cpp:4332
 msgid "The handle is invalid. Did you disconnect the device?"
 msgstr ""
 
-#: RtMidi.cpp:4393 RtMidi.cpp:4643
+#: RtMidi.cpp:4336 RtMidi.cpp:4585
 msgid ""
 "The system has no driver for our handle :-(. Did you disconnect the device?"
 msgstr ""
 
-#: RtMidi.cpp:4397 RtMidi.cpp:4647
+#: RtMidi.cpp:4340 RtMidi.cpp:4589
 msgid "Out of memory."
 msgstr ""
 
-#: RtMidi.cpp:4428
-msgid "Error closing Windows MM MIDI input port (midiInUnprepareHeader)."
+#: RtMidi.cpp:4370
+msgid "Error closing Windows MM MIDI input port."
 msgstr ""
 
-#: RtMidi.cpp:4506
+#: RtMidi.cpp:4448
 msgid "No MIDI output devices currently available."
 msgstr ""
 
-#: RtMidi.cpp:4557
+#: RtMidi.cpp:4499
 msgid "No MIDI output destinations found!"
 msgstr ""
 
-#: RtMidi.cpp:4575
+#: RtMidi.cpp:4517
 msgid "Error creating Windows MM MIDI output port."
 msgstr ""
 
-#: RtMidi.cpp:4614
+#: RtMidi.cpp:4556
 msgid "The port descriptor cannot be used to open an output port."
 msgstr ""
 
-#: RtMidi.cpp:4639
+#: RtMidi.cpp:4581
 msgid "The internal handle is invalid. Did you disconnect the device?"
 msgstr ""
 
-#: RtMidi.cpp:4669
+#: RtMidi.cpp:4611
 msgid "Message argument is empty."
 msgstr ""
 
-#: RtMidi.cpp:4681
-msgid "Error allocating sysex message memory!"
+#: RtMidi.cpp:4623
+msgid "Error while allocating sysex message memory."
 msgstr ""
 
-#: RtMidi.cpp:4697
+#: RtMidi.cpp:4639
 msgid "Error preparing sysex header."
 msgstr ""
 
-#: RtMidi.cpp:4706
+#: RtMidi.cpp:4648
 msgid "Error sending sysex message."
 msgstr ""
 
-#: RtMidi.cpp:4719
+#: RtMidi.cpp:4661
 msgid "Message size is greater than 3 bytes (and not sysex)."
 msgstr ""
 
-#: RtMidi.cpp:4735
+#: RtMidi.cpp:4677
 msgid "Error sending MIDI message."
 msgstr ""
 
-#: RtMidi.cpp:4986
+#: RtMidi.cpp:4928
 msgid "Could not connect to JACK server. Is it runnig?"
 msgstr ""
 
-#: RtMidi.cpp:5189
+#: RtMidi.cpp:5131
 msgid "Error opening JACK port subscription."
 msgstr ""
 
-#: RtMidi.cpp:5296 RtMidi.cpp:5579
+#: RtMidi.cpp:5238 RtMidi.cpp:5521
 msgid "JACK server not running?"
 msgstr ""
 
-#: RtMidi.cpp:5331 RtMidi.cpp:5396 RtMidi.cpp:5620 RtMidi.cpp:5685
+#: RtMidi.cpp:5273 RtMidi.cpp:5338 RtMidi.cpp:5562 RtMidi.cpp:5627
 msgid "Error creating JACK port."
 msgstr ""
 
-#: RtMidi.cpp:5351 RtMidi.cpp:5640
+#: RtMidi.cpp:5293 RtMidi.cpp:5582
 msgid "Error creating JACK virtual port."
 msgstr ""
 
-#: RtMidi.cpp:5375
-msgid "An invalid (i.e. non-ALSA) port descriptor has been passed to openPort"
+#: RtMidi.cpp:5317 RtMidi.cpp:5606
+msgid ""
+"JACK has been instructed to open a non-JACK MIDI port. This doesn't work."
 msgstr ""
 
-#: RtMidi.cpp:5462
+#: RtMidi.cpp:5404 RtMidi.cpp:5694
 msgid "No ports available."
-msgstr ""
-
-#: RtMidi.cpp:5664
-msgid "An invalid (i.e. non-JACK) port descriptor has been passed to openPort"
-msgstr ""
-
-#: RtMidi.cpp:5752
-msgid "No ports available"
 msgstr ""

@@ -1305,58 +1305,6 @@ public:
     return port;
   }
 
-#if 0
-  void deletePort(int port) {
-    init();
-    scoped_lock lock (mutex);
-    snd_seq_delete_port( seq, port );
-  }
-
-  snd_seq_port_subscribe_t * connectPorts(const snd_seq_addr_t & from,
-					  const snd_seq_addr_t & to,
-					  bool real_time) {
-    init();
-    snd_seq_port_subscribe_t *subscription;
-
-    if (snd_seq_port_subscribe_malloc( &subscription ) < 0) {
-      throw RTMIDI_ERROR(gettext_noopt("CORE error allocation port subscription."),
-			 Error::DRIVER_ERROR );
-      return 0;
-    }
-    snd_seq_port_subscribe_set_sender(subscription, &from);
-    snd_seq_port_subscribe_set_dest(subscription, &to);
-    if (real_time) {
-      snd_seq_port_subscribe_set_time_update(subscription, 1);
-      snd_seq_port_subscribe_set_time_real(subscription, 1);
-    }
-    {
-      scoped_lock lock (mutex);
-      if ( snd_seq_subscribe_port(seq, subscription) ) {
-	snd_seq_port_subscribe_free( subscription );
-	subscription = 0;
-	throw RTMIDI_ERROR(gettext_noopt("CORE error making port connection."),
-			   Error::DRIVER_ERROR);
-	return 0;
-      }
-    }
-    return subscription;
-  }
-
-  void closePort(snd_seq_port_subscribe_t * subscription ) {
-    init();
-    scoped_lock lock(mutex);
-    snd_seq_unsubscribe_port( seq, subscription );
-  }
-
-
-  void startQueue(int queue_id) {
-    init();
-    scoped_lock lock(mutex);
-    snd_seq_start_queue( seq, queue_id, NULL );
-    snd_seq_drain_output( seq );
-  }
-#endif
-
   /*! Use CoreSequencer like a C pointer.
     \note This function breaks the design to control thread safety
     by the selection of the \ref locking parameter to the class.
@@ -1384,16 +1332,6 @@ protected:
   pthread_mutex_t mutex;
   MIDIClientRef seq;
   std::string name;
-
-#if 0
-  snd_seq_client_info_t * GetClient(int id) {
-    init();
-    snd_seq_client_info_t * cinfo;
-    scoped_lock lock(mutex);
-    snd_seq_get_any_client_info(seq,id,cinfo);
-    return cinfo;
-  }
-#endif
 
   void init()
   {

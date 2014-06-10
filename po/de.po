@@ -3,13 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+#: RtMidi.cpp:3346
 msgid ""
 msgstr ""
 "Project-Id-Version: rtmidi 2.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/thestk/rtmidi\n"
-"POT-Creation-Date: 2014-06-08 21:28+0200\n"
-"PO-Revision-Date: 2014-06-08 21:37+0100\n"
-"Last-Translator: Tobias Schlemmer <keinstein@users.berlios.de>\n"
+"POT-Creation-Date: 2014-06-10 21:00+0200\n"
+"PO-Revision-Date: 2014-06-10 20:59+0100\n"
+"Last-Translator: Tobias Schlemmer <keinstein@users.sourceforge.net>\n"
 "Language-Team: German translation team <keinstein@users.sf.net>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -19,38 +20,68 @@ msgstr ""
 "X-Generator: Poedit 1.5.4\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-Basepath: .\n"
+"X-Poedit-KeywordsList: gettext_noopt\n"
+"X-Poedit-SearchPath-0: /home/tobias/macbookbackup/Entwicklung/rtmidi-beides\n"
 
-#: RtMidi.h:450 RtMidi.h:557
+#: RtMidi.h:91
+msgid "Automatic selection"
+msgstr "Automatische Auswahl"
+
+#: RtMidi.h:92
+msgid "Core MIDI"
+msgstr "Core MIDI"
+
+#: RtMidi.h:93
+msgid "ALSA"
+msgstr "ALSA"
+
+#: RtMidi.h:94
+msgid "JACK"
+msgstr "JACK"
+
+#: RtMidi.h:95
+msgid "Windows Multimedia"
+msgstr "Windows Multimedia"
+
+#: RtMidi.h:96
+msgid "DirectX/Kernel Streaming"
+msgstr "DirectX/Kernel Streaming"
+
+#: RtMidi.h:97
+msgid "NULL device"
+msgstr "Keine Funktion."
+
+#: RtMidi.h:98
+msgid "All available MIDI systems"
+msgstr "Alle verfügbaren MIDI-Systeme."
+
+#: RtMidi.h:450 RtMidi.h:557 RtMidi.h:1070 RtMidi.h:1162
 msgid "Passed NULL pointer."
-msgstr ""
+msgstr "Nullzeiger übergeben."
 
-#: RtMidi.h:623 RtMidi.cpp:2150
+#: RtMidi.h:623 RtMidi.cpp:2093
 msgid "No data in message argument."
-msgstr ""
+msgstr "Keine Daten in der MIDI-Nachricht."
 
 #: RtMidi.h:951
 msgid "A NULL pointer has been passed as port descriptor"
-msgstr ""
+msgstr "Ein leerer Zeiger wurde als Schnittstellenbeschreibung übergeben."
 
-#: RtMidi.h:983 RtMidi.h:1196
-msgid "No valid API selected."
-msgstr ""
+#: RtMidi.h:983 RtMidi.h:1195 RtMidi.h:1218 RtMidi.h:1231
+msgid "No valid MIDI system has been selected."
+msgstr "Es wurde kein benutzbares MIDI-System ausgewählt."
 
-#: RtMidi.h:1053 RtMidi.h:1076
-msgid "No valid API found."
-msgstr ""
+#: RtMidi.h:1052
+msgid "Could not find any valid MIDI system."
+msgstr "Es konnte kein benutzbares MIDI-System gefunden werden."
 
-#: RtMidi.h:1071 RtMidi.h:1163
-msgid "passed NULL pointer"
-msgstr ""
+#: RtMidi.h:1075
+msgid "No valid MIDI system has been found."
+msgstr "Es konnte kein benutzbares MIDI-System gefunden werden."
 
-#: RtMidi.h:1213
-msgid "No data in message argument!"
-msgstr ""
-
-#: RtMidi.h:1219 RtMidi.h:1232
-msgid "The API has not been set."
-msgstr ""
+#: RtMidi.h:1212
+msgid "No data in MIDI message."
+msgstr "Keine Daten in der MIDI-Nachricht."
 
 #: RtMidi.cpp:71
 #, c-format
@@ -60,371 +91,428 @@ msgid ""
 "Found in %s::%s at \n"
 "%s:%d"
 msgstr ""
+"Fehler bei der Formatierung der Fehlermeldung:\n"
+"'%s'\n"
+"gefunden in %s::%s bei \n"
+"%s:%d"
 
 #: RtMidi.cpp:83
 msgid "Error: could not format the error message"
-msgstr ""
+msgstr "Fehler: Ich konnte eine Fehlermeldung nicht formatieren."
 
-#: RtMidi.cpp:274 RtMidi.cpp:375
-msgid "No compiled API support found."
+#: RtMidi.cpp:258 RtMidi.cpp:361
+#, c-format
+msgid ""
+"Support for the selected MIDI system %d has not been compiled into the "
+"RtMidi library."
 msgstr ""
+"Die Unterstützung für das gewählte MIDI-System %d wurde  nicht in die RtMidi-"
+"Bibliothek eingebaut."
 
-#: RtMidi.cpp:454
+#: RtMidi.cpp:276 RtMidi.cpp:378
+msgid "No supported MIDI system has been found."
+msgstr "Es konnte kein benutzbares MIDI-System gefunden werden."
+
+#: RtMidi.cpp:457
 msgid "A callback function is already set."
-msgstr ""
+msgstr "Es wurde schon eine Rückruffunktion gesetzt."
 
-#: RtMidi.cpp:460
+#: RtMidi.cpp:463
 msgid "The callback function value is invalid."
-msgstr ""
+msgstr "Der Funktionswert einer aufgerufenen Rückruffunktion ist ungültig."
 
-#: RtMidi.cpp:473
+#: RtMidi.cpp:476
 msgid "No callback function was set."
-msgstr ""
+msgstr "Es wurde keine Rückruffunktion gesetzt."
 
-#: RtMidi.cpp:496
-msgid "A user callback is currently set for this port."
+#: RtMidi.cpp:499
+msgid ""
+"Returning an empty MIDI message as all input is handled by a callback "
+"function."
 msgstr ""
+"Es wird eine leere MIDI-Nachricht generiert, weil alle Eingaben durch eine "
+"Rückruf-Funktion (engl. callback) abgefangen werden."
 
-#: RtMidi.cpp:1151
-msgid "Could not get the UID of a midi endpoint."
+#: RtMidi.cpp:1154
+msgid "Could not get the unique identifier of a midi endpoint."
 msgstr ""
+"Konnte die eindeutige Identifikation (UUID) eines MIDI-Endpunktes nicht "
+"bekommen."
 
-#: RtMidi.cpp:1162
-msgid "Could not get the endpoint back from UID of a midi endpoint."
+#: RtMidi.cpp:1165
+msgid ""
+"Could not get the endpoint back from the unique identifier of a midi "
+"endpoint."
 msgstr ""
+"Konnte den MIDI-Endpunkt einer eindeutige Identifikation (UUID) nicht "
+"bekommen."
 
-#: RtMidi.cpp:1178
+#: RtMidi.cpp:1181
 msgid "Could not get the entity of a midi endpoint."
-msgstr ""
+msgstr "Konnte die Geräteeinheit eines MIDI-Endpunktes nicht bekommen."
 
-#: RtMidi.cpp:1255 RtMidi.cpp:1295
-msgid "Error creating OS X MIDI port because of invalid port flags"
+#: RtMidi.cpp:1258 RtMidi.cpp:1298
+msgid "Error creating OS X MIDI port because of invalid port flags."
 msgstr ""
+"Konnte die OS X-MIDI-Schnittstelle nicht anlegen, da ungültige Eigenschaften "
+"angegeben wurden."
 
-#: RtMidi.cpp:1259 RtMidi.cpp:1299 RtMidi.cpp:1861
+#: RtMidi.cpp:1262 RtMidi.cpp:1302 RtMidi.cpp:1804
 msgid "Error creating OS-X MIDI port."
-msgstr ""
+msgstr "Es gab einen Fehler beim Erzeugen der MIDI-Schnittstelle."
 
-#: RtMidi.cpp:1319
-msgid "CORE error allocation port subscription."
-msgstr ""
-
-#: RtMidi.cpp:1334
-msgid "CORE error making port connection."
-msgstr ""
-
-#: RtMidi.cpp:1412
+#: RtMidi.cpp:1355
 msgid "Error creating OS-X MIDI client object."
-msgstr ""
+msgstr "Fehler beim erzeugen des OS-X-MIDI-Klienten."
 
-#: RtMidi.cpp:1750 RtMidi.cpp:1842 RtMidi.cpp:1996 RtMidi.cpp:3109
-#: RtMidi.cpp:3226 RtMidi.cpp:3476 RtMidi.cpp:3624 RtMidi.cpp:4274
-#: RtMidi.cpp:4550 RtMidi.cpp:4609 RtMidi.cpp:5369 RtMidi.cpp:5658
+#: RtMidi.cpp:1693 RtMidi.cpp:1785 RtMidi.cpp:1939 RtMidi.cpp:2035
+#: RtMidi.cpp:3052 RtMidi.cpp:3169 RtMidi.cpp:3419 RtMidi.cpp:3567
+#: RtMidi.cpp:4217 RtMidi.cpp:4492 RtMidi.cpp:4551 RtMidi.cpp:5311
+#: RtMidi.cpp:5600
 msgid "A valid connection already exists."
-msgstr ""
+msgstr "Es existiert schon eine gültige Verbindung."
 
-#: RtMidi.cpp:1758 RtMidi.cpp:3116 RtMidi.cpp:4281
+#: RtMidi.cpp:1701 RtMidi.cpp:3059 RtMidi.cpp:4224
 msgid "No MIDI input sources found."
-msgstr ""
+msgstr "Keine MIDI-Eingabe-Geräte gefunden."
 
-#: RtMidi.cpp:1767 RtMidi.cpp:1924 RtMidi.cpp:1979 RtMidi.cpp:2013
-#: RtMidi.cpp:3126 RtMidi.cpp:3496 RtMidi.cpp:4450 RtMidi.cpp:4528
-#: RtMidi.cpp:4563 RtMidi.cpp:5469 RtMidi.cpp:5759
+#: RtMidi.cpp:1710 RtMidi.cpp:1867 RtMidi.cpp:1922 RtMidi.cpp:1956
+#: RtMidi.cpp:3069 RtMidi.cpp:3439 RtMidi.cpp:4392 RtMidi.cpp:4470
+#: RtMidi.cpp:4505 RtMidi.cpp:5411 RtMidi.cpp:5701
 #, c-format
 msgid "The 'portNumber' argument (%d) is invalid."
-msgstr ""
+msgstr "Die Portnummer %d ist ungültig."
 
-#: RtMidi.cpp:1779
+#: RtMidi.cpp:1722
 msgid "Error creating OS-X MIDI input port."
-msgstr ""
+msgstr "Fehler beim Erzeugen der OS-X-MIDI-Eingabe-Schnittstelle."
 
-#: RtMidi.cpp:1789
+#: RtMidi.cpp:1732
 msgid "Error getting MIDI input source reference."
-msgstr ""
+msgstr "Konnte keine Referenz zum MIDI-Eingang bekommen."
 
-#: RtMidi.cpp:1799
+#: RtMidi.cpp:1742
 msgid "Error connecting OS-X MIDI input port."
-msgstr ""
+msgstr "Fehler beim verbinden mit dem OS-X-MIDI-Eingang."
 
-#: RtMidi.cpp:1821
+#: RtMidi.cpp:1764
 msgid "Error creating virtual OS-X MIDI destination."
-msgstr ""
+msgstr "Konnte den virtuellen OS-X-MIDI-Ausgang nicht erzeugen."
 
-#: RtMidi.cpp:1837 RtMidi.cpp:2087 RtMidi.cpp:3221 RtMidi.cpp:3619
-#: RtMidi.cpp:5363 RtMidi.cpp:5652
-msgid "Internal error: data has not been allocated."
-msgstr ""
+#: RtMidi.cpp:1780 RtMidi.cpp:2030 RtMidi.cpp:3164 RtMidi.cpp:3562
+#: RtMidi.cpp:5305 RtMidi.cpp:5594
+msgid "Data has not been allocated."
+msgstr "Daten konnten nicht angelegt werden."
 
-#: RtMidi.cpp:1847 RtMidi.cpp:2097
-msgid "An invalid (i.e. non-CORE) port descriptor has been passed to openPort."
+#: RtMidi.cpp:1790 RtMidi.cpp:2040
+msgid ""
+"Core MIDI has been instructed to open a non-Core MIDI port. This doesn't "
+"work."
 msgstr ""
+"Core-MIDI wurde angewiesen, eine nicht-Core-MIDI-Schnittstelle zu öffnen. "
+"Das geht nicht."
 
-#: RtMidi.cpp:2004
+#: RtMidi.cpp:1947
 msgid "No MIDI output destinations found."
-msgstr ""
+msgstr "Es wurden keine MIDI-Ausgabegeräte gefunden."
 
-#: RtMidi.cpp:2025
+#: RtMidi.cpp:1968
 msgid "Error creating OS-X MIDI output port."
-msgstr ""
+msgstr "Fehler beim Erzeugen der OS-X-MIDI-Ausgabe-Schnittstelle."
 
-#: RtMidi.cpp:2035
+#: RtMidi.cpp:1978
 msgid "Error getting MIDI output destination reference."
-msgstr ""
+msgstr "Konnte keine Referenz zum MIDI-Ausgang bekommen."
 
-#: RtMidi.cpp:2060
+#: RtMidi.cpp:2003
 msgid "A virtual output port already exists."
-msgstr ""
+msgstr "Es gibt schon einen virtuellen MIDI-Ausgang."
 
-#: RtMidi.cpp:2071
+#: RtMidi.cpp:2014
 msgid "Error creating OS-X virtual MIDI source."
-msgstr ""
+msgstr "Konnte den virtuellen OS-X-MIDI-Eingang nicht erzeugen."
 
-#: RtMidi.cpp:2092
-msgid "A valid connection already exists"
-msgstr ""
-
-#: RtMidi.cpp:2210
+#: RtMidi.cpp:2153
 msgid "Could not allocate packet list."
-msgstr ""
+msgstr "Konnte die Paketliste nicht anlegen."
 
-#: RtMidi.cpp:2219
+#: RtMidi.cpp:2162
 msgid "Error sending MIDI to virtual destinations."
-msgstr ""
+msgstr "Konnte MIDI-Daten nicht zu virtuellen Ausgängen senden."
 
-#: RtMidi.cpp:2228 RtMidi.cpp:3605
+#: RtMidi.cpp:2171 RtMidi.cpp:3548
 msgid "Error sending MIDI message to port."
-msgstr ""
+msgstr "Fehler beim Senden der MIDI-Nachricht zum Ausgang."
 
-#: RtMidi.cpp:2431 RtMidi.cpp:3170
+#: RtMidi.cpp:2374 RtMidi.cpp:2636 RtMidi.cpp:3113 RtMidi.cpp:3174
+#: RtMidi.cpp:3465
+msgid "Could not allocate ALSA port subscription."
+msgstr ""
+"Konnte keinen Speicher für das Abonnoment der ALSA-MIDI-Schnittstelle "
+"bekommen."
+
+#: RtMidi.cpp:2389 RtMidi.cpp:3122 RtMidi.cpp:3475
+msgid "Error making ALSA port connection."
+msgstr "Konnte zwei ALSA-Schnittstellen nicht miteinander verbinden."
+
+#: RtMidi.cpp:2459 RtMidi.cpp:2946
+msgid "Error creating ALSA sequencer client object."
+msgstr "Fehler beim erzeugen des ALSA-Klienten."
+
+#: RtMidi.cpp:2698 RtMidi.cpp:3148 RtMidi.cpp:3278
+msgid "Error starting MIDI input thread!"
+msgstr "Konnte den MIDI-Eingabe-Prozess nicht starten."
+
+#: RtMidi.cpp:2964
+msgid "Error creating pipe objects."
+msgstr "Fehler beim anlegen einer Pipe."
+
+#: RtMidi.cpp:3044 RtMidi.cpp:3411
+msgid "Error looking for port name."
+msgstr "Fehler beim Suchen nach einem Schnittstellennamen."
+
+#: RtMidi.cpp:3100
+msgid "Error creating ALSA input port."
+msgstr "Fehler beim Erzeugen der ALSA-Eingabe-Schnittstelle."
+
+#: RtMidi.cpp:3179 RtMidi.cpp:3577
+msgid ""
+"ALSA has been instructed to open a non-ALSA MIDI port. This doesn't work."
+msgstr ""
+"ALSA wurde angewiesen, eine nicht-ALSA-MIDI-Schnittstelle zu öffnen. Das "
+"geht nicht."
+
+#: RtMidi.cpp:3244 RtMidi.cpp:3502
+msgid "Error creating ALSA virtual port."
+msgstr "Fehler beim Erzeugen einer virtuellen ALSA-Schnittstelle."
+
+#: RtMidi.cpp:3363
+msgid "Error initializing MIDI event parser."
+msgstr "Fehler bei der Initialisierung des MIDI-Ereeignisparsers."
+
+#: RtMidi.cpp:3370 RtMidi.cpp:3526
+msgid "Error while allocating buffer memory."
+msgstr "Fehler beim Anlegen des Pufferspeichers."
+
+#: RtMidi.cpp:3427
+msgid "No MIDI output sinks found."
+msgstr "Es wurden kiene Midi-Ausgabegeräte gefunden."
+
+#: RtMidi.cpp:3454
+msgid "Error creating ALSA output port."
+msgstr "Fehler beim Erzeugen der ALSA-Ausgangs."
+
+#: RtMidi.cpp:3519
+msgid "ALSA error resizing MIDI event buffer."
+msgstr "ALSA-Fehler beim Verändern der Größe des MIDI-Nachrichten-Puffers."
+
+#: RtMidi.cpp:3540
+msgid "Event parsing error."
+msgstr "Fehler bei der Analyse eines Ereignisses."
+
+#: RtMidi.cpp:3572
 msgid "Error allocating ALSA port subscription."
 msgstr ""
+"Konnte keinen Speicher für das Abonnoment der ALSA-MIDI-Schnittstelle "
+"bekommen."
 
-#: RtMidi.cpp:2446 RtMidi.cpp:3179 RtMidi.cpp:3532
-msgid "Error making ALSA port connection."
-msgstr ""
-
-#: RtMidi.cpp:2516 RtMidi.cpp:3003
-msgid "Error creating ALSA sequencer client object."
-msgstr ""
-
-#: RtMidi.cpp:2693
-msgid "Error while trying to allocate ALSA port subscription."
-msgstr ""
-
-#: RtMidi.cpp:2755 RtMidi.cpp:3205 RtMidi.cpp:3335
-msgid "Error starting MIDI input thread!"
-msgstr ""
-
-#: RtMidi.cpp:3021
-msgid "Error creating pipe objects."
-msgstr ""
-
-#: RtMidi.cpp:3101 RtMidi.cpp:3468
-msgid "Error looking for port name."
-msgstr ""
-
-#: RtMidi.cpp:3157
-msgid "Error creating ALSA input port."
-msgstr ""
-
-#: RtMidi.cpp:3231
-msgid "Error while allocating ALSA port subscription."
-msgstr ""
-
-#: RtMidi.cpp:3236 RtMidi.cpp:3634
-msgid "An invalid (i.e. non-ALSA) port descriptor has been passed to openPort."
-msgstr ""
-
-#: RtMidi.cpp:3301 RtMidi.cpp:3559
-msgid "Error creating ALSA virtual port."
-msgstr ""
-
-#: RtMidi.cpp:3420
-msgid "Error initializing MIDI event parser."
-msgstr ""
-
-#: RtMidi.cpp:3427 RtMidi.cpp:3583
-msgid "Error allocating buffer memory."
-msgstr ""
-
-#: RtMidi.cpp:3484
-msgid "No MIDI output sources found."
-msgstr ""
-
-#: RtMidi.cpp:3511
-msgid "Error creating ALSA output port."
-msgstr ""
-
-#: RtMidi.cpp:3522
-msgid "Error allocating port subscription."
-msgstr ""
-
-#: RtMidi.cpp:3576
-msgid "ALSA error resizing MIDI event buffer."
-msgstr ""
-
-#: RtMidi.cpp:3597
-msgid "Event parsing error."
-msgstr ""
-
-#: RtMidi.cpp:3629
-msgid "ALSA error allocation port subscription."
-msgstr ""
-
-#: RtMidi.cpp:3766
+#: RtMidi.cpp:3709
 #, c-format
 msgid "The port argument %d is invalid."
-msgstr ""
+msgstr "Das Schnittstellenargument %d ist ungültig."
 
-#: RtMidi.cpp:4255
+#: RtMidi.cpp:4198
 msgid "No MIDI input devices currently available."
-msgstr ""
+msgstr "Es gibt momentan keine MIDI-Eingabegeräte."
 
-#: RtMidi.cpp:4266
-msgid "InitializeCriticalSectionAndSpinCount failed."
-msgstr ""
+#: RtMidi.cpp:4209
+msgid "Failed to initialize a critical section."
+msgstr "Konnte kritischen Bereich nicht initialisieren."
 
-#: RtMidi.cpp:4290
+#: RtMidi.cpp:4233
 #, c-format
 msgid "the 'portNumber' argument (%d) is invalid."
+msgstr "Die Portnummer %d ist ungültig."
+
+#: RtMidi.cpp:4245
+msgid "Error creating Windows MM MIDI input port."
+msgstr "Konnte den Windows-Multimedia-MIDI-Eingang nicht erzeugen."
+
+#: RtMidi.cpp:4261
+msgid "Error initializing data for Windows MM MIDI input port."
 msgstr ""
+"Fehler beim Erzeugen der daten für einen Windows Multimedia MIDI-Eingang."
+
+#: RtMidi.cpp:4270
+msgid "Could not register the input buffer for Windows MM MIDI input port."
+msgstr ""
+"Konnte den Eingabe-Puffer eines Windows-Multimedia-MIDI-Eingangs nicht "
+"erzeugen."
+
+#: RtMidi.cpp:4279
+msgid "Error starting Windows MM MIDI input port."
+msgstr "Konnte einen Windows-Multimedia-MIDI-Eingang nicht aktivieren."
+
+#: RtMidi.cpp:4290 RtMidi.cpp:4538
+msgid "Virtual ports are not available Windows Multimedia MIDI API."
+msgstr ""
+"Windows Multimedia unterstützt keine virtuellen MIDI-Ein- und -Ausgänge."
+
+#: RtMidi.cpp:4297 RtMidi.cpp:4546
+msgid ""
+"Windows Multimedia (WinMM) has been instructed to open a non-WinMM MIDI "
+"port. This doesn't work."
+msgstr ""
+"Windows Multimedia (WinMM) wurde angewiesen, eine nicht-WinMM-MIDI-"
+"Schnittstelle zu öffnen. Das geht nicht."
 
 #: RtMidi.cpp:4302
-msgid "Error creating Windows MM MIDI input port."
-msgstr ""
-
-#: RtMidi.cpp:4318
-msgid "Error starting Windows MM MIDI input port (PrepareHeader)."
-msgstr ""
-
-#: RtMidi.cpp:4327
-msgid "Error starting Windows MM MIDI input port (AddBuffer)."
-msgstr ""
-
-#: RtMidi.cpp:4336
-msgid "Error starting Windows MM MIDI input port."
-msgstr ""
-
-#: RtMidi.cpp:4347 RtMidi.cpp:4596
-msgid "Cannot be implemented in Windows MM MIDI API."
-msgstr ""
-
-#: RtMidi.cpp:4354 RtMidi.cpp:4604
-msgid ""
-"An invalid (i.e. non-WinMM) port descriptor has been passed to openPort."
-msgstr ""
-
-#: RtMidi.cpp:4359
 msgid ""
 "We are overwriting an existing connection. This is probably a programming "
 "error."
 msgstr ""
+"Wir überschreiben eine vorhandene MIDI-Verbindung. Das ist vermutlich ein "
+"Programmierfehler."
 
-#: RtMidi.cpp:4364
-msgid ""
-"The port descriptor pased to MidiInWinMM::openPort() cannot be used to open "
-"an input port."
+#: RtMidi.cpp:4307
+msgid "Trying to open a non-input port as input MIDI port. This doesn't work."
 msgstr ""
+"Versuche eine Nicht-Eingang als MIDI-Eingang zu öffnen. Das geht nicht."
 
-#: RtMidi.cpp:4374 RtMidi.cpp:4624
+#: RtMidi.cpp:4317 RtMidi.cpp:4566
 msgid ""
 "Some change in the arrangement of MIDI input ports invalidated the port "
 "descriptor."
 msgstr ""
+"Eine Veränderung bei den MIDI-Schnittstellen hat die interne "
+"Schnittstellenbeschreibung ungültig gemacht."
 
-#: RtMidi.cpp:4389
+#: RtMidi.cpp:4332
 msgid "The handle is invalid. Did you disconnect the device?"
 msgstr ""
+"Ein Schnittstellenverweis ist ungültig. Haben Sie das zugehörige Gerät "
+"entfernt?"
 
-#: RtMidi.cpp:4393 RtMidi.cpp:4643
+#: RtMidi.cpp:4336 RtMidi.cpp:4585
 msgid ""
 "The system has no driver for our handle :-(. Did you disconnect the device?"
 msgstr ""
+"Das System hat keinen Treiber für unseren Schnittstellenverweis (mehr) :-(. "
+"Haben Sie das zugehörige Gerät entfernt?"
 
-#: RtMidi.cpp:4397 RtMidi.cpp:4647
+#: RtMidi.cpp:4340 RtMidi.cpp:4589
 msgid "Out of memory."
-msgstr ""
+msgstr "Hauptspeicher erschöpft."
 
-#: RtMidi.cpp:4428
-msgid "Error closing Windows MM MIDI input port (midiInUnprepareHeader)."
+#: RtMidi.cpp:4370
+msgid "Error closing Windows MM MIDI input port."
 msgstr ""
+"Konnte den Windows Multimedia MIDI-Eingang nicht ordnungsgemäß schließen."
 
-#: RtMidi.cpp:4506
+#: RtMidi.cpp:4448
 msgid "No MIDI output devices currently available."
-msgstr ""
+msgstr "Es gibt momentan keine MIDI-Ausgabegeräte."
 
-#: RtMidi.cpp:4557
+#: RtMidi.cpp:4499
 msgid "No MIDI output destinations found!"
-msgstr ""
+msgstr "Es wurden keine MIDI-Ausgabegeräte gefunden."
 
-#: RtMidi.cpp:4575
+#: RtMidi.cpp:4517
 msgid "Error creating Windows MM MIDI output port."
-msgstr ""
+msgstr "Konnte den Windows Multimedia MIDI-Ausgang nicht erzeugen."
 
-#: RtMidi.cpp:4614
+#: RtMidi.cpp:4556
 msgid "The port descriptor cannot be used to open an output port."
 msgstr ""
+"Eine Schnittstellenbeschreibung kann nicht benutzt werden, um einen MIDI-"
+"Ausgang zu erzeugen."
 
-#: RtMidi.cpp:4639
+#: RtMidi.cpp:4581
 msgid "The internal handle is invalid. Did you disconnect the device?"
 msgstr ""
+"Ein interner Schnittstellenverweis ist ungültig. Haben sie das zugehörige "
+"Gerät entfernt?"
 
-#: RtMidi.cpp:4669
+#: RtMidi.cpp:4611
 msgid "Message argument is empty."
-msgstr ""
+msgstr "Das Nachrichtenargument ist leer."
 
-#: RtMidi.cpp:4681
-msgid "Error allocating sysex message memory!"
-msgstr ""
+#: RtMidi.cpp:4623
+msgid "Error while allocating sysex message memory."
+msgstr "Fehler beim Anlegen des Speichers für SysEx-Nachrichten."
 
-#: RtMidi.cpp:4697
+#: RtMidi.cpp:4639
 msgid "Error preparing sysex header."
-msgstr ""
+msgstr "Fehler beim Erstellen des SysEx-Kopfes."
 
-#: RtMidi.cpp:4706
+#: RtMidi.cpp:4648
 msgid "Error sending sysex message."
-msgstr ""
+msgstr "Fehler beim Senden der SysEx-Nachricht."
 
-#: RtMidi.cpp:4719
+#: RtMidi.cpp:4661
 msgid "Message size is greater than 3 bytes (and not sysex)."
 msgstr ""
+"Eine MIDI-Nachricht ist größer als 3 Bytes (und keine SysEx-Nachricht)."
 
-#: RtMidi.cpp:4735
+#: RtMidi.cpp:4677
 msgid "Error sending MIDI message."
-msgstr ""
+msgstr "Fehler beim Senden der MIDI-Nachricht."
 
-#: RtMidi.cpp:4986
+#: RtMidi.cpp:4928
 msgid "Could not connect to JACK server. Is it runnig?"
-msgstr ""
+msgstr "Ich konnte mich nicht mit dem JACK-Server verbinden. Läuft er?"
 
-#: RtMidi.cpp:5189
+#: RtMidi.cpp:5131
 msgid "Error opening JACK port subscription."
-msgstr ""
+msgstr "Fehler beim abonnieren einer JACK-Schnittstelle."
 
-#: RtMidi.cpp:5296 RtMidi.cpp:5579
+#: RtMidi.cpp:5238 RtMidi.cpp:5521
 msgid "JACK server not running?"
-msgstr ""
+msgstr "Läuft der JACK-Server?"
 
-#: RtMidi.cpp:5331 RtMidi.cpp:5396 RtMidi.cpp:5620 RtMidi.cpp:5685
+#: RtMidi.cpp:5273 RtMidi.cpp:5338 RtMidi.cpp:5562 RtMidi.cpp:5627
 msgid "Error creating JACK port."
-msgstr ""
+msgstr "Es gab einen Fehler beim Erzeugen der JACK-Schnittstelle."
 
-#: RtMidi.cpp:5351 RtMidi.cpp:5640
+#: RtMidi.cpp:5293 RtMidi.cpp:5582
 msgid "Error creating JACK virtual port."
-msgstr ""
+msgstr "Fehler beim Erzeugen einer virtuellen JACK-Schnittstelle."
 
-#: RtMidi.cpp:5375
-msgid "An invalid (i.e. non-ALSA) port descriptor has been passed to openPort"
+#: RtMidi.cpp:5317 RtMidi.cpp:5606
+msgid ""
+"JACK has been instructed to open a non-JACK MIDI port. This doesn't work."
 msgstr ""
+"JACK wurde angewiesen, eine nicht-JACK-Schnittstelle zu öffnen. Das geht "
+"nicht."
 
-#: RtMidi.cpp:5462
+#: RtMidi.cpp:5404 RtMidi.cpp:5694
 msgid "No ports available."
-msgstr ""
+msgstr "Keine Schnittstellen verfügbar."
 
-#: RtMidi.cpp:5664
-msgid "An invalid (i.e. non-JACK) port descriptor has been passed to openPort"
-msgstr ""
+#, fuzzy
+#~ msgid "InitializeCriticalSectionAndSpinCount failed."
+#~ msgstr "%s: malloc ist fehlgeschlagen: %s\n"
 
-#: RtMidi.cpp:5752
-msgid "No ports available"
-msgstr ""
+#, fuzzy
+#~ msgid "ALSA error allocation port subscription."
+#~ msgstr ""
+#~ "Konnte keinen Speicher für das Abonnoments der MIDI-Schnittstelle "
+#~ "bekommen."
+
+#, fuzzy
+#~ msgid "A valid connection already exists"
+#~ msgstr "Es existiert schon eine gültige Verbindung."
+
+#, fuzzy
+#~ msgid "No ports available"
+#~ msgstr "Keine Adresse verfügbar"
+
+#~ msgid ""
+#~ "An invalid (i.e. non-CORE) port descriptor has been passed to openPort."
+#~ msgstr "Es wurde eine ungültige Schnittstellenbeschreibung ("
+
+#~ msgid "Internal error: data has not been allocated."
+#~ msgstr " "
+
+#~ msgid "No data in message argument!"
+#~ msgstr "Keine Daten in der MIDI-Nachricht."

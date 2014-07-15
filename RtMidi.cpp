@@ -991,10 +991,10 @@ void MidiOutCore :: openVirtualPort( std::string portName )
 
 // Not necessary if we don't treat sysex messages any differently than
 // normal messages ... see below.
-//static void sysexCompletionProc( MIDISysexSendRequest *sreq )
-//{
-//  free( sreq );
-//}
+static void sysexCompletionProc( MIDISysexSendRequest *sreq )
+{
+  free( sreq );
+}
 
 void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 {
@@ -1013,12 +1013,16 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
 
-  /*
-    // I don't think this code is necessary.  We can send sysex
-    // messages through the normal mechanism.  In addition, this avoids
-    // the problem of virtual ports not receiving sysex messages.
+  ///*
+  // It would be nice if the following "special-case" code for sysex
+  // messages longer than 1024 bytes wasn't necessary.  In fact, we
+  // can send sysex messages through the normal messaging mechanism.
+  // However, that does not work for messages greater than 1024
+  // bytes. From a previous note, there may be a problem of virtual
+  // ports not receiving sysex messages when using this section of
+  // code.
 
-  if ( message->at(0) == 0xF0 ) {
+  if ( message->at(0) == 0xF0 && nBytes > 1022 ) {
 
     // Apple's fantastic API requires us to free the allocated data in
     // the completion callback but trashes the pointer and size before
@@ -1049,12 +1053,12 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
     }
     return;
   }
-  else if ( nBytes > 3 ) {
+  else if ( message->at(0) != 0xF0 && nBytes > 3 ) {
     errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
     error( RtMidiError::WARNING, errorString_ );
     return;
   }
-  */
+  //*/
 
   MIDIPacketList packetList;
   MIDIPacket *packet = MIDIPacketListInit( &packetList );

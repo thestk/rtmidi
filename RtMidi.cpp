@@ -1023,7 +1023,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
   MIDIPacket *packet = MIDIPacketListInit( packetList );
 
   ByteCount remainingBytes = nBytes;
-  while (remainingBytes) {
+  while (remainingBytes && packet) {
     ByteCount bytesForPacket = remainingBytes > 65535 ? 65535 : remainingBytes; // 65535 = maximum size of a MIDIPacket
     const Byte* dataStartPtr = (const Byte *) &message->at( nBytes - remainingBytes );
     packet = MIDIPacketListAdd( packetList, listSize, packet, timeStamp, bytesForPacket, dataStartPtr);

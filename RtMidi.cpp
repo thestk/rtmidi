@@ -1062,7 +1062,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 
   MIDIPacketList packetList;
   MIDIPacket *packet = MIDIPacketListInit( &packetList );
-  packet = MIDIPacketListAdd( &packetList, sizeof(packetList), packet, timeStamp, nBytes, (const Byte *) &message->at( 0 ) );
+  packet = MIDIPacketListAdd( &packetList, nBytes*sizeof(packet), packet, timeStamp, nBytes, (const Byte *) &message->at( 0 ) );
   if ( !packet ) {
     errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";      
     error( RtMidiError::DRIVER_ERROR, errorString_ );

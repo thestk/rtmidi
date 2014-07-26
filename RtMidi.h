@@ -77,16 +77,23 @@
 NAMESPACE_RTMIDI_START
 
 
+#ifdef RTMIDI_GETTEXT
+const char * rtmidi_gettext(const char * s);
+void init_rtmidi_gettext();
+#else
+#define rtmidi_gettext(arg) (arg)
+#endif
+
 //! MIDI API specifier arguments.
-  enum ApiType {
-UNSPECIFIED,    /*!< Search for a working compiled API. */
-MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
-LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
-UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
-WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
-DUMMY,          /*!< A compilable but non-functional API. */
-ALL_API         /*!< Use all available APIs for port selection. */
+enum ApiType {
+  UNSPECIFIED,    /*!< Search for a working compiled API. */
+  MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
+  LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
+  UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
+  WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
+  WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
+  DUMMY,          /*!< A compilable but non-functional API. */
+  ALL_API         /*!< Use all available APIs for port selection. */
 };
 
 //! Return the name on a MIDI API

@@ -43,21 +43,36 @@
 
 NAMESPACE_RTMIDI_START
 
-//! The constructor.
-Error::Error( const char * message,
-	      Type type,
-	      const char * class_name,
-	      const char * function_name,
-	      const char * file_name,
-	      int line_number, ...) throw():exception(),
-					    classname(class_name),
-					    function(function_name),
-					    file(file_name),
-					    line(line_number),
-					    type_(type)
-{
 #ifdef RTMIDI_GETTEXT
-  message = gettext(message);
+	const char * rtmidi_gettext (const char * s) {
+		init_rtmidi_gettext();
+		return dgettext("rtmidi",s);
+	}
+
+	void init_rtmidi_gettext() {
+		static initialized = false;
+		if (initialized)
+			return;
+		bindtextdomain("rtmidi",LOCALEDIR);
+		initialized = true;
+	}
+#endif
+
+		//! The constructor.
+	Error::Error( const char * message,
+		      Type type,
+		      const char * class_name,
+		      const char * function_name,
+		      const char * file_name,
+		      int line_number, ...) throw():exception(),
+						    classname(class_name),
+						    function(function_name),
+						    file(file_name),
+						    line(line_number),
+						    type_(type)
+	{
+#ifdef RTMIDI_GETTEXT
+		message = rtmidi_gettext(message);
 #endif
   std::va_list args;
   va_start(args,line_number);

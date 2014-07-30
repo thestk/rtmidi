@@ -669,29 +669,16 @@ public:
       :front(0), back(0), size(0), ringSize(0) {}
   };
 
+protected:
   // The RtMidiInData structure is used to pass private class data to
   // the MIDI input handling function or thread.
-  struct MidiInData {
-    MidiQueue queue;
-    MidiMessage message;
-    unsigned char ignoreFlags;
-    bool doInput;
-    bool firstMessage;
-    void *apiData;
-    bool usingCallback;
-    void *userData;
-    bool continueSysex;
-
-    // Default constructor.
-    MidiInData()
-      : ignoreFlags(7), doInput(false), firstMessage(true),
-	apiData(0), usingCallback(false), userCallback(0), userData(0),
-	continueSysex(false) {}
-  };
-
-protected:
-  MidiInData inputData_;
+  MidiQueue queue;
+  MidiMessage message;
+  unsigned char ignoreFlags;
+  bool doInput;
+  bool firstMessage;
   MidiInterface * userCallback;
+  bool continueSysex;
   friend struct JackBackendCallbacks;
 };
 #undef RTMIDI_CLASSNAME

@@ -448,19 +448,20 @@ void MidiApi :: error(Error e)
 
 #define RTMIDI_CLASSNAME "MidiInApi"
 MidiInApi :: MidiInApi( unsigned int queueSizeLimit )
-  : MidiApi()
+  : MidiApi(), ignoreFlags(7), doInput(false), firstMessage(true),
     userCallback(0),
+    continueSysex(false)
 {
   // Allocate the MIDI queue.
-  inputData_.queue.ringSize = queueSizeLimit;
-  if ( inputData_.queue.ringSize > 0 )
-    inputData_.queue.ring = new MidiMessage[ inputData_.queue.ringSize ];
+  queue.ringSize = queueSizeLimit;
+  if ( queue.ringSize > 0 )
+    queue.ring = new MidiMessage[ queue.ringSize ];
 }
 
 MidiInApi :: ~MidiInApi( void )
 {
   // Delete the MIDI queue.
-  if ( inputData_.queue.ringSize > 0 ) delete [] inputData_.queue.ring;
+  if ( queue.ringSize > 0 ) delete [] queue.ring;
 }
 
 void MidiInApi :: setCallback( MidiCallback callback, void *userData )
@@ -510,10 +511,10 @@ void MidiInApi :: cancelCallback()
 
 void MidiInApi :: ignoreTypes( bool midiSysex, bool midiTime, bool midiSense )
 {
-  inputData_.ignoreFlags = 0;
-  if ( midiSysex ) inputData_.ignoreFlags = 0x01;
-  if ( midiTime ) inputData_.ignoreFlags |= 0x02;
-  if ( midiSense ) inputData_.ignoreFlags |= 0x04;
+  ignoreFlags = 0;
+  if ( midiSysex ) ignoreFlags = 0x01;
+  if ( midiTime ) ignoreFlags |= 0x02;
+  if ( midiSense ) ignoreFlags |= 0x04;
 }
 
 double MidiInApi :: getMessage( std::vector<unsigned char> &message )
@@ -526,16 +527,16 @@ double MidiInApi :: getMessage( std::vector<unsigned char> &message )
     return 0.0;
   }
 
-  if ( inputData_.queue.size == 0 ) return 0.0;
+  if ( queue.size == 0 ) return 0.0;
 
   // Copy queued message to the vector pointer argument and then "pop" it.
-  std::vector<unsigned char> *bytes = &(inputData_.queue.ring[inputData_.queue.front].bytes);
+  std::vector<unsigned char> *bytes = &(queue.ring[queue.front].bytes);
   message.assign( bytes->begin(), bytes->end() );
-  double deltaTime = inputData_.queue.ring[inputData_.queue.front].timeStamp;
-  inputData_.queue.size--;
-  inputData_.queue.front++;
-  if ( inputData_.queue.front == inputData_.queue.ringSize )
-    inputData_.queue.front = 0;
+  double deltaTime = queue.ring[queue.front].timeStamp;
+  queue.size--;
+  queue.front++;
+  if ( queue.front == queue.ringSize )
+    queue.front = 0;
 
   return deltaTime;
 }
@@ -1693,7 +1694,6 @@ void MidiInCore :: initialize( const std::string& clientName )
   // Save our api-specific connection information.
   CoreMidiData *data = (CoreMidiData *) new CoreMidiData(clientName);
   apiData_ = (void *) data;
-  inputData_.apiData = (void *) data;
 }
 
 void MidiInCore :: openPort( unsigned int portNumber,
@@ -2947,9 +2947,9 @@ MidiInAlsa :: ~MidiInAlsa()
 
   // Shutdown the input thread.
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-  if ( inputData_.doInput ) {
-    inputData_.doInput = false;
-    int res = write( data->trigger_fds[1], &inputData_.doInput, sizeof(inputData_.doInput) );
+  if ( doInput ) {
+    doInput = false;
+    int res = write( data->trigger_fds[1], &doInput, sizeof(doInput) );
     (void) res;
     if ( !pthread_equal(data->thread, data->dummy_thread_id) )
       pthread_join( data->thread, NULL );
@@ -2970,14 +2970,7 @@ void MidiInAlsa :: initialize( const std::string& clientName )
 
   // Save our api-specific connection information.
   AlsaMidiData *data = new AlsaMidiData (clientName);
-  // Set client name.
-
-
-
-  //data->seq = seq;
-  //		data->portNum = -1;
   apiData_ = (void *) data;
-  inputData_.apiData = (void *) data;
 
   if ( pipe(data->trigger_fds) == -1 ) {
     error(RTMIDI_ERROR(gettext_noopt("Error creating pipe objects."),
@@ -3144,7 +3137,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string & portNa
     }
   }
 
-  if ( inputData_.doInput == false ) {
+  if ( doInput == false ) {
     // Start the input queue
 #ifndef AVOID_TIMESTAMPING
     snd_seq_start_queue( data->seq, data->queue_id, NULL );
@@ -3156,14 +3149,14 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string & portNa
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
 
-    inputData_.doInput = true;
-    int err = pthread_create(&data->thread, &attr, alsaMidiHandler, &inputData_);
+    doInput = true;
+    int err = pthread_create(&data->thread, &attr, alsaMidiHandler, this);
     pthread_attr_destroy(&attr);
     if ( err ) {
       snd_seq_unsubscribe_port( data->seq, data->subscription );
       snd_seq_port_subscribe_free( data->subscription );
       data->subscription = 0;
-      inputData_.doInput = false;
+      doInput = false;
       error( RTMIDI_ERROR(gettext_noopt("Error starting MIDI input thread!"),
 			  Error::THREAD_ERROR) );
       return;
@@ -3285,7 +3278,7 @@ void MidiInAlsa :: openVirtualPort( std::string portName )
     data->local.client = snd_seq_port_info_get_client(pinfo);
   }
 
-  if ( inputData_.doInput == false ) {
+  if ( doInput == false ) {
     // Wait for old thread to stop, if still running
     if ( !pthread_equal(data->thread, data->dummy_thread_id) )
       pthread_join( data->thread, NULL );
@@ -3301,8 +3294,8 @@ void MidiInAlsa :: openVirtualPort( std::string portName )
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
 
-    inputData_.doInput = true;
-    int err = pthread_create(&data->thread, &attr, alsaMidiHandler, &inputData_);
+    doInput = true;
+    int err = pthread_create(&data->thread, &attr, alsaMidiHandler, this);
     pthread_attr_destroy(&attr);
     if ( err ) {
       if ( data->subscription ) {
@@ -3310,7 +3303,7 @@ void MidiInAlsa :: openVirtualPort( std::string portName )
 	snd_seq_port_subscribe_free( data->subscription );
 	data->subscription = 0;
       }
-      inputData_.doInput = false;
+      doInput = false;
       error( RTMIDI_ERROR(gettext_noopt("Error starting MIDI input thread!"),
 			  Error::THREAD_ERROR) );
       return;
@@ -3337,9 +3330,9 @@ void MidiInAlsa :: closePort( void )
   }
 
   // Stop thread to avoid triggering the callback, while the port is intended to be closed
-  if ( inputData_.doInput ) {
-    inputData_.doInput = false;
-    int res = write( data->trigger_fds[1], &inputData_.doInput, sizeof(inputData_.doInput) );
+  if ( doInput ) {
+    doInput = false;
+    int res = write( data->trigger_fds[1], &doInput, sizeof(doInput) );
     (void) res;
     if ( !pthread_equal(data->thread, data->dummy_thread_id) )
       pthread_join( data->thread, NULL );
@@ -4144,7 +4137,6 @@ void MidiInWinMM :: initialize( const std::string& clientName )
   // Save our api-specific connection information.
   WinMidiData *data = (WinMidiData *) new WinMidiData(clientName);
   apiData_ = (void *) data;
-  inputData_.apiData = (void *) data;
   data->message.bytes.clear();  // needs to be empty for first input message
 
   if ( !InitializeCriticalSectionAndSpinCount(&(data->_mutex), 0x00000400) ) {
@@ -5002,7 +4994,7 @@ struct JackMidiData:public JackPortDescriptor {
   jack_ringbuffer_t *buffSize;
   jack_ringbuffer_t *buffMessage;
   jack_time_t lastTime;
-  MidiInApi :: MidiInData *rtMidiIn;
+  MidiInJack *rtMidiIn;
   /*! Sequencer object: This must be deleted _before_ the MIDI data to avoid
     segmentation faults while queued data is still in the ring buffer. */
   NonLockingJackSequencer * seq;
@@ -5014,14 +5006,14 @@ struct JackMidiData:public JackPortDescriptor {
     }
   */
   JackMidiData(const std::string &clientName,
-	       MidiInApi :: MidiInData &inputData_):JackPortDescriptor(clientName),
-						    stateflags(RUNNING),
-						    local(0),
-						    buffSize(0),
-						    buffMessage(0),
-						    lastTime(0),
-						    rtMidiIn(&inputData_),
-						    seq(new NonLockingJackSequencer(clientName,false,this))
+	       MidiInJack * inputData_):JackPortDescriptor(clientName),
+					stateflags(RUNNING),
+					local(0),
+					buffSize(0),
+					buffMessage(0),
+					lastTime(0),
+					rtMidiIn(inputData_),
+					seq(new NonLockingJackSequencer(clientName,this))
   {
   }
 

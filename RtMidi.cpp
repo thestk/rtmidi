@@ -230,7 +230,6 @@ void MidiIn :: openMidiApi( ApiType api )
 
 MidiApiList MidiIn::queryApis;
 
-
 MidiIn :: MidiIn( ApiType api,
 		  const std::string clientName,
 		  unsigned int queueSize,
@@ -282,7 +281,7 @@ MidiIn :: MidiIn( ApiType api,
   // We may reach this point if the only API is JACK,
   // but no JACK devices are found.
   throw( RTMIDI_ERROR( gettext_noopt("No supported MIDI system has been found."),
-		       Error::SYSTEM ) );
+		       Error::NO_DEVICES_FOUND ) );
 }
 
 MidiIn :: ~MidiIn() throw()
@@ -384,7 +383,7 @@ MidiOut :: MidiOut( ApiType api, const std::string clientName, bool pfsystem )
   // We may reach this point, e.g. if JACK is the only
   // compiled API, but no JACK devices are found.
   throw( RTMIDI_ERROR(gettext_noopt("No supported MIDI system has been found."),
-		      Error::UNSPECIFIED ) );
+		      Error::NO_DEVICES_FOUND ) );
 }
 
 MidiOut :: ~MidiOut() throw()
@@ -1158,9 +1157,8 @@ public:
 					   kMIDIPropertyUniqueID,
 					   &uid);
       if (stat != noErr) {
-	throw
-	  RTMIDI_ERROR(gettext_noopt("Could not get the unique identifier of a midi endpoint."),
-		       Error::DRIVER_ERROR);
+	throw RTMIDI_ERROR(gettext_noopt("Could not get the unique identifier of a midi endpoint."),
+			   Error::WARNING);
 	return 0;
       }
       MIDIObjectRef obj;
@@ -1169,9 +1167,8 @@ public:
 				       &obj,
 				       &type);
       if (stat != noErr || obj != port) {
-	throw
-	  RTMIDI_ERROR(gettext_noopt("Could not get the endpoint back from the unique identifier of a midi endpoint."),
-		       Error::DRIVER_ERROR);
+	throw RTMIDI_ERROR(gettext_noopt("Could not get the endpoint back from the unique identifier of a midi endpoint."),
+			   Error::WARNING);
 	return 0;
       }
       if (type == kMIDIObjectType_Source
@@ -1185,9 +1182,8 @@ public:
       }
 
     } else if (stat != noErr) {
-      throw
-	RTMIDI_ERROR(gettext_noopt("Could not get the entity of a midi endpoint."),
-		     Error::DRIVER_ERROR);
+      throw RTMIDI_ERROR(gettext_noopt("Could not get the entity of a midi endpoint."),
+			 Error::WARNING);
       return 0;
     }
     /* Theoretically Mac OS X could silently use
@@ -1252,7 +1248,7 @@ public:
       break;
     default:
       throw RTMIDI_ERROR(gettext_noopt("Error creating OS X MIDI port because of invalid port flags."),
-			 Error::DRIVER_ERROR);
+			 Error::INVALID_PARAMETER);
     }
     if ( result != noErr ) {
       throw RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI port."),
@@ -1292,7 +1288,7 @@ public:
       break;
     default:
       throw RTMIDI_ERROR(gettext_noopt("Error creating OS X MIDI port because of invalid port flags."),
-			 Error::DRIVER_ERROR);
+			 Error::INVALID_PARAMETER);
     }
     if ( result != noErr ) {
       throw RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI port."),
@@ -1300,6 +1296,7 @@ public:
     }
     return port;
   }
+
 
   /*! Use CoreSequencer like a C pointer.
     \note This function breaks the design to control thread safety
@@ -1328,6 +1325,7 @@ protected:
   pthread_mutex_t mutex;
   MIDIClientRef seq;
   std::string name;
+
 
   void init()
   {
@@ -1714,7 +1712,7 @@ void MidiInCore :: openPort( unsigned int portNumber,
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
     error(RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI input port."),
-		       Error::DRIVER_ERROR, errorString_ ));
+		       Error::DRIVER_ERROR));
     return;
   }
 
@@ -1782,7 +1780,7 @@ void MidiInCore :: openPort( const PortDescriptor & port,
   }
   if (!remote) {
     error(RTMIDI_ERROR(gettext_noopt("Core MIDI has been instructed to open a non-Core MIDI port. This doesn't work."),
-		       Error::WARNING) );
+		       Error::INVALID_DEVICE) );
     return;
   }
 
@@ -2037,7 +2035,7 @@ void MidiOutCore :: openPort( const PortDescriptor & port,
   }
   if (!remote) {
     error(RTMIDI_ERROR(gettext_noopt("Core MIDI has been instructed to open a non-Core MIDI port. This doesn't work."),
-		       Error::WARNING) );
+		       Error::INVALID_DEVICE) );
     return;
   }
 
@@ -3178,7 +3176,7 @@ void MidiInAlsa :: openPort( const PortDescriptor & port,
   }
   if (!remote) {
     error( RTMIDI_ERROR(gettext_noopt("ALSA has been instructed to open a non-ALSA MIDI port. This doesn't work."),
-			Error::WARNING) );
+			Error::INVALID_DEVICE) );
     return;
   }
 
@@ -3593,7 +3591,7 @@ void MidiOutAlsa :: openPort( const PortDescriptor & port,
   }
   if (!remote) {
     error(RTMIDI_ERROR(gettext_noopt("ALSA has been instructed to open a non-ALSA MIDI port. This doesn't work."),
-		       Error::WARNING) );
+		       Error::INVALID_DEVICE) );
     return;
   }
 
@@ -3664,7 +3662,6 @@ NAMESPACE_RTMIDI_START
 #ifdef UNIQUE_NAME
 #undef UNIQUE_NAME
 #endif
-NAMESPACE_RTMIDI_START
 /*! An abstraction layer for the ALSA sequencer layer. It provides
   the following functionality:
   - dynamic allocation of the sequencer
@@ -3734,7 +3731,7 @@ public:
       std::ostringstream ost;
       std::cerr << port << "<" << nDevices << std::endl;
       throw Error(RTMIDI_ERROR1(gettext_noopt("The port argument %d is invalid."),
-				Error::WARNING,port));
+				Error::INVALID_PARAMETER,port));
     }
 
     if (is_input) {
@@ -3838,687 +3835,6 @@ protected:
 //	typedef WinMMSequencer<1> LockingWinMMSequencer;
 typedef WinMMSequencer<0> NonLockingWinMMSequencer;
 #undef RTMIDI_CLASSNAME
-=======
-
-	/*! A structure to hold variables related to the WINMM API
-	  implementation.
-
-	  \note After all sequencer handling is covered by the \ref
-	  WinMMSequencer class, we should make seq to be a pointer in order
-	  to allow a common client implementation.
-	*/
-
-	struct WinMidiData:public WinMMPortDescriptor {
-		/*
-		  WinMMMidiData():seq()
-		  {
-		  init();
-		  }
-		*/
-		WinMidiData(const std::string &clientName):WinMMPortDescriptor(clientName) {}
-		~WinMidiData() {}
-
-		HMIDIIN inHandle;    // Handle to Midi Input Device
-		HMIDIOUT outHandle;  // Handle to Midi Output Device
-		DWORD lastTime;
-		MidiInApi::MidiMessage message;
-		LPMIDIHDR sysexBuffer[RT_SYSEX_BUFFER_COUNT];
-		CRITICAL_SECTION _mutex; // [Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
-	};
-
-
-	//*********************************************************************//
-	//  API: Windows MM
-	//  Class Definitions: MidiInWinMM
-	//*********************************************************************//
-
-	static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
-						UINT inputStatus,
-						DWORD_PTR instancePtr,
-						DWORD_PTR midiMessage,
-						DWORD timestamp )
-	{
-		if ( inputStatus != MIM_DATA && inputStatus != MIM_LONGDATA && inputStatus != MIM_LONGERROR ) return;
-
-		//MidiInApi::MidiInData *data = static_cast<MidiInApi::MidiInData *> (instancePtr);
-		MidiInApi::MidiInData *data = (MidiInApi::MidiInData *)instancePtr;
-		WinMidiData *apiData = static_cast<WinMidiData *> (data->apiData);
-
-		// Calculate time stamp.
-		if ( data->firstMessage == true ) {
-			apiData->message.timeStamp = 0.0;
-			data->firstMessage = false;
-		}
-		else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
-		apiData->lastTime = timestamp;
-
-		if ( inputStatus == MIM_DATA ) { // Channel or system message
-
-			// Make sure the first byte is a status byte.
-			unsigned char status = (unsigned char) (midiMessage & 0x000000FF);
-			if ( !(status & 0x80) ) return;
-
-			// Determine the number of bytes in the MIDI message.
-			unsigned short nBytes = 1;
-			if ( status < 0xC0 ) nBytes = 3;
-			else if ( status < 0xE0 ) nBytes = 2;
-			else if ( status < 0xF0 ) nBytes = 3;
-			else if ( status == 0xF1 ) {
-				if ( data->ignoreFlags & 0x02 ) return;
-				else nBytes = 2;
-			}
-			else if ( status == 0xF2 ) nBytes = 3;
-			else if ( status == 0xF3 ) nBytes = 2;
-			else if ( status == 0xF8 && (data->ignoreFlags & 0x02) ) {
-				// A MIDI timing tick message and we're ignoring it.
-				return;
-			}
-			else if ( status == 0xFE && (data->ignoreFlags & 0x04) ) {
-				// A MIDI active sensing message and we're ignoring it.
-				return;
-			}
-
-			// Copy bytes to our MIDI message.
-			unsigned char *ptr = (unsigned char *) &midiMessage;
-			for ( int i=0; i<nBytes; ++i ) apiData->message.bytes.push_back( *ptr++ );
-		}
-		else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
-			MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
-			if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
-				// Sysex message and we're not ignoring it
-				for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-					apiData->message.bytes.push_back( sysex->lpData[i] );
-			}
-
-			// The WinMM API requires that the sysex buffer be requeued after
-			// input of each sysex message.  Even if we are ignoring sysex
-			// messages, we still need to requeue the buffer in case the user
-			// decides to not ignore sysex messages in the future.  However,
-			// it seems that WinMM calls this function with an empty sysex
-			// buffer when an application closes and in this case, we should
-			// avoid requeueing it, else the computer suddenly reboots after
-			// one or two minutes.
-			if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-				//if ( sysex->dwBytesRecorded > 0 ) {
-				EnterCriticalSection( &(apiData->_mutex) );
-				MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-				LeaveCriticalSection( &(apiData->_mutex) );
-				if ( result != MMSYSERR_NOERROR )
-					std::cerr << "\nMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
-
-				if ( data->ignoreFlags & 0x01 ) return;
-			}
-			else return;
-		}
-
-		if ( data->usingCallback ) {
-			MidiCallback callback = (MidiCallback) data->userCallback;
-			callback( apiData->message.timeStamp, &apiData->message.bytes, data->userData );
-		}
-		else {
-			// As long as we haven't reached our queue size limit, push the message.
-			if ( data->queue.size < data->queue.ringSize ) {
-				data->queue.ring[data->queue.back++] = apiData->message;
-				if ( data->queue.back == data->queue.ringSize )
-					data->queue.back = 0;
-				data->queue.size++;
-			}
-			else
-				std::cerr << "\nMidiIn: message queue limit reached!!\n\n";
-		}
-
-		// Clear the vector for the next input message.
-		apiData->message.bytes.clear();
-	}
-
-#define RTMIDI_CLASSNAME "MidiInWinMM"
-	MidiInWinMM :: MidiInWinMM( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
-	{
-		initialize( clientName );
-	}
-
-	MidiInWinMM :: ~MidiInWinMM()
-	{
-		// Close a connection if it exists.
-		closePort();
-
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		DeleteCriticalSection( &(data->_mutex) );
-
-		// Cleanup.
-		delete data;
-	}
-
-	void MidiInWinMM :: initialize( const std::string& clientName )
-	{
-		// We'll issue a warning here if no devices are available but not
-		// throw an error since the user can plugin something later.
-		unsigned int nDevices = midiInGetNumDevs();
-		if ( nDevices == 0 ) {
-			error(RTMIDI_ERROR(gettext_noopt("No MIDI input devices currently available."),
-					   Error::WARNING) );
-		}
-
-		// Save our api-specific connection information.
-		WinMidiData *data = (WinMidiData *) new WinMidiData(clientName);
-		apiData_ = (void *) data;
-		inputData_.apiData = (void *) data;
-		data->message.bytes.clear();  // needs to be empty for first input message
-
-		if ( !InitializeCriticalSectionAndSpinCount(&(data->_mutex), 0x00000400) ) {
-			error(RTMIDI_ERROR(gettext_noopt("Failed to initialize a critical section."),
-					   Error::WARNING) );
-		}
-	}
-
-	void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*portName*/ )
-	{
-		if ( connected_ ) {
-			error(RTMIDI_ERROR(gettext_noopt("A valid connection already exists."),
-					   Error::WARNING) );
-			return;
-		}
-
-		unsigned int nDevices = midiInGetNumDevs();
-		if (nDevices == 0) {
-			error(RTMIDI_ERROR(gettext_noopt("No MIDI input sources found."),
-					   Error::NO_DEVICES_FOUND) );
-			return;
-		}
-
-		if ( portNumber >= nDevices ) {
-			std::ostringstream ost;
-			ost << "MidiInWinMM::openPort: ";
-			errorString_ = ost.str();
-			error(RTMIDI_ERROR1(gettext_noopt("the 'portNumber' argument (%d) is invalid."),
-				Error::INVALID_PARAMETER, portNumber) );
-			return;
-		}
-
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		MMRESULT result = midiInOpen( &data->inHandle,
-					      portNumber,
-					      (DWORD_PTR)&midiInputCallback,
-					      (DWORD_PTR)&inputData_,
-					      CALLBACK_FUNCTION );
-		if ( result != MMSYSERR_NOERROR ) {
-			error(RTMIDI_ERROR(gettext_noopt("Error creating Windows MM MIDI input port."),
-					   Error::DRIVER_ERROR) );
-			return;
-		}
-
-		// Allocate and init the sysex buffers.
-		for ( int i=0; i<RT_SYSEX_BUFFER_COUNT; ++i ) {
-			data->sysexBuffer[i] = (MIDIHDR*) new char[ sizeof(MIDIHDR) ];
-			data->sysexBuffer[i]->lpData = new char[ RT_SYSEX_BUFFER_SIZE ];
-			data->sysexBuffer[i]->dwBufferLength = RT_SYSEX_BUFFER_SIZE;
-			data->sysexBuffer[i]->dwUser = i; // We use the dwUser parameter as buffer indicator
-			data->sysexBuffer[i]->dwFlags = 0;
-
-			result = midiInPrepareHeader( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
-			if ( result != MMSYSERR_NOERROR ) {
-				midiInClose( data->inHandle );
-				error(RTMIDI_ERROR(gettext_noopt("Error initializing data for Windows MM MIDI input port."),
-						   Error::DRIVER_ERROR ));
-				return;
-			}
-
-			// Register the buffer.
-			result = midiInAddBuffer( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
-			if ( result != MMSYSERR_NOERROR ) {
-				midiInClose( data->inHandle );
-				error(RTMIDI_ERROR(gettext_noopt("Could not register the input buffer for Windows MM MIDI input port."),
-						   Error::DRIVER_ERROR) );
-				return;
-			}
-		}
-
-		result = midiInStart( data->inHandle );
-		if ( result != MMSYSERR_NOERROR ) {
-			midiInClose( data->inHandle );
-			error(RTMIDI_ERROR(gettext_noopt("Error starting Windows MM MIDI input port."),
-					   Error::DRIVER_ERROR) );
-			return;
-		}
-
-		connected_ = true;
-	}
-
-	void MidiInWinMM :: openVirtualPort( std::string /*portName*/ )
-	{
-		// This function cannot be implemented for the Windows MM MIDI API.
-		error(RTMIDI_ERROR(gettext_noopt("Virtual ports are not available Windows Multimedia MIDI API."),
-				   Error::WARNING ));
-	}
-
-	void MidiInWinMM :: openPort(const PortDescriptor & p, const std::string & portName) {
-		const WinMMPortDescriptor * port = dynamic_cast <const WinMMPortDescriptor * >(&p);
-		if ( !port) {
-			error( RTMIDI_ERROR(gettext_noopt("Windows Multimedia (WinMM) has been instructed to open a non-WinMM MIDI port. This doesn't work."),
-					    Error::DRIVER_ERROR));
-			return;
-		}
-		if ( connected_ ) {
-			error( RTMIDI_ERROR(gettext_noopt("We are overwriting an existing connection. This is probably a programming error."),
-					    Error::WARNING) );
-			return;
-		}
-		if (port->getCapabilities() != PortDescriptor::INPUT) {
-			error(RTMIDI_ERROR(gettext_noopt("Trying to open a non-input port as input MIDI port. This doesn't work."),
-					   Error::DRIVER_ERROR));
-			return;
-		}
-
-			// there is a possible race condition between opening the port and
-			// reordering of ports so we must check whether we opened the right port.
-		try {
-			openPort(port->getPortNumber(),portName);
-		} catch (Error e) {
-			error(e);
-		}
-		if (!port->is_valid()) {
-			closePort();
-			error (RTMIDI_ERROR(gettext_noopt("Some change in the arrangement of MIDI input ports invalidated the port descriptor."),
-			       Error::DRIVER_ERROR));
-			return;
-		}
-		connected_ = true;
-	}
-
-	Pointer<PortDescriptor> MidiInWinMM :: getDescriptor(bool local)
-	{
-		if (local || !connected_) return 0;
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		if (!data) return 0;
-		UINT devid;
-		switch (midiInGetID(data->inHandle,&devid)) {
-		case MMSYSERR_INVALHANDLE:
-			error (RTMIDI_ERROR(gettext_noopt("The handle is invalid. Did you disconnect the device?"),
-					    Error::DRIVER_ERROR));
-			return 0;
-		case MMSYSERR_NODRIVER:
-			error (RTMIDI_ERROR(gettext_noopt("The system has no driver for our handle :-(. Did you disconnect the device?"),
-					    Error::DRIVER_ERROR));
-			return 0;
-		case MMSYSERR_NOMEM:
-			error (RTMIDI_ERROR(gettext_noopt("Out of memory."),
-					    Error::DRIVER_ERROR));
-			return 0;
-		}
-		return new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
-		try {
-			retval = new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
-		} catch (Error e) {
-			try {
-				error(e);
-			} catch (...) {
-				if (retval) delete retval;
-				throw;
-			}
-		}
-
-	}
-
-	PortList MidiInWinMM :: getPortList(int capabilities)
-	{
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		if (!data || capabilities != PortDescriptor::INPUT) return PortList();
-		try {
-			return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
-		} catch (Error e) {
-			error(e);
-			return PortList();
-		}
-	}
-
-
-	void MidiInWinMM :: closePort( void )
-	{
-		if ( connected_ ) {
-			WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-			EnterCriticalSection( &(data->_mutex) );
-			midiInReset( data->inHandle );
-			midiInStop( data->inHandle );
-
-			for ( int i=0; i<RT_SYSEX_BUFFER_COUNT; ++i ) {
-				int result = midiInUnprepareHeader(data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR));
-				delete [] data->sysexBuffer[i]->lpData;
-				delete [] data->sysexBuffer[i];
-				if ( result != MMSYSERR_NOERROR ) {
-					midiInClose( data->inHandle );
-					error(RTMIDI_ERROR(gettext_noopt("Error closing Windows MM MIDI input port."),
-							   Error::DRIVER_ERROR) );
-					return;
-				}
-			}
-
-			midiInClose( data->inHandle );
-			connected_ = false;
-			LeaveCriticalSection( &(data->_mutex) );
-		}
-	}
-
-	unsigned int MidiInWinMM :: getPortCount()
-	{
-		return midiInGetNumDevs();
-	}
-
-	std::string MidiInWinMM :: getPortName( unsigned int portNumber )
-	{
-		std::string stringName;
-		unsigned int nDevices = midiInGetNumDevs();
-		if ( portNumber >= nDevices ) {
-			error(RTMIDI_ERROR1(gettext_noopt("The 'portNumber' argument (%d) is invalid."),
-					   Error::WARNING,portNumber));
-			return stringName;
-		}
-
-		MIDIINCAPS deviceCaps;
-		midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
-
-#if defined( UNICODE ) || defined( _UNICODE )
-		int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
-		stringName.assign( length, 0 );
-		length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, static_cast<int>(wcslen(deviceCaps.szPname)), &stringName[0], length, NULL, NULL);
-#else
-		stringName = std::string( deviceCaps.szPname );
-#endif
-
-		// Next lines added to add the portNumber to the name so that
-		// the device's names are sure to be listed with individual names
-		// even when they have the same brand name
-		std::ostringstream os;
-		os << " ";
-		os << portNumber;
-		stringName += os.str();
-
-		return stringName;
-	}
-#undef RTMIDI_CLASSNAME
-
-
-	//*********************************************************************//
-	//  API: Windows MM
-	//  Class Definitions: MidiOutWinMM
-	//*********************************************************************//
-
-#define RTMIDI_CLASSNAME "MidiOutWinMM"
-	MidiOutWinMM :: MidiOutWinMM( const std::string clientName ) : MidiOutApi()
-	{
-		initialize( clientName );
-	}
-
-	MidiOutWinMM :: ~MidiOutWinMM()
-	{
-		// Close a connection if it exists.
-		closePort();
-
-		// Cleanup.
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		delete data;
-	}
-
-	void MidiOutWinMM :: initialize( const std::string& clientName )
-	{
-		// We'll issue a warning here if no devices are available but not
-		// throw an error since the user can plug something in later.
-		unsigned int nDevices = midiOutGetNumDevs();
-		if ( nDevices == 0 ) {
-			error(RTMIDI_ERROR(gettext_noopt("No MIDI output devices currently available."),
-					   Error::WARNING));
-		}
-
-		// Save our api-specific connection information.
-		WinMidiData *data = (WinMidiData *) new WinMidiData(clientName);
-		apiData_ = (void *) data;
-	}
-
-	unsigned int MidiOutWinMM :: getPortCount()
-	{
-		return midiOutGetNumDevs();
-	}
-
-	std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
-	{
-		std::string stringName;
-		unsigned int nDevices = midiOutGetNumDevs();
-		if ( portNumber >= nDevices ) {
-			std::ostringstream ost;
-			ost << "MidiOutWinMM::getPortName: ";
-			errorString_ = ost.str();
-			error(RTMIDI_ERROR(gettext_noopt("The 'portNumber' argument (%d) is invalid."),
-					   Error::WARNING));
-			return stringName;
-		}
-
-		MIDIOUTCAPS deviceCaps;
-		midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
-
-#if defined( UNICODE ) || defined( _UNICODE )
-		int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
-		stringName.assign( length, 0 );
-		length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, static_cast<int>(wcslen(deviceCaps.szPname)), &stringName[0], length, NULL, NULL);
-#else
-		stringName = std::string( deviceCaps.szPname );
-#endif
-
-		return stringName;
-	}
-
-	void MidiOutWinMM :: openPort( unsigned int portNumber, const std::string & /*portName*/ )
-	{
-		if ( connected_ ) {
-			error(RTMIDI_ERROR(gettext_noopt("A valid connection already exists."),
-					   Error::WARNING) );
-			return;
-		}
-
-		unsigned int nDevices = midiOutGetNumDevs();
-		if (nDevices < 1) {
-			error(RTMIDI_ERROR(gettext_noopt("No MIDI output destinations found!"),
-					   Error::NO_DEVICES_FOUND) );
-			return;
-		}
-
-		if ( portNumber >= nDevices ) {
-			error(RTMIDI_ERROR1(gettext_noopt("The 'portNumber' argument (%d) is invalid."),
-					    Error::INVALID_PARAMETER, portNumber) );
-			return;
-		}
-
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		MMRESULT result = midiOutOpen( &data->outHandle,
-					       portNumber,
-					       (DWORD)NULL,
-					       (DWORD)NULL,
-					       CALLBACK_NULL );
-		if ( result != MMSYSERR_NOERROR ) {
-			error(RTMIDI_ERROR(gettext_noopt("Error creating Windows MM MIDI output port."),
-					   Error::DRIVER_ERROR) );
-			return;
-		}
-
-		connected_ = true;
-	}
-
-	void MidiOutWinMM :: closePort( void )
-	{
-		if ( connected_ ) {
-			WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-			midiOutReset( data->outHandle );
-			midiOutClose( data->outHandle );
-			connected_ = false;
-		}
-	}
-
-	void MidiOutWinMM :: openVirtualPort( std::string /*portName*/ )
-	{
-		// This function cannot be implemented for the Windows MM MIDI API.
-		error(RTMIDI_ERROR(gettext_noopt("Virtual ports are not available Windows Multimedia MIDI API."),
-				   Error::WARNING) );
-	}
-
-
-	void MidiOutWinMM :: openPort(const PortDescriptor & p, const std::string & portName) {
-		const WinMMPortDescriptor * port = dynamic_cast <const WinMMPortDescriptor * >(&p);
-		if ( !port) {
-			error( RTMIDI_ERROR(gettext_noopt("Windows Multimedia (WinMM) has been instructed to open a non-WinMM MIDI port. This doesn't work."),
-					    Error::DRIVER_ERROR));
-			return;
-		}
-		if ( connected_ ) {
-			error( RTMIDI_ERROR(gettext_noopt("A valid connection already exists." ),
-			       Error::WARNING) );
-			return;
-		}
-		if (port->getCapabilities() != PortDescriptor::OUTPUT) {
-			error( RTMIDI_ERROR(gettext_noopt("The port descriptor cannot be used to open an output port."),
-					    Error::DRIVER_ERROR));
-			return;
-		}
-
-		// there is a possible race condition between opening the port and
-		// reordering of ports so we must check whether we opened the right port.
-		try {
-			openPort(port->getPortNumber(),portName);
-		} catch (Error e) {
-			error(e);
-		}
-		if (!port->is_valid()) {
-			closePort();
-			error (RTMIDI_ERROR(gettext_noopt("Some change in the arrangement of MIDI input ports invalidated the port descriptor."),
-					    Error::DRIVER_ERROR));
-			return;
-		}
-		connected_ = true;
-	}
-
-	Pointer<PortDescriptor> MidiOutWinMM :: getDescriptor(bool local)
-	{
-		if (local || !connected_) return 0;
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		if (!data) return 0;
-		UINT devid;
-		switch (midiOutGetID(data->outHandle,&devid)) {
-		case MMSYSERR_INVALHANDLE:
-			error (RTMIDI_ERROR(gettext_noopt("The internal handle is invalid. Did you disconnect the device?"),
-					    Error::DRIVER_ERROR));
-			return 0;
-		case MMSYSERR_NODRIVER:
-			error (RTMIDI_ERROR(gettext_noopt("The system has no driver for our handle :-(. Did you disconnect the device?"),
-					    Error::DRIVER_ERROR));
-			return 0;
-		case MMSYSERR_NOMEM:
-			error (RTMIDI_ERROR(gettext_noopt("Out of memory."),
-					    Error::DRIVER_ERROR));
-			return 0;
-		}
-		return new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
-
-	}
-
-	PortList MidiOutWinMM :: getPortList(int capabilities)
-	{
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		if (!data || capabilities != PortDescriptor::OUTPUT) return PortList();
-		try {
-			return WinMMPortDescriptor::getPortList(PortDescriptor::OUTPUT,data->getClientName());
-		} catch (Error e) {
-			error(e);
-			return PortList();
-		}
-	}
-
-
-	void MidiOutWinMM :: sendMessage( std::vector<unsigned char> &message )
-	{
-		if ( !connected_ ) return;
-
-		unsigned int nBytes = static_cast<unsigned int>(message.size());
-		if ( nBytes == 0 ) {
-			error(RTMIDI_ERROR(gettext_noopt("Message argument is empty."),
-					   Error::WARNING));
-			return;
-		}
-
-		MMRESULT result;
-		WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-		if ( message.at(0) == 0xF0 ) { // Sysex message
-
-			// Allocate buffer for sysex data.
-			char *buffer = (char *) malloc( nBytes );
-			if ( buffer == NULL ) {
-				error(RTMIDI_ERROR(gettext_noopt("Error while allocating sysex message memory."),
-						   Error::MEMORY_ERROR) );
-				return;
-			}
-
-			// Copy data to buffer.
-			for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message.at(i);
-
-			// Create and prepare MIDIHDR structure.
-			MIDIHDR sysex;
-			sysex.lpData = (LPSTR) buffer;
-			sysex.dwBufferLength = nBytes;
-			sysex.dwFlags = 0;
-			result = midiOutPrepareHeader( data->outHandle,  &sysex, sizeof(MIDIHDR) );
-			if ( result != MMSYSERR_NOERROR ) {
-				free( buffer );
-				error(RTMIDI_ERROR(gettext_noopt("Error preparing sysex header."),
-						   Error::DRIVER_ERROR));
-				return;
-			}
-
-			// Send the message.
-			result = midiOutLongMsg( data->outHandle, &sysex, sizeof(MIDIHDR) );
-			if ( result != MMSYSERR_NOERROR ) {
-				free( buffer );
-				error(RTMIDI_ERROR(gettext_noopt("Error sending sysex message."),
-						   Error::DRIVER_ERROR) );
-				return;
-			}
-
-			// Unprepare the buffer and MIDIHDR.
-			while ( MIDIERR_STILLPLAYING == midiOutUnprepareHeader( data->outHandle, &sysex, sizeof (MIDIHDR) ) ) Sleep( 1 );
-			free( buffer );
-		}
-		else { // Channel or system message.
-
-			// Make sure the message size isn't too big.
-			if ( nBytes > 3 ) {
-				error(RTMIDI_ERROR(gettext_noopt("Message size is greater than 3 bytes (and not sysex)."),
-						   Error::WARNING) );
-				return;
-			}
-
-			// Pack MIDI bytes into double word.
-			DWORD packet;
-			unsigned char *ptr = (unsigned char *) &packet;
-			for ( unsigned int i=0; i<nBytes; ++i ) {
-				*ptr = message.at(i);
-				++ptr;
-			}
-
-			// Send the message immediately.
-			result = midiOutShortMsg( data->outHandle, packet );
-			if ( result != MMSYSERR_NOERROR ) {
-				error(RTMIDI_ERROR(gettext_noopt("Error sending MIDI message."),
-						   Error::DRIVER_ERROR ));
-			}
-		}
-	}
-#undef RTMIDI_CLASSNAME
-}
-#endif  // __WINDOWS_MM__
-
-
-	//*********************************************************************//
-	//  API: UNIX JACK
-	//
-	//  Written primarily by Alexander Svetalkin, with updates for delta
-	//  time by Gary Scavone, April 2011.
-	//
-	//  *********************************************************************//
 
 struct WinMMPortDescriptor:public PortDescriptor
 {
@@ -4884,7 +4200,7 @@ void MidiInWinMM :: openPort(const PortDescriptor & p, const std::string & portN
   const WinMMPortDescriptor * port = dynamic_cast <const WinMMPortDescriptor * >(&p);
   if ( !port) {
     error( RTMIDI_ERROR(gettext_noopt("Windows Multimedia (WinMM) has been instructed to open a non-WinMM MIDI port. This doesn't work."),
-			Error::DRIVER_ERROR));
+			Error::INVALID_DEVICE));
     return;
   }
   if ( connected_ ) {
@@ -4894,13 +4210,17 @@ void MidiInWinMM :: openPort(const PortDescriptor & p, const std::string & portN
   }
   if (port->getCapabilities() != PortDescriptor::INPUT) {
     error(RTMIDI_ERROR(gettext_noopt("Trying to open a non-input port as input MIDI port. This doesn't work."),
-		       Error::DRIVER_ERROR));
+		       Error::INVALID_DEVICE));
     return;
   }
 
   // there is a possible race condition between opening the port and
   // reordering of ports so we must check whether we opened the right port.
-  openPort(port->getPortNumber(),portName);
+  try {
+    openPort(port->getPortNumber(),portName);
+  } catch (Error e) {
+    error(e);
+  }
   if (!port->is_valid()) {
     closePort();
     error (RTMIDI_ERROR(gettext_noopt("Some change in the arrangement of MIDI input ports invalidated the port descriptor."),
@@ -4931,6 +4251,16 @@ Pointer<PortDescriptor> MidiInWinMM :: getDescriptor(bool local)
     return 0;
   }
   return new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
+  try {
+    retval = new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
+  } catch (Error e) {
+    try {
+      error(e);
+    } catch (...) {
+      if (retval) delete retval;
+      throw;
+    }
+  }
 
 }
 
@@ -4938,7 +4268,12 @@ PortList MidiInWinMM :: getPortList(int capabilities)
 {
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
   if (!data || capabilities != PortDescriptor::INPUT) return PortList();
-  return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
+  try {
+    return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
+  } catch (Error e) {
+    error(e);
+    return PortList();
+  }
 }
 
 
@@ -5134,7 +4469,7 @@ void MidiOutWinMM :: openPort(const PortDescriptor & p, const std::string & port
   const WinMMPortDescriptor * port = dynamic_cast <const WinMMPortDescriptor * >(&p);
   if ( !port) {
     error( RTMIDI_ERROR(gettext_noopt("Windows Multimedia (WinMM) has been instructed to open a non-WinMM MIDI port. This doesn't work."),
-			Error::DRIVER_ERROR));
+			Error::INVALID_DEVICE));
     return;
   }
   if ( connected_ ) {
@@ -5150,7 +4485,11 @@ void MidiOutWinMM :: openPort(const PortDescriptor & p, const std::string & port
 
   // there is a possible race condition between opening the port and
   // reordering of ports so we must check whether we opened the right port.
-  openPort(port->getPortNumber(),portName);
+  try {
+    openPort(port->getPortNumber(),portName);
+  } catch (Error e) {
+    error(e);
+  }
   if (!port->is_valid()) {
     closePort();
     error (RTMIDI_ERROR(gettext_noopt("Some change in the arrangement of MIDI input ports invalidated the port descriptor."),
@@ -5188,7 +4527,12 @@ PortList MidiOutWinMM :: getPortList(int capabilities)
 {
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
   if (!data || capabilities != PortDescriptor::OUTPUT) return PortList();
-  return WinMMPortDescriptor::getPortList(PortDescriptor::OUTPUT,data->getClientName());
+  try {
+    return WinMMPortDescriptor::getPortList(PortDescriptor::OUTPUT,data->getClientName());
+  } catch (Error e) {
+    error(e);
+    return PortList();
+  }
 }
 
 
@@ -5273,17 +4617,6 @@ void MidiOutWinMM :: sendMessage( std::vector<unsigned char> &message )
 NAMESPACE_RTMIDI_END
 #endif  // __WINDOWS_MM__
 
-void MidiInJack :: initialize( const std::string& clientName )
-{
-  JackMidiData *data = new JackMidiData(clientName,inputData_);
-  apiData_ = (void *) data;
-  this->clientName = clientName;
-  try {
-    data->init(true);
-  } catch (Error e) {
-    error(e);
-  }
-}
 
 //*********************************************************************//
 //  API: UNIX JACK
@@ -5300,23 +4633,7 @@ void MidiInJack :: initialize( const std::string& clientName )
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
 
-<<<<<<< HEAD
 #define JACK_RINGBUFFER_SIZE 16384 // Default size for ringbuffer
-=======
-	MidiInJack :: ~MidiInJack()
-	{
-		JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-		try {
-			closePort();
-		} catch (Error e) {
-			try {
-				delete data;
-			} catch (...) {
-			}
-			error(e);
-			return;
-		}
->>>>>>> e5dcd23... Hand over some error exceptions to the error function.
 
 NAMESPACE_RTMIDI_START
 
@@ -5810,6 +5127,11 @@ void MidiInJack :: initialize( const std::string& clientName )
   JackMidiData *data = new JackMidiData(clientName,inputData_);
   apiData_ = (void *) data;
   this->clientName = clientName;
+  try {
+    data->init(true);
+  } catch (Error e) {
+    error(e);
+  }
 }
 
 #if 0
@@ -5833,11 +5155,19 @@ void MidiInJack :: connect()
 }
 #endif
 
-<<<<<<< HEAD
 MidiInJack :: ~MidiInJack()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-  closePort();
+  try {
+    closePort();
+  } catch (Error e) {
+    try {
+      delete data;
+    } catch (...) {
+    }
+    error(e);
+    return;
+  }
 
 #if 0
   if ( data->client )
@@ -5850,50 +5180,6 @@ MidiInJack :: ~MidiInJack()
 void MidiInJack :: openPort( unsigned int portNumber, const std::string & portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-=======
-		try {
-			if (!data->local)
-				data->openPort (JackPortIsInput,
-						portName);
-			data->setRemote(*port);
-			data->connectPorts(*port,data->local);
-		} catch (Error e) {
-			error (e);
-		}
-
-	}
-
-	Pointer<PortDescriptor> MidiInJack :: getDescriptor(bool local)
-	{
-		JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-		try {
-			if (local) {
-				if (data && data->local) {
-					return new JackPortDescriptor(data->local,data->getClientName());
-				}
-			} else {
-				if (data && *data) {
-					return new JackPortDescriptor(*data,data->getClientName());
-				}
-			}
-		} catch (Error e) {
-			error(e);
-		}
-		return NULL;
-	}
-
-	PortList MidiInJack :: getPortList(int capabilities)
-	{
-		JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-		try {
-			return JackPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
-							       data->getClientName());
-		} catch (Error e) {
-			error(e);
-		}
-		return PortList();
-	}
->>>>>>> e5dcd23... Hand over some error exceptions to the error function.
 
   //		connect();
 
@@ -5948,28 +5234,37 @@ void MidiInJack :: openPort( const PortDescriptor & p,
 #endif
   if (!port) {
     error(RTMIDI_ERROR(gettext_noopt("JACK has been instructed to open a non-JACK MIDI port. This doesn't work."),
-		       Error::WARNING) );
+		       Error::INVALID_DEVICE) );
     return;
   }
 
-  if (!data->local)
-    data->openPort (JackPortIsInput,
-		    portName);
-  data->setRemote(*port);
-  data->connectPorts(*port,data->local);
+  try {
+    if (!data->local)
+      data->openPort (JackPortIsInput,
+		      portName);
+    data->setRemote(*port);
+    data->connectPorts(*port,data->local);
+  } catch (Error e) {
+    error (e);
+  }
+
 }
 
 Pointer<PortDescriptor> MidiInJack :: getDescriptor(bool local)
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-  if (local) {
-    if (data && data->local) {
-      return new JackPortDescriptor(data->local,data->getClientName());
+  try {
+    if (local) {
+      if (data && data->local) {
+	return new JackPortDescriptor(data->local,data->getClientName());
+      }
+    } else {
+      if (data && *data) {
+	return new JackPortDescriptor(*data,data->getClientName());
+      }
     }
-  } else {
-    if (data && *data) {
-      return new JackPortDescriptor(*data,data->getClientName());
-    }
+  } catch (Error e) {
+    error(e);
   }
   return NULL;
 }
@@ -5977,8 +5272,13 @@ Pointer<PortDescriptor> MidiInJack :: getDescriptor(bool local)
 PortList MidiInJack :: getPortList(int capabilities)
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-  return JackPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
-					 data->getClientName());
+  try {
+    return JackPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
+					   data->getClientName());
+  } catch (Error e) {
+    error(e);
+  }
+  return PortList();
 }
 
 unsigned int MidiInJack :: getPortCount()
@@ -6207,76 +5507,38 @@ void MidiOutJack :: openPort( const PortDescriptor & p,
     return;
   }
 #endif
-<<<<<<< HEAD
   if (!port) {
     error(RTMIDI_ERROR(gettext_noopt("JACK has been instructed to open a non-JACK MIDI port. This doesn't work."),
-		       Error::WARNING) );
+		       Error::INVALID_DEVICE) );
     return;
   }
 
-  if (!data->local)
-    data->openPort (JackPortIsOutput,
-		    portName);
-  data->setRemote(*port);
-  data->connectPorts(data->local,*port);
-=======
-		if (!port) {
-			error(RTMIDI_ERROR(gettext_noopt("JACK has been instructed to open a non-JACK MIDI port. This doesn't work."),
-					   Error::WARNING) );
-			return;
-		}
-
-		try {
-			if (!data->local)
-				data->openPort (JackPortIsOutput,
-						portName);
-			data->setRemote(*port);
-			data->connectPorts(data->local,*port);
-		} catch (Error e) {
-			error(e);
-		}
-	}
-
-	Pointer<PortDescriptor> MidiOutJack :: getDescriptor(bool local)
-	{
-		JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-		try {
-			if (local) {
-				if (data && data->local) {
-					return new JackPortDescriptor(data->local,data->getClientName());
-				}
-			} else {
-				if (data && *data) {
-					return new JackPortDescriptor(*data,data->getClientName());
-				}
-			}
-		} catch (Error e) {
-			error(e);
-		}
-		return NULL;
-	}
-
-	PortList MidiOutJack :: getPortList(int capabilities)
-	{
-		JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-		return JackPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT,
-						       data->getClientName());
-	}
->>>>>>> e5dcd23... Hand over some error exceptions to the error function.
-
+  try {
+    if (!data->local)
+      data->openPort (JackPortIsOutput,
+		      portName);
+    data->setRemote(*port);
+    data->connectPorts(data->local,*port);
+  } catch (Error e) {
+    error(e);
+  }
 }
 
 Pointer<PortDescriptor> MidiOutJack :: getDescriptor(bool local)
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-  if (local) {
-    if (data && data->local) {
-      return new JackPortDescriptor(data->local,data->getClientName());
+  try {
+    if (local) {
+      if (data && data->local) {
+	return new JackPortDescriptor(data->local,data->getClientName());
+      }
+    } else {
+      if (data && *data) {
+	return new JackPortDescriptor(*data,data->getClientName());
+      }
     }
-  } else {
-    if (data && *data) {
-      return new JackPortDescriptor(*data,data->getClientName());
-    }
+  } catch (Error e) {
+    error(e);
   }
   return NULL;
 }

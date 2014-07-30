@@ -4718,13 +4718,13 @@ NAMESPACE_RTMIDI_END
 #endif  // __WINDOWS_MM__
 
 
-//*********************************************************************//
-//  API: UNIX JACK
-//
-//  Written primarily by Alexander Svetalkin, with updates for delta
-//  time by Gary Scavone, April 2011.
-//
-//  *********************************************************************//
+	//*********************************************************************//
+	//  API: UNIX JACK
+	//
+	//  Written primarily by Alexander Svetalkin, with updates for delta
+	//  time by Gary Scavone, April 2011.
+	//
+	//  *********************************************************************//
 
 #if defined(__UNIX_JACK__)
 
@@ -4756,7 +4756,7 @@ public:
     }
   }
 
-  JackSequencer(const std::string & n, bool startqueue, JackMidiData * d):client(0),name(n),data(d)
+  JackSequencer(const std::string & n, JackMidiData * d):client(0),name(n),data(d)
   {
     if (locking) {
       pthread_mutexattr_t attr;
@@ -4764,7 +4764,6 @@ public:
       pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
       pthread_mutex_init(&mutex, &attr);
     }
-    init(client,startqueue);
   }
 
   ~JackSequencer()
@@ -4781,6 +4780,10 @@ public:
     if (locking) {
       pthread_mutex_destroy(&mutex);
     }
+  }
+
+  void init(bool startqueue) {
+    init(client,startqueue);
   }
 
   bool setName(const std::string & n) {
@@ -4899,6 +4902,7 @@ public:
   {
     return client;
   }
+
 protected:
   struct scoped_lock {
     pthread_mutex_t * mutex;
@@ -5104,8 +5108,9 @@ struct JackMidiData:public JackPortDescriptor {
 					      buffMessage(jack_ringbuffer_create( JACK_RINGBUFFER_SIZE )),
 					      lastTime(0),
 					      rtMidiIn(),
-					      seq(new NonLockingJackSequencer(clientName,true,this))
-  {}
+					      seq(new NonLockingJackSequencer(clientName,this))
+  {
+  }
 
 
   ~JackMidiData()
@@ -5120,7 +5125,9 @@ struct JackMidiData:public JackPortDescriptor {
       jack_ringbuffer_free( buffMessage );
   }
 
-
+  void init(bool isinput) {
+    seq->init(!isinput);
+  }
 
 
   void setRemote(jack_port_t * remote) {
@@ -5528,7 +5535,8 @@ void MidiOutJack :: initialize( const std::string& clientName )
   JackMidiData *data = new JackMidiData(clientName);
   apiData_ = (void *) data;
   this->clientName = clientName;
-  //		connect();
+  // init is the last as it may throw an exception
+  data->init(false);
 }
 
 void MidiOutJack :: connect()

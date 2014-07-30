@@ -158,6 +158,11 @@ void Midi :: getCompiledApi( std::vector<ApiType> &apis, bool preferSystem ) thr
 
 void Midi :: error(Error e)
 {
+  // use the callback if present.
+  if (rtapi_) {
+    rtapi_->error(e);
+    return;
+  }
 
   return;
 }

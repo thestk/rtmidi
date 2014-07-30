@@ -974,8 +974,8 @@ public:
       if (connObjectType == kMIDIObjectType_ExternalSource  ||
 	  connObjectType == kMIDIObjectType_ExternalDestination) {
 	// Connected to an external
-	// device's endpoint
-	// (10.3 and later).
+        // device's endpoint
+        // (10.3 and later).
 	strRef = EndpointName(static_cast<MIDIEndpointRef>(connObject),
 			      true);
       } else {
@@ -999,14 +999,14 @@ public:
   }
 
   static std::string getPortName(MIDIEndpointRef port, int flags) {
-    //			std::string clientname;
+    //      std::string clientname;
     std::string devicename;
     std::string portname;
     std::string entityname;
-    //			std::string externaldevicename;
+    //      std::string externaldevicename;
     std::string connections;
     std::string recommendedname;
-    //			bool isVirtual;
+    //      bool isVirtual;
     bool hasManyEntities = false;
     bool hasManyEndpoints = false;
     CFStringRef nameRef;
@@ -1076,9 +1076,9 @@ public:
       os << devicename;
       os << ":" << portname;
       os << ":" << entityname;
-      //				os << ":" << externaldevicename;
+      //  os << ":" << externaldevicename;
       os << ":" << connections;
-      //				os << ":" << recommendedname;
+      //  os << ":" << recommendedname;
       if (flags & PortDescriptor::UNIQUE_NAME)
 	os << ";" << port;
       break;
@@ -1373,7 +1373,7 @@ protected:
 typedef CoreSequencer<1> LockingCoreSequencer;
 typedef CoreSequencer<0> NonLockingCoreSequencer;
 
-struct CorePortDescriptor:public PortDescriptor	{
+struct CorePortDescriptor:public PortDescriptor  {
   CorePortDescriptor(const std::string & name):api(0),
 					       clientName(name),
 					       endpoint(0)
@@ -2231,9 +2231,9 @@ NAMESPACE_RTMIDI_END
 #endif  // __MACOSX_CORE__
 
 
-	//*********************************************************************//
-	//  API: LINUX ALSA SEQUENCER
-	//*********************************************************************//
+//*********************************************************************//
+//  API: LINUX ALSA SEQUENCER
+//*********************************************************************//
 
 // API information found at:
 //   - http://www.alsa-project.org/documentation.php#Library
@@ -2619,8 +2619,6 @@ PortList AlsaPortDescriptor :: getPortList(int capabilities, const std::string &
 }
 #undef RTMIDI_CLASSNAME
 
-static void *alsaMidiHandler( void *ptr );
-
 
 /*! A structure to hold variables related to the ALSA API
   implementation.
@@ -2663,7 +2661,7 @@ struct AlsaMidiData:public AlsaPortDescriptor {
   }
   snd_seq_addr_t local; /*!< Our port and client id. If client = 0 (default) this means we didn't aquire a port so far. */
   NonLockingAlsaSequencer seq;
-  //		unsigned int portNum;
+  //    unsigned int portNum;
   snd_seq_port_subscribe_t *subscription;
   snd_midi_event_t *coder;
   unsigned int bufferSize;
@@ -3117,7 +3115,7 @@ std::string MidiInAlsa :: getPortName( unsigned int portNumber )
     snd_seq_get_any_client_info( data->seq, cnum, cinfo );
     std::ostringstream os;
     os << snd_seq_client_info_get_name( cinfo );
-    os << " ";                                    // These lines added to make sure devices are listed
+    os << " ";            // These lines added to make sure devices are listed
     os << snd_seq_port_info_get_client( pinfo );  // with full portnames added to ensure individual device names
     os << ":";
     os << snd_seq_port_info_get_port( pinfo );
@@ -3456,7 +3454,7 @@ void MidiOutAlsa :: initialize( const std::string& clientName )
   // Save our api-specific connection information.
   AlsaMidiData *data = new AlsaMidiData(clientName);
   // data->seq = seq;
-  //	data->portNum = -1;
+  //  data->portNum = -1;
 
   int result = snd_midi_event_new( data->bufferSize, &data->coder );
   if ( result < 0 ) {
@@ -3499,7 +3497,7 @@ std::string MidiOutAlsa :: getPortName( unsigned int portNumber )
     snd_seq_get_any_client_info( data->seq, cnum, cinfo );
     std::ostringstream os;
     os << snd_seq_client_info_get_name(cinfo);
-    os << " ";                                    // These lines added to make sure devices are listed
+    os << " ";            // These lines added to make sure devices are listed
     os << snd_seq_port_info_get_client( pinfo );  // with full portnames added to ensure individual device names
     os << ":";
     os << snd_seq_port_info_get_port(pinfo);
@@ -3894,7 +3892,7 @@ public:
 
 protected:
   struct scoped_lock {
-    //			pthread_mutex_t * mutex;
+    //      pthread_mutex_t * mutex;
     scoped_lock(unsigned int &)
     {
 #if 0
@@ -3921,7 +3919,7 @@ protected:
   }
 
 };
-//	typedef WinMMSequencer<1> LockingWinMMSequencer;
+//  typedef WinMMSequencer<1> LockingWinMMSequencer;
 typedef WinMMSequencer<0> NonLockingWinMMSequencer;
 #undef RTMIDI_CLASSNAME
 
@@ -4718,13 +4716,13 @@ NAMESPACE_RTMIDI_END
 #endif  // __WINDOWS_MM__
 
 
-	//*********************************************************************//
-	//  API: UNIX JACK
-	//
-	//  Written primarily by Alexander Svetalkin, with updates for delta
-	//  time by Gary Scavone, April 2011.
-	//
-	//  *********************************************************************//
+//*********************************************************************//
+//  API: UNIX JACK
+//
+//  Written primarily by Alexander Svetalkin, with updates for delta
+//  time by Gary Scavone, April 2011.
+//
+//  *********************************************************************//
 
 #if defined(__UNIX_JACK__)
 
@@ -4743,6 +4741,8 @@ struct JackBackendCallbacks {
   static int jackProcessOut( jack_nframes_t nframes, void *arg );
 };
 
+
+#define RTMIDI_CLASSNAME "JackSequencer"
 template <int locking=1>
 class JackSequencer {
 public:
@@ -4952,7 +4952,9 @@ protected:
 };
 typedef JackSequencer<1> LockingJackSequencer;
 typedef JackSequencer<0> NonLockingJackSequencer;
+#undef RTMIDI_CLASSNAME
 
+#define RTMIDI_CLASSNAME "JackPortDescriptor"
 struct JackPortDescriptor:public PortDescriptor
 {
   MidiApi * api;
@@ -5041,6 +5043,7 @@ PortList JackPortDescriptor :: getPortList(int capabilities, const std::string &
   jack_free(ports);
   return list;
 }
+#undef RTMIDI_CLASSNAME
 
 /*! A structure to hold variables related to the JACK API
   implementation.
@@ -5050,6 +5053,7 @@ PortList JackPortDescriptor :: getPortList(int capabilities, const std::string &
   to allow a common client implementation.
 */
 
+#define RTMIDI_CLASSNAME "JackMidiData"
 struct JackMidiData:public JackPortDescriptor {
   /* signal the JACK process what to do next */
   volatile enum {
@@ -5297,6 +5301,8 @@ int JackBackendCallbacks::jackProcessOut( jack_nframes_t nframes, void *arg )
   return 0;
 }
 #undef RTMIDI_CLASSNAME
+
+#define RTMIDI_CLASSNAME "MidiInJack"
 MidiInJack :: MidiInJack( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
   initialize( clientName );
@@ -5361,7 +5367,7 @@ void MidiInJack :: openPort( unsigned int portNumber, const std::string & portNa
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  //		connect();
+  //    connect();
 
   // Creating new port
   if ( data->local == NULL)
@@ -5383,7 +5389,7 @@ void MidiInJack :: openVirtualPort( const std::string portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  //		connect();
+  //    connect();
   if ( data->local == NULL )
     data->local = jack_port_register( *(data->seq), portName.c_str(),
 				      JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0 );
@@ -5486,7 +5492,7 @@ std::string MidiInJack :: getPortName( unsigned int portNumber )
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   std::string retStr("");
 
-  //		connect();
+  //    connect();
 
   // List of available ports
   const char **ports = jack_get_ports(* (data->seq), NULL,
@@ -5518,6 +5524,7 @@ void MidiInJack :: closePort()
   jack_port_unregister( *(data->seq), data->local );
   data->local = NULL;
 }
+#undef RTMIDI_CLASSNAME
 
 //*********************************************************************//
 //  API: JACK
@@ -5525,6 +5532,7 @@ void MidiInJack :: closePort()
 //*********************************************************************//
 
 
+#define RTMIDI_CLASSNAME "MidiOutJack"
 MidiOutJack :: MidiOutJack( const std::string clientName ) : MidiOutApi()
 {
   initialize( clientName );
@@ -5564,8 +5572,7 @@ void MidiOutJack :: connect()
 MidiOutJack :: ~MidiOutJack()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-  //		closePort();
-
+  //    closePort();
   // signal the output callback to delete the data
   // after finishing its job.
   data->stateflags = JackMidiData::DELETING;
@@ -5742,6 +5749,8 @@ void MidiOutJack :: sendMessage( std::vector<unsigned char> &message )
   jack_ringbuffer_write( data->buffMessage, ( const char * ) &( message[0] ),
 			 message.size() );
   jack_ringbuffer_write( data->buffSize, ( char * ) &nBytes, sizeof( nBytes ) );
+}
+#undef RTMIDI_CLASSNAME
 }
 NAMESPACE_RTMIDI_END
 #endif  // __UNIX_JACK__

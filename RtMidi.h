@@ -85,7 +85,7 @@ void init_rtmidi_gettext();
 #endif
 
 //! MIDI API specifier arguments.
-  enum ApiType {
+enum ApiType {
   UNSPECIFIED,    /*!< Search for a working compiled API. */
   MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
   LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
@@ -111,15 +111,61 @@ inline std::string getApiName(ApiType type) {
   return "";
 }
 
-//! User callback function type definition.
+//! C style user callback function type definition.
 /*!
+  This interface type has been replaced by a MidiInterface class.
+
   \param timeStamp  timestamp indicating when the event has been received
   \param message    a pointer to the binary MIDI message
   \param userData   a pointer that can be set using setUserdata
   \sa MidiIn
   \sa MidiInApi
+  \sa MidiInterface
+  \deprecated
 */
 typedef void (*MidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData);
+
+//! C++ style user callback interface.
+/*!
+  This interface class can be used to implement type safe MIDI callbacks.
+  Every time a MIDI message is received  the function \ref MidiInterface::rtmidi_midi_in of the
+  currently set callback object is called.
+*/
+struct MidiInterface {
+  //! Virtual destructor to avoid unexpected behaviour.
+  virtual ~MidiInterface() {}
+
+  //! The MIDI callback function.
+  /*! This function is called whenever a MIDI packet is received by a
+    MIDI backend that uses the corresponding callback object.
+    \param timestamp the timestamp when the MIDI message has been received
+    \param message   the message itself.
+  */
+  virtual void rtmidi_midi_in(double timestamp, std::vector<unsigned char> *message) = 0;
+
+  //! Delete the object if necessary.
+  /*! This function allows the user to delete the Midi callback object,
+    when MIDI backend drops its reference to it. By default it does nothing.
+    But, callback objects are owned by the MIDI backend. These must be deleted
+    after the reference to them has been dropped.
+
+    \sa CompatibilityMidiInterface
+  */
+  virtual void delete_me() {}
+};
+
+//! Compatibility interface to hold a C style callback function
+struct CompatibilityMidiInterface: MidiInterface {
+  CompatibilityMidiInterface(MidiCallback cb, void * ud):
+    callback(cb),
+    userData(ud) {}
+  void rtmidi_midi_in(double timestamp, std::vector<unsigned char> *message) {
+    callback (timestamp, message, userData);
+  }
+  void delete_me() { delete this; }
+  MidiCallback callback;
+  void * userData;
+};
 
 /************************************************************************/
 /*! \class Error
@@ -203,6 +249,24 @@ protected:
   a warning) is reported.
 */
 typedef void (*ErrorCallback)( Error::Type type, const std::string &errorText, void * userdata );
+struct ErrorInterface {
+  virtual ~ErrorInterface() {}
+  virtual void rtmidi_error (Error e) = 0;
+  virtual void delete_me() {};
+};
+
+struct CompatibilityErrorInterface: ErrorInterface {
+  CompatibilityErrorInterface(ErrorCallback cb, void * ud): callback(cb),
+							    userdata(ud) {}
+  void rtmidi_error(Error e) {
+    callback(e.getType(),e.getMessage(),userdata);
+  }
+
+  void delete_me() { delete this; }
+private:
+  ErrorCallback callback;
+  void * userdata;
+};
 
 
 
@@ -527,12 +591,22 @@ public:
   */
   bool isPortOpen() const { return connected_; }
 
-  //! Pure virtual function to set an error callback function to be invoked when an error has occured.
+  //! Virtual function to set an error callback function to be invoked when an error has occured.
   /*!
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 );
+  RTMIDI_DEPRECATED(virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ));
+
+  //! Virtual function to set the error callback object
+  /*!
+    Everytime an error is detected or a warning is issued the function
+    \r ErrorInterface::rtmidi_error of the callback object is called with an error object
+    that describes the situation.
+
+    \param callback An objact that provides an ErrorInterface.
+  */
+  virtual void setErrorCallback(ErrorInterface * callback);
 
 
   //! Returns the MIDI API specifier for the current instance of RtMidiIn.
@@ -547,8 +621,7 @@ protected:
   void *apiData_;
   bool connected_;
   std::string errorString_;
-  ErrorCallback errorCallback_;
-  void * errorCallbackUserData_;
+  ErrorInterface * errorCallback_;
 };
 #undef RTMIDI_CLASSNAME
 
@@ -559,7 +632,8 @@ public:
 
   MidiInApi( unsigned int queueSizeLimit );
   virtual ~MidiInApi( void );
-  void setCallback( MidiCallback callback, void *userData = 0 );
+  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ));
+  void setCallback( MidiInterface * callback);
   void cancelCallback( void );
   virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
   RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ))
@@ -605,7 +679,6 @@ public:
     bool firstMessage;
     void *apiData;
     bool usingCallback;
-    MidiCallback userCallback;
     void *userData;
     bool continueSysex;
 
@@ -618,6 +691,8 @@ public:
 
 protected:
   MidiInData inputData_;
+  MidiInterface * userCallback;
+  friend struct JackBackendCallbacks;
 };
 #undef RTMIDI_CLASSNAME
 
@@ -833,9 +908,19 @@ public:
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 )
+  RTMIDI_DEPRECATED(void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ))
   {
     if (rtapi_) rtapi_->setErrorCallback(errorCallback, userData);
+  }
+
+  //! Pure virtual function to set an error callback function to be invoked when an error has occured.
+  /*!
+    The callback function will be called whenever an error has occured. It is best
+    to set the error callback function before opening a port.
+  */
+  void setErrorCallback( ErrorInterface * callback)
+  {
+    if (rtapi_) rtapi_->setErrorCallback(callback);
   }
 
   //! A basic error reporting function for RtMidi classes.
@@ -1015,10 +1100,27 @@ public:
     \param userData Opitionally, a pointer to additional data can be
     passed to the callback function whenever it is called.
   */
-  void setCallback( MidiCallback callback, void *userData = 0 )
+  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ))
   {
     if (rtapi_)
       static_cast<MidiInApi*>(rtapi_)->setCallback(callback,userData);
+  }
+
+  //! Set a callback function to be invoked for incoming MIDI messages.
+  /*!
+    The callback function will be called whenever an incoming MIDI
+    message is received.  While not absolutely necessary, it is best
+    to set the callback function before opening a MIDI port to avoid
+    leaving some messages in the queue.
+
+    \param callback A callback function must be given.
+    \param userData Opitionally, a pointer to additional data can be
+    passed to the callback function whenever it is called.
+  */
+  void setCallback( MidiInterface * callback )
+  {
+    if (rtapi_)
+      static_cast<MidiInApi*>(rtapi_)->setCallback(callback);
   }
 
   //! Cancel use of the current callback function (if one exists).
@@ -1375,7 +1477,9 @@ public:
   std::string getPortName( unsigned int portNumber );
 
 protected:
+  static void * alsaMidiHandler( void *ptr ) throw();
   void initialize( const std::string& clientName );
+  friend class AlsaMidiData;
 };
 
 class MidiOutAlsa: public MidiOutApi
@@ -1421,6 +1525,8 @@ public:
 
 protected:
   void initialize( const std::string& clientName );
+  friend struct WinMMCallbacks;
+
 };
 
 class MidiOutWinMM: public MidiOutApi

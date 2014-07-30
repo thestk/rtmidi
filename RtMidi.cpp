@@ -393,7 +393,7 @@ MidiOut :: ~MidiOut() throw()
 
 
 MidiApi :: MidiApi( void )
-  : apiData_( 0 ), connected_( false ), errorCallback_(0), errorCallbackUserData_(0)
+  : apiData_( 0 ), connected_( false ), errorCallback_(0)
 {
 }
 
@@ -403,9 +403,13 @@ MidiApi :: ~MidiApi( void )
 
 void MidiApi :: setErrorCallback( ErrorCallback errorCallback, void *userData )
 {
-  errorCallback_ = errorCallback;
-  errorCallbackUserData_ = userData;
+  errorCallback_ = new CompatibilityErrorInterface(errorCallback,userData);
 }
+
+void MidiApi :: setErrorCallback(ErrorInterface * callback) {
+  errorCallback_ = callback;
+}
+
 
 void MidiApi :: error(Error e)
 {
@@ -419,7 +423,7 @@ void MidiApi :: error(Error e)
     std::ostringstream s;
     e.printMessage(s);
 
-    errorCallback_( e.getType(), s.str(), errorCallbackUserData_ );
+    errorCallback_->rtmidi_error(e);
     firstErrorOccured = false;
     return;
   }
@@ -445,6 +449,7 @@ void MidiApi :: error(Error e)
 #define RTMIDI_CLASSNAME "MidiInApi"
 MidiInApi :: MidiInApi( unsigned int queueSizeLimit )
   : MidiApi()
+    userCallback(0),
 {
   // Allocate the MIDI queue.
   inputData_.queue.ringSize = queueSizeLimit;
@@ -460,7 +465,7 @@ MidiInApi :: ~MidiInApi( void )
 
 void MidiInApi :: setCallback( MidiCallback callback, void *userData )
 {
-  if ( inputData_.usingCallback ) {
+  if ( userCallback ) {
     error(RTMIDI_ERROR(gettext_noopt("A callback function is already set."),
 		       Error::WARNING));
     return;
@@ -472,22 +477,35 @@ void MidiInApi :: setCallback( MidiCallback callback, void *userData )
     return;
   }
 
-  inputData_.userCallback = callback;
-  inputData_.userData = userData;
-  inputData_.usingCallback = true;
+  userCallback = new CompatibilityMidiInterface(callback,userData);
+}
+
+void MidiInApi :: setCallback( MidiInterface * callback )
+{
+  if ( userCallback ) {
+    error(RTMIDI_ERROR(gettext_noopt("A callback function is already set."),
+		       Error::WARNING));
+    return;
+  }
+
+  if ( !callback ) {
+    error(RTMIDI_ERROR(gettext_noopt("The callback function value is invalid."),
+		       Error::WARNING));
+    return;
+  }
+
+  userCallback = callback;
 }
 
 void MidiInApi :: cancelCallback()
 {
-  if ( !inputData_.usingCallback ) {
+  if ( !userCallback ) {
     error(RTMIDI_ERROR(gettext_noopt("No callback function was set."),
 		       Error::WARNING));
     return;
   }
 
-  inputData_.userCallback = 0;
-  inputData_.userData = 0;
-  inputData_.usingCallback = false;
+  userCallback = 0;
 }
 
 void MidiInApi :: ignoreTypes( bool midiSysex, bool midiTime, bool midiSense )
@@ -502,7 +520,7 @@ double MidiInApi :: getMessage( std::vector<unsigned char> &message )
 {
   message.clear();
 
-  if ( inputData_.usingCallback ) {
+  if ( userCallback ) {
     error(RTMIDI_ERROR(gettext_noopt("Returning an empty MIDI message as all input is handled by a callback function."),
 		       Error::WARNING));
     return 0.0;
@@ -2701,7 +2719,7 @@ struct AlsaMidiData:public AlsaPortDescriptor {
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
 
-    int err = pthread_create(&thread, &attr, alsaMidiHandler, userdata);
+    int err = pthread_create(&thread, &attr, MidiInAlsa::alsaMidiHandler, userdata);
     pthread_attr_destroy(&attr);
     if ( err ) {
       closePort();
@@ -2721,10 +2739,12 @@ struct AlsaMidiData:public AlsaPortDescriptor {
 //  Class Definitions: MidiInAlsa
 //*********************************************************************//
 
-static void *alsaMidiHandler( void *ptr )
+#define RTMIDI_CLASSNAME ""
+// static function:
+void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 {
-  MidiInApi::MidiInData *data = static_cast<MidiInApi::MidiInData *> (ptr);
-  AlsaMidiData *apiData = static_cast<AlsaMidiData *> (data->apiData);
+  MidiInAlsa *data = static_cast<MidiInAlsa *> (ptr);
+  AlsaMidiData *apiData = static_cast<AlsaMidiData *> (data->apiData_);
 
   long nBytes;
   unsigned long long time, lastTime;
@@ -2889,9 +2909,8 @@ static void *alsaMidiHandler( void *ptr )
     snd_seq_free_event( ev );
     if ( message.bytes.size() == 0 || continueSysex ) continue;
 
-    if ( data->usingCallback ) {
-      MidiCallback callback = (MidiCallback) data->userCallback;
-      callback( message.timeStamp, &message.bytes, data->userData );
+    if ( data->userCallback ) {
+      data->userCallback->rtmidi_midi_in( message.timeStamp, &message.bytes);
     }
     else {
       // As long as we haven't reached our queue size limit, push the message.
@@ -2912,6 +2931,7 @@ static void *alsaMidiHandler( void *ptr )
   apiData->thread = apiData->dummy_thread_id;
   return 0;
 }
+#undef RTMIDI_CLASSNAME
 
 #define RTMIDI_CLASSNAME "MidiInAlsa"
 MidiInAlsa :: MidiInAlsa( const std::string clientName,
@@ -3944,7 +3964,6 @@ PortList WinMMPortDescriptor :: getPortList(int capabilities, const std::string 
 }
 
 
-
 /*! A structure to hold variables related to the WINMM API
   implementation.
 
@@ -3976,105 +3995,123 @@ struct WinMidiData:public WinMMPortDescriptor {
 //  API: Windows MM
 //  Class Definitions: MidiInWinMM
 //*********************************************************************//
+#define RTMIDI_CLASSNAME "WinMMCallbacks"
+//! Windows callbacks
+/*! In order to avoid including too many header files in RtMidi.h, we use this
+ *  class to callect all friend functions of Midi*WinMM.
+ */
+struct WinMMCallbacks {
+  static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
+					  UINT inputStatus,
+					  DWORD_PTR instancePtr,
+					  DWORD_PTR midiMessage,
+					  DWORD timestamp )
+  {
+    if ( inputStatus != MIM_DATA && inputStatus != MIM_LONGDATA && inputStatus != MIM_LONGERROR ) return;
 
-static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
-					UINT inputStatus,
-					DWORD_PTR instancePtr,
-					DWORD_PTR midiMessage,
-					DWORD timestamp )
-{
-  if ( inputStatus != MIM_DATA && inputStatus != MIM_LONGDATA && inputStatus != MIM_LONGERROR ) return;
+    //MidiInApi::MidiInData *data = static_cast<MidiInApi::MidiInData *> (instancePtr);
+    MidiInWinMM *data = (MidiInWinMM *)instancePtr;
+    WinMidiData *apiData = static_cast<WinMidiData *> (data->apiData_);
 
-  //MidiInApi::MidiInData *data = static_cast<MidiInApi::MidiInData *> (instancePtr);
-  MidiInApi::MidiInData *data = (MidiInApi::MidiInData *)instancePtr;
-  WinMidiData *apiData = static_cast<WinMidiData *> (data->apiData);
+    // Calculate time stamp.
+    if ( data->firstMessage == true ) {
+      apiData->message.timeStamp = 0.0;
+      data->firstMessage = false;
+    }
+    else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
+    apiData->lastTime = timestamp;
 
-  // Calculate time stamp.
-  if ( data->firstMessage == true ) {
-    apiData->message.timeStamp = 0.0;
-    data->firstMessage = false;
+    if ( inputStatus == MIM_DATA ) { // Channel or system message
+
+      // Make sure the first byte is a status byte.
+      unsigned char status = (unsigned char) (midiMessage & 0x000000FF);
+      if ( !(status & 0x80) ) return;
+
+      // Determine the number of bytes in the MIDI message.
+      unsigned short nBytes = 1;
+      if ( status < 0xC0 ) nBytes = 3;
+      else if ( status < 0xE0 ) nBytes = 2;
+      else if ( status < 0xF0 ) nBytes = 3;
+      else if ( status == 0xF1 ) {
+	if ( data->ignoreFlags & 0x02 ) return;
+	else nBytes = 2;
+      }
+      else if ( status == 0xF2 ) nBytes = 3;
+      else if ( status == 0xF3 ) nBytes = 2;
+      else if ( status == 0xF8 && (data->ignoreFlags & 0x02) ) {
+	// A MIDI timing tick message and we're ignoring it.
+	return;
+      }
+      else if ( status == 0xFE && (data->ignoreFlags & 0x04) ) {
+	// A MIDI active sensing message and we're ignoring it.
+	return;
+      }
+
+      // Copy bytes to our MIDI message.
+      unsigned char *ptr = (unsigned char *) &midiMessage;
+      for ( int i=0; i<nBytes; ++i ) apiData->message.bytes.push_back( *ptr++ );
+    }
+    else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
+      MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
+      if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
+	// Sysex message and we're not ignoring it
+	for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
+	  apiData->message.bytes.push_back( sysex->lpData[i] );
+      }
+
+      // The WinMM API requires that the sysex buffer be requeued after
+      // input of each sysex message.  Even if we are ignoring sysex
+      // messages, we still need to requeue the buffer in case the user
+      // decides to not ignore sysex messages in the future.  However,
+      // it seems that WinMM calls this function with an empty sysex
+      // buffer when an application closes and in this case, we should
+      // avoid requeueing it, else the computer suddenly reboots after
+      // one or two minutes.
+      if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
+	//if ( sysex->dwBytesRecorded > 0 ) {
+	EnterCriticalSection( &(apiData->_mutex) );
+	MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
+	LeaveCriticalSection( &(apiData->_mutex) );
+	if ( result != MMSYSERR_NOERROR ){
+	  try {
+	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
+				     Error::WARNING));
+	  } catch (Error e) {
+	    // don't bother WinMM with an unhandled exception
+	  }
+	}
+
+	if ( data->ignoreFlags & 0x01 ) return;
+      }
+      else return;
+    }
+
+    if ( data->userCallback ) {
+      data->userCallback->rtmidi_midi_in( apiData->message.timeStamp, &apiData->message.bytes );
+    }
+    else {
+      // As long as we haven't reached our queue size limit, push the message.
+      if ( data->queue.size < data->queue.ringSize ) {
+	data->queue.ring[data->queue.back++] = apiData->message;
+	if ( data->queue.back == data->queue.ringSize )
+	  data->queue.back = 0;
+	data->queue.size++;
+      }
+      else {
+	try {
+	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+				   Error::WARNING));
+	} catch (Error e) {
+	  // don't bother WinMM with an unhandled exception
+	}
+      }
+    }
+
+    // Clear the vector for the next input message.
+    apiData->message.bytes.clear();
   }
-  else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
-  apiData->lastTime = timestamp;
-
-  if ( inputStatus == MIM_DATA ) { // Channel or system message
-
-    // Make sure the first byte is a status byte.
-    unsigned char status = (unsigned char) (midiMessage & 0x000000FF);
-    if ( !(status & 0x80) ) return;
-
-    // Determine the number of bytes in the MIDI message.
-    unsigned short nBytes = 1;
-    if ( status < 0xC0 ) nBytes = 3;
-    else if ( status < 0xE0 ) nBytes = 2;
-    else if ( status < 0xF0 ) nBytes = 3;
-    else if ( status == 0xF1 ) {
-      if ( data->ignoreFlags & 0x02 ) return;
-      else nBytes = 2;
-    }
-    else if ( status == 0xF2 ) nBytes = 3;
-    else if ( status == 0xF3 ) nBytes = 2;
-    else if ( status == 0xF8 && (data->ignoreFlags & 0x02) ) {
-      // A MIDI timing tick message and we're ignoring it.
-      return;
-    }
-    else if ( status == 0xFE && (data->ignoreFlags & 0x04) ) {
-      // A MIDI active sensing message and we're ignoring it.
-      return;
-    }
-
-    // Copy bytes to our MIDI message.
-    unsigned char *ptr = (unsigned char *) &midiMessage;
-    for ( int i=0; i<nBytes; ++i ) apiData->message.bytes.push_back( *ptr++ );
-  }
-  else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
-    MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
-    if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
-      // Sysex message and we're not ignoring it
-      for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-	apiData->message.bytes.push_back( sysex->lpData[i] );
-    }
-
-    // The WinMM API requires that the sysex buffer be requeued after
-    // input of each sysex message.  Even if we are ignoring sysex
-    // messages, we still need to requeue the buffer in case the user
-    // decides to not ignore sysex messages in the future.  However,
-    // it seems that WinMM calls this function with an empty sysex
-    // buffer when an application closes and in this case, we should
-    // avoid requeueing it, else the computer suddenly reboots after
-    // one or two minutes.
-    if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-      //if ( sysex->dwBytesRecorded > 0 ) {
-      EnterCriticalSection( &(apiData->_mutex) );
-      MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-      LeaveCriticalSection( &(apiData->_mutex) );
-      if ( result != MMSYSERR_NOERROR )
-	std::cerr << "\nMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
-
-      if ( data->ignoreFlags & 0x01 ) return;
-    }
-    else return;
-  }
-
-  if ( data->usingCallback ) {
-    MidiCallback callback = (MidiCallback) data->userCallback;
-    callback( apiData->message.timeStamp, &apiData->message.bytes, data->userData );
-  }
-  else {
-    // As long as we haven't reached our queue size limit, push the message.
-    if ( data->queue.size < data->queue.ringSize ) {
-      data->queue.ring[data->queue.back++] = apiData->message;
-      if ( data->queue.back == data->queue.ringSize )
-	data->queue.back = 0;
-      data->queue.size++;
-    }
-    else
-      std::cerr << "\nMidiIn: message queue limit reached!!\n\n";
-  }
-
-  // Clear the vector for the next input message.
-  apiData->message.bytes.clear();
-}
+};
+#undef RTMIDI_CLASSNAME
 
 #define RTMIDI_CLASSNAME "MidiInWinMM"
 MidiInWinMM :: MidiInWinMM( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
@@ -4143,8 +4180,8 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
   MMRESULT result = midiInOpen( &data->inHandle,
 				portNumber,
-				(DWORD_PTR)&midiInputCallback,
-				(DWORD_PTR)&inputData_,
+				(DWORD_PTR)&WinMMCallbacks::midiInputCallback,
+				(DWORD_PTR)this,
 				CALLBACK_FUNCTION );
   if ( result != MMSYSERR_NOERROR ) {
     error(RTMIDI_ERROR(gettext_noopt("Error creating Windows MM MIDI input port."),
@@ -4340,7 +4377,6 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
   return stringName;
 }
 #undef RTMIDI_CLASSNAME
-
 
 
 //*********************************************************************//
@@ -4638,8 +4674,10 @@ NAMESPACE_RTMIDI_END
 NAMESPACE_RTMIDI_START
 
 struct JackMidiData;
-static int jackProcessIn( jack_nframes_t nframes, void *arg );
-static int jackProcessOut( jack_nframes_t nframes, void *arg );
+struct JackBackendCallbacks {
+  static int jackProcessIn( jack_nframes_t nframes, void *arg );
+  static int jackProcessOut( jack_nframes_t nframes, void *arg );
+};
 
 template <int locking=1>
 class JackSequencer {
@@ -4836,10 +4874,10 @@ protected:
       }
 
       if (isoutput && data) {
-	jack_set_process_callback( client, jackProcessOut, data );
+	jack_set_process_callback( c, JackBackendCallbacks::jackProcessOut, data );
       } else if (data)
-	jack_set_process_callback( client, jackProcessIn, data );
-      jack_activate( client );
+	jack_set_process_callback( c, JackBackendCallbacks::jackProcessIn, data );
+      jack_activate( c );
     }
   }
 };
@@ -5056,6 +5094,7 @@ struct JackMidiData:public JackPortDescriptor {
 
   operator jack_port_t * () const { return port; }
 };
+#undef RTMIDI_CLASSNAME
 
 
 
@@ -5064,10 +5103,11 @@ struct JackMidiData:public JackPortDescriptor {
 //  Class Definitions: MidiInJack
 //*********************************************************************//
 
-static int jackProcessIn( jack_nframes_t nframes, void *arg )
+#define RTMIDI_CLASSNAME "JackBackendCallbacks"
+int JackBackendCallbacks::jackProcessIn( jack_nframes_t nframes, void *arg )
 {
   JackMidiData *jData = (JackMidiData *) arg;
-  MidiInApi :: MidiInData *rtData = jData->rtMidiIn;
+  MidiInJack *rtData = jData->rtMidiIn;
   jack_midi_event_t event;
   jack_time_t time;
 
@@ -5096,9 +5136,8 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
     jData->lastTime = time;
 
     if ( !rtData->continueSysex ) {
-      if ( rtData->usingCallback ) {
-	MidiCallback callback = (MidiCallback) rtData->userCallback;
-	callback( message.timeStamp, &message.bytes, rtData->userData );
+      if ( rtData->userCallback ) {
+	rtData->userCallback->rtmidi_midi_in( message.timeStamp, &message.bytes);
       }
       else {
 	// As long as we haven't reached our queue size limit, push the message.
@@ -5117,6 +5156,69 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
   return 0;
 }
 
+// Jack process callback
+int JackBackendCallbacks::jackProcessOut( jack_nframes_t nframes, void *arg )
+{
+  JackMidiData *data = (JackMidiData *) arg;
+  jack_midi_data_t *midiData;
+  int space;
+
+  // Is port created?
+  if ( data->local == NULL ) return 0;
+
+  void *buff = jack_port_get_buffer( data->local, nframes );
+  if (buff != NULL) {
+    jack_midi_clear_buffer( buff );
+
+    while ( jack_ringbuffer_read_space( data->buffSize ) > 0 ) {
+      jack_ringbuffer_read( data->buffSize, (char *) &space, (size_t) sizeof(space) );
+      midiData = jack_midi_event_reserve( buff, 0, space );
+
+      jack_ringbuffer_read( data->buffMessage, (char *) midiData, (size_t) space );
+    }
+  }
+
+  switch (data->stateflags) {
+  case JackMidiData::RUNNING: break;
+  case JackMidiData::CLOSING:
+    if (data->state_response != JackMidiData::CLOSING2) {
+      /* output the transferred data */
+      data->state_response = JackMidiData::CLOSING2;
+      return 0;
+    }
+    if ( data->local == NULL ) break;
+    jack_port_unregister( *(data->seq), data->local );
+    data->local = NULL;
+    data->state_response = JackMidiData::CLOSED;
+    break;
+
+  case JackMidiData::DELETING:
+#if defined(__RTMIDI_DEBUG__)
+    std::cerr << "deleting port" << std::endl;
+#endif
+    if (data->state_response != JackMidiData::DELETING2) {
+      data->state_response = JackMidiData::DELETING2;
+      /* output the transferred data */
+      return 0;
+    }
+
+    if (data->local != NULL && data->state_response != JackMidiData::DELETING2) {
+      data->stateflags = JackMidiData::CLOSING;
+      jack_port_unregister( *(data->seq), data->local );
+      data->local = NULL;
+      data->state_response = JackMidiData::DELETING2;
+      return 0;
+    }
+    delete data;
+#if defined(__RTMIDI_DEBUG__)
+    std::cerr << "deleted port" << std::endl;
+#endif
+    break;
+  }
+
+  return 0;
+}
+#undef RTMIDI_CLASSNAME
 MidiInJack :: MidiInJack( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
   initialize( clientName );
@@ -5344,68 +5446,6 @@ void MidiInJack :: closePort()
 //  Class Definitions: MidiOutJack
 //*********************************************************************//
 
-// Jack process callback
-static int jackProcessOut( jack_nframes_t nframes, void *arg )
-{
-  JackMidiData *data = (JackMidiData *) arg;
-  jack_midi_data_t *midiData;
-  int space;
-
-  // Is port created?
-  if ( data->local == NULL ) return 0;
-
-  void *buff = jack_port_get_buffer( data->local, nframes );
-  if (buff != NULL) {
-    jack_midi_clear_buffer( buff );
-
-    while ( jack_ringbuffer_read_space( data->buffSize ) > 0 ) {
-      jack_ringbuffer_read( data->buffSize, (char *) &space, (size_t) sizeof(space) );
-      midiData = jack_midi_event_reserve( buff, 0, space );
-
-      jack_ringbuffer_read( data->buffMessage, (char *) midiData, (size_t) space );
-    }
-  }
-
-  switch (data->stateflags) {
-  case JackMidiData::RUNNING: break;
-  case JackMidiData::CLOSING:
-    if (data->state_response != JackMidiData::CLOSING2) {
-      /* output the transferred data */
-      data->state_response = JackMidiData::CLOSING2;
-      return 0;
-    }
-    if ( data->local == NULL ) break;
-    jack_port_unregister( *(data->seq), data->local );
-    data->local = NULL;
-    data->state_response = JackMidiData::CLOSED;
-    break;
-
-  case JackMidiData::DELETING:
-#if defined(__RTMIDI_DEBUG__)
-    std::cerr << "deleting port" << std::endl;
-#endif
-    if (data->state_response != JackMidiData::DELETING2) {
-      data->state_response = JackMidiData::DELETING2;
-      /* output the transferred data */
-      return 0;
-    }
-
-    if (data->local != NULL && data->state_response != JackMidiData::DELETING2) {
-      data->stateflags = JackMidiData::CLOSING;
-      jack_port_unregister( *(data->seq), data->local );
-      data->local = NULL;
-      data->state_response = JackMidiData::DELETING2;
-      return 0;
-    }
-    delete data;
-#if defined(__RTMIDI_DEBUG__)
-    std::cerr << "deleted port" << std::endl;
-#endif
-    break;
-  }
-
-  return 0;
-}
 
 MidiOutJack :: MidiOutJack( const std::string clientName ) : MidiOutApi()
 {

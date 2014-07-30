@@ -217,7 +217,7 @@ public:
   //! Prints thrown error message to stderr.
   virtual void printMessage( std::ostream &s = std::cerr ) const throw() {
     s << std::endl
-      << file << ":" << line << ": in function"
+      << file << ":" << line << ": in function "
       << classname << "::" << function << std::endl
       << message_ << std::endl << std::endl;
   }
@@ -379,7 +379,7 @@ public:
     UNIQUE_NAME = 0x10, /*!< Make all names uniqe. This
 			  is usually done by adding
 			  numbers to the end of the
-			  string \note: use #undef UNIQUE_NAME 
+			  string \note: use #undef UNIQUE_NAME
 			  on windows in case of any errors */
     INCLUDE_API = 0x20 /*!< Add a string describing the
 			 API at the beginning of the
@@ -613,6 +613,22 @@ public:
   virtual ApiType getCurrentApi( void ) throw() = 0;
 
   //! A basic error reporting function for RtMidi classes.
+  /*!  This function hanles errors end warnings that
+    occur during runtime of RtMidi. If an error callback
+    has been set the function calls the callback and
+    returns quietly assuming the callback handled the
+    case correctly.
+
+    Otherwise it depends on the type of the error. If it
+    is a warning, a message is displayed to
+    std::cerr. If it is an error the object is thrown as
+    an exception.
+
+    \param e Error/Warning object describing the current
+    situation.
+
+    \throw Error
+  */
   void error( Error e );
 
 protected:
@@ -1546,8 +1562,8 @@ class MidiInDummy: public MidiInApi
 public:
   MidiInDummy( const std::string /*clientName*/, unsigned int queueSizeLimit )
     : MidiInApi( queueSizeLimit ) {
-    errorString_ = "MidiInDummy: This class provides no functionality.";
-    error( Error::WARNING, errorString_ );
+    error( RTMIDI_ERROR(_("MidiInDummy: This class provides no functionality."),
+			Error::WARNING) );
   }
   ApiType getCurrentApi( void ) { return RTMIDI_DUMMY; }
   bool hasVirtualPorts() const { return false; }
@@ -1568,8 +1584,8 @@ class MidiOutDummy: public MidiOutApi
 {
 public:
   MidiOutDummy( const std::string /*clientName*/ ) {
-    errorString_ = "MidiOutDummy: This class provides no functionality.";
-    error( Error::WARNING, errorString_ );
+    error( RTMIDI_ERROR(_("MidiInDummy: This class provides no functionality."),
+			Error::WARNING) );
   }
   ApiType getCurrentApi( void ) { return RTMIDI_DUMMY; }
   bool hasVirtualPorts() const { return false; }

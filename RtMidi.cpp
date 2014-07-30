@@ -365,8 +365,8 @@ MidiOut :: MidiOut( ApiType api, const std::string clientName, bool pfsystem )
 
     // No compiled support for specified API value.  Issue a warning
     // and continue as if no API was specified.
-    throw RTMIDI_ERROR(gettext_noopt("Support for the selected MIDI system %d has not been compiled into the RtMidi library."),
-		       Error::INVALID_PARAMETER, api);
+    throw RTMIDI_ERROR1(gettext_noopt("Support for the selected MIDI system %d has not been compiled into the RtMidi library."),
+			Error::INVALID_PARAMETER, api);
   }
 
   // Iterate through the compiled APIs and return as soon as we find
@@ -3371,14 +3371,13 @@ void MidiOutAlsa :: initialize( const std::string& clientName )
   snd_seq_t *seq;
   int result1 = snd_seq_open( &seq, "default", SND_SEQ_OPEN_OUTPUT, SND_SEQ_NONBLOCK );
   if ( result1 < 0 ) {
-    errorString_ = "MidiOutAlsa::initialize: error creating ALSA sequencer client object.";
-    error(RTMIDI_ERROR(gettext_noopt(""),
-		       Error::DRIVER_ERROR, errorString_ ));
-    return;
-  }
+    error(RTMIDI_ERROR(gettext_noopt("Error creating ALSA sequencer client object."),
+		       Error::DRIVER_ERROR, errorString_ );
+	  return;
+	  }
 
-  // Set client name.
-  snd_seq_set_client_name( seq, clientName.c_str() );
+      // Set client name.
+      snd_seq_set_client_name( seq, clientName.c_str() );
 #endif
 
   // Save our api-specific connection information.
@@ -4861,7 +4860,7 @@ protected:
 				       JackNoStartServer,
 				       NULL )) == 0) {
 	throw RTMIDI_ERROR(gettext_noopt("Could not connect to JACK server. Is it runnig?"),
-			   Error::WARNING);
+			   Error::NO_DEVICES_FOUND);
 	return;
       }
 
@@ -4964,7 +4963,6 @@ PortList JackPortDescriptor :: getPortList(int capabilities, const std::string &
   jack_free(ports);
   return list;
 }
-
 /*! A structure to hold variables related to the JACK API
   implementation.
 
@@ -5218,7 +5216,7 @@ MidiInJack :: MidiInJack( const std::string clientName, unsigned int queueSizeLi
 
 void MidiInJack :: initialize( const std::string& clientName )
 {
-  JackMidiData *data = new JackMidiData(clientName,inputData_);
+  JackMidiData *data = new JackMidiData(clientName,this);
   apiData_ = (void *) data;
   this->clientName = clientName;
   try {

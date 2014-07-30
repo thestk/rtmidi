@@ -13,12 +13,14 @@ noinst_PROGRAMS = \
 	cmidiin2 \
 	qmidiin2 \
 	midiout2 \
-	loopback
+	loopback \
+	errors
 
 TESTS = \
 	midiprobe \
 	midiprobe2 \
-	midiprobe-all
+	midiprobe-all \
+	errors
 
 if HAVE_VIRTUAL_DEVICES
 TESTS += loopback
@@ -26,14 +28,15 @@ endif
 
 
 
-midiprobe_SOURCES = midiprobe.cpp
-midiout_SOURCES = midiout.cpp
-qmidiin_SOURCES = qmidiin.cpp
-cmidiin_SOURCES = cmidiin.cpp
-sysextest_SOURCES = sysextest.cpp
-midiprobe2_SOURCES = midiprobe2.cpp
+midiprobe_SOURCES     = midiprobe.cpp
+midiout_SOURCES       = midiout.cpp
+qmidiin_SOURCES       = qmidiin.cpp
+cmidiin_SOURCES       = cmidiin.cpp
+sysextest_SOURCES     = sysextest.cpp
+midiprobe2_SOURCES    = midiprobe2.cpp
 midiprobe_all_SOURCES = midiprobe-all.cpp
-cmidiin2_SOURCES = cmidiin2.cpp
-qmidiin2_SOURCES = qmidiin2.cpp
-midiout2_SOURCES = midiout2.cpp
-loopback_SOURCES = loopback.cpp
+cmidiin2_SOURCES      = cmidiin2.cpp
+qmidiin2_SOURCES      = qmidiin2.cpp
+midiout2_SOURCES      = midiout2.cpp
+loopback_SOURCES      = loopback.cpp
+errors_SOURCES        = errors.cpp

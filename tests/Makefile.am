@@ -40,3 +40,47 @@ qmidiin2_SOURCES      = qmidiin2.cpp
 midiout2_SOURCES      = midiout2.cpp
 loopback_SOURCES      = loopback.cpp
 errors_SOURCES        = errors.cpp
+
+if COPYDLLS
+check-am: check-dll
+
+check-dll: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
+	$(MAKE) $(AM_MAKEFLAGS)	linkchecks
+
+linkchecks:
+	for d in `echo $(TESTS)| tr ' ' '\n' | grep -i -e '$(EXEEXT)$$'` ; \
+	do \
+		ls -l "$$d" ; \
+		$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$d" DLLEXEDIR="." installdll ; \
+		test -f ".libs/$$d" && \
+			$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE=".libs/$$d" DLLEXEDIR="." installdll ; \
+	done
+
+installdll:
+	@echo 'solving references for $(DLLLINKFILE)... '
+	DLLSEARCHPATH="$(DLLSEARCHPATH)" ; \
+	for d in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '` ; \
+	do \
+		echo -n checking "$$d ... " ; \
+		if [ ! -f $(DLLEXEDIR)/$$d ] ; then \
+			echo -n "searching... " ; \
+			f=`( find $$DLLSEARCHPATH -name "$$d" || \
+			find $$DLLSEARCHPATH -name "$$d.*")|head -n 1` ; \
+			if test -f "$$f" ; \
+			then \
+				echo "installing $$f " ; \
+				$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$f" "`pwd`/$(DLLEXEDIR)" ; \
+				case "$$f" in \
+				*.gz)  GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$$f"` >$(DLLEXEDIR)/"$$d" ;; \
+				esac ; \
+				$(MAKE) DLLLINKFILE="$$d" DLLEXEDIR="$(DLLEXEDIR)" installdll ; \
+			else \
+				echo "not found." ; \
+			fi ; \
+		fi ; \
+		echo "done." ;\
+	done ;
+
+endif
+

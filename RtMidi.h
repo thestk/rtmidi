@@ -205,11 +205,11 @@ public:
 
   //! The constructor.
   Error( const char * message,
-	 Type type,
-	 const char * class_name,
-	 const char * function_name,
-	 const char * file_name,
-	 int line_number, ...) throw();
+         Type type,
+         const char * class_name,
+         const char * function_name,
+         const char * file_name,
+         int line_number, ...) throw();
 
   //! The destructor.
   virtual ~Error( void ) throw() {}
@@ -327,8 +327,8 @@ public:
   Pointer & operator = (const Pointer<datatype> & other) {
     if (ptr) {
       if (!(--ptr->count)) {
-	delete ptr->descriptor;
-	delete ptr;
+        delete ptr->descriptor;
+        delete ptr;
       }
     }
     ptr = other.ptr;
@@ -840,10 +840,10 @@ public:
     if (list && !list->empty()) {
       PortList retval;
       for (MidiApiList::iterator i = list->begin();
-	   i != list->end();
-	   ++i) {
-	PortList tmp = (*i)->getPortList(capabilities);
-	retval.splice(retval.end(), tmp);
+           i != list->end();
+           ++i) {
+        PortList tmp = (*i)->getPortList(capabilities);
+        retval.splice(retval.end(), tmp);
       }
       return retval;
     }
@@ -1072,8 +1072,8 @@ public:
       std::vector< ApiType > apis;
       getCompiledApi( apis );
       for (size_t i = 0 ; i < apis.size() ; i++) {
-	openMidiApi( apis[0] );
-	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+        openMidiApi( apis[0] );
+        if (rtapi_ && rtapi_->hasVirtualPorts()) break;
       }
     }
 
@@ -1301,8 +1301,8 @@ public:
       std::vector< ApiType > apis;
       getCompiledApi( apis );
       for (size_t i = 0 ; i < apis.size() ; i++) {
-	openMidiApi( apis[0] );
-	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+        openMidiApi( apis[0] );
+        if (rtapi_ && rtapi_->hasVirtualPorts()) break;
       }
     }
 
@@ -1366,6 +1366,9 @@ protected:
 #endif
 
 #if defined(__MACOSX_CORE__)
+NAMESPACE_RTMIDI_END
+struct MIDIPacketList;
+NAMESPACE_RTMIDI_START
 
 class MidiInCore: public MidiInApi
 {
@@ -1384,6 +1387,9 @@ public:
   std::string getPortName( unsigned int portNumber );
 
 protected:
+  static void MidiInCore::midiInputCallback( const MIDIPacketList *list,
+					     void *procRef,
+					     void */*srcRef*/) throw();
   void initialize( const std::string& clientName );
 };
 

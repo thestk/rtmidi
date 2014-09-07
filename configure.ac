@@ -227,6 +227,22 @@ return jack_port_uuid(NULL);
     AC_MSG_RESULT(using WinMM)
     AC_SUBST( LIBS, [-lwinmm] )
   fi
+
+  AC_CACHE_CHECK([where to find support dlls], [ac_cv_mingw_dll_dirs],
+  [
+       gccsearchdirs=`$CXX $CXXFLAGS -print-search-dirs|\
+			sed -e '/^libraries:/ { s/^libraries: *=\?//;s/:/ /g; p } ; d'`
+       SEARCHDIRS=""
+       for d in $gccsearchdirs /usr/share/doc/mingw32-runtime /mingw/lib /mingw/bin  /usr/lib /lib /usr/bin /bin
+       do
+	  AS_IF(test -d $d,
+	  [ SEARCHDIRS="$SEARCHDIRS $d" ])
+       done
+       ac_cv_mingw_dll_dirs="$SEARCHDIRS"
+  ])
+
+  AC_SUBST(DLLSEARCHPATH,"$ac_cv_mingw_dll_dirs")
+
   ;;
 
   *)
@@ -234,6 +250,7 @@ return jack_port_uuid(NULL);
   AC_MSG_ERROR(Unknown system type for MIDI support!)
   ;;
 esac
+AM_CONDITIONAL(COPYDLLS,test -n "$DLLSEARCHPATH")
 AM_CONDITIONAL(HAVE_VIRTUAL_DEVICES,test "$have_virtual_devices" == yes)
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.18])

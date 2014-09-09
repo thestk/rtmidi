@@ -735,17 +735,6 @@ typedef std::list <MidiApiPtr> MidiApiList;
 class Midi {
 public:
   typedef rtmidi::ApiType Api;
-  //! defined for compatibility
-  enum Api2 {
-    UNSPECIFIED  = rtmidi::UNSPECIFIED,
-    MACOSX_CORE  = rtmidi::MACOSX_CORE,
-    LINUX_ALSA   = rtmidi::LINUX_ALSA,
-    UNIX_JACK    = rtmidi::UNIX_JACK,
-    WINDOWS_MM   = rtmidi::WINDOWS_MM,
-    WINDOWS_KS   = rtmidi::WINDOWS_KS,
-    RTMIDI_DUMMY = rtmidi::DUMMY
-  };
-
 
   //! A static function to determine the current RtMidi version.
   static std::string getVersion( void ) throw();
@@ -1615,8 +1604,31 @@ protected:
 
 NAMESPACE_RTMIDI_END
 
-typedef rtmidi::Midi    RtMidi;
-typedef rtmidi::MidiIn  RtMidiIn;
-typedef rtmidi::MidiOut RtMidiOut;
+class   RtMidi: public  rtmidi::Midi {
+public:
+	enum Api {
+		UNSPECIFIED  = rtmidi::UNSPECIFIED,
+		MACOSX_CORE  = rtmidi::MACOSX_CORE,
+		LINUX_ALSA   = rtmidi::LINUX_ALSA,
+		UNIX_JACK    = rtmidi::UNIX_JACK,
+		WINDOWS_MM   = rtmidi::WINDOWS_MM,
+		RTMIDI_DUMMY = rtmidi::DUMMY
+	};
+};
+
+class RtMidiIn: public rtmidi::MidiIn {
+public:
+	RTMIDI_DEPRECATED(RtMidiIn( RtMidi::Api api = RtMidi::UNSPECIFIED,
+				     const std::string clientName = std::string( "RtMidi Input Client"))):
+	MidiIn((rtmidi::ApiType)api,
+		clientName) {}
+};
+class RtMidiOut: public rtmidi::MidiOut {
+public:
+	RTMIDI_DEPRECATED(RtMidiOut( RtMidi::Api api = RtMidi::UNSPECIFIED,
+				   const std::string clientName = std::string( "RtMidi Output Client"))):
+	MidiOut((rtmidi::ApiType)api,
+		clientName) {}
+};
 typedef rtmidi::Error   RtMidiError;
 #endif

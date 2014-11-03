@@ -412,8 +412,6 @@ The Windows Multimedia library MIDI calls used in RtMidi do not make use of stre
 
 RtMidi was originally developed with Visual C++ version 6.0 but has been tested with Virtual Studio 2010.
 
-The \c configure script provides support for the MinGW compiler.
-
 \section acknowledge Development & Acknowledgements
 
 RtMidi is on github (https://github.com/thestk/rtmidi).  Many thanks to the developers that are helping to maintain and improve RtMidi.

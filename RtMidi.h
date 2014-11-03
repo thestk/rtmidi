@@ -460,6 +460,7 @@ protected:
   bool connected_;
   std::string errorString_;
   RtMidiErrorCallback errorCallback_;
+  bool firstErrorOccurred_;
   void *errorCallbackUserData_;
 };
 

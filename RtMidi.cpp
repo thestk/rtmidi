@@ -241,16 +241,15 @@ void MidiApi :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userD
 void MidiApi :: error( RtMidiError::Type type, std::string errorString )
 {
   if ( errorCallback_ ) {
-    static bool firstErrorOccured = false;
 
-    if ( firstErrorOccured )
+    if ( firstErrorOccured_ )
       return;
 
-    firstErrorOccured = true;
+    firstErrorOccured_ = true;
     const std::string errorMessage = errorString;
 
     errorCallback_( type, errorMessage, errorCallbackUserData_);
-    firstErrorOccured = false;
+    firstErrorOccured_ = false;
     return;
   }
 
@@ -1472,6 +1471,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
   snd_seq_addr_t sender, receiver;
   sender.client = snd_seq_port_info_get_client( src_pinfo );
   sender.port = snd_seq_port_info_get_port( src_pinfo );
+  receiver.client = snd_seq_client_id( data->seq );
 
   snd_seq_port_info_t *pinfo;
   snd_seq_port_info_alloca( &pinfo );
@@ -1501,7 +1501,6 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string portName
     data->vport = snd_seq_port_info_get_port(pinfo);
   }
 
-  receiver.client = snd_seq_port_info_get_client( pinfo );
   receiver.port = data->vport;
 
   if ( !data->subscription ) {
@@ -2262,6 +2261,14 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
 #else
   stringName = std::string( deviceCaps.szPname );
 #endif
+
+  // Next lines added to add the portNumber to the name so that 
+  // the device's names are sure to be listed with individual names
+  // even when they have the same brand name
+  std::ostringstream os;
+  os << " ";
+  os << portNumber;
+  stringName += os.str();
 
   return stringName;
 }

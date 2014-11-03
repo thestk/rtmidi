@@ -1007,62 +1007,29 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
     return;
   }
 
-  //  unsigned int packetBytes, bytesLeft = nBytes;
-  //  unsigned int messageIndex = 0;
   MIDITimeStamp timeStamp = AudioGetCurrentHostTime();
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
 
-  ///*
-  // It would be nice if the following "special-case" code for sysex
-  // messages longer than 1024 bytes wasn't necessary.  In fact, we
-  // can send sysex messages through the normal messaging mechanism.
-  // However, that does not work for messages greater than 1024
-  // bytes. From a previous note, there may be a problem of virtual
-  // ports not receiving sysex messages when using this section of
-  // code.
-
-  if ( message->at(0) == 0xF0 && nBytes > 1022 ) {
-
-    // Apple's fantastic API requires us to free the allocated data in
-    // the completion callback but trashes the pointer and size before
-    // we get a chance to free it!!  This is a somewhat ugly hack
-    // submitted by ptarabbia that puts the sysex buffer data right at
-    // the end of the MIDISysexSendRequest structure.  This solution
-    // does not require that we wait for a previous sysex buffer to be
-    // sent before sending a new one, which was the old way we did it.
-    MIDISysexSendRequest *newRequest = (MIDISysexSendRequest *) malloc(sizeof(struct MIDISysexSendRequest) + nBytes);
-    char * sysexBuffer = ((char *) newRequest) + sizeof(struct MIDISysexSendRequest);
-
-    // Copy data to buffer.
-    for ( unsigned int i=0; i<nBytes; ++i ) sysexBuffer[i] = message->at(i);
-
-    newRequest->destination = data->destinationId;
-    newRequest->data = (Byte *)sysexBuffer;
-    newRequest->bytesToSend = nBytes;
-    newRequest->complete = 0;
-    newRequest->completionProc = sysexCompletionProc;
-    newRequest->completionRefCon = newRequest;
-
-    result = MIDISendSysex(newRequest);
-    if ( result != noErr ) {
-      free( newRequest );
-      errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
-      error( RtMidiError::WARNING, errorString_ );
-      return;
-    }
-    return;
-  }
-  else if ( message->at(0) != 0xF0 && nBytes > 3 ) {
+  if ( message->at(0) != 0xF0 && nBytes > 3 ) {
     errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
     error( RtMidiError::WARNING, errorString_ );
     return;
   }
-  //*/
 
-  MIDIPacketList packetList;
-  MIDIPacket *packet = MIDIPacketListInit( &packetList );
-  packet = MIDIPacketListAdd( &packetList, sizeof(packetList), packet, timeStamp, nBytes, (const Byte *) &message->at( 0 ) );
+  Byte buffer[nBytes+(sizeof(MIDIPacketList))];
+  ByteCount listSize = sizeof(buffer);
+  MIDIPacketList *packetList = (MIDIPacketList*)buffer;
+  MIDIPacket *packet = MIDIPacketListInit( packetList );
+
+  ByteCount remainingBytes = nBytes;
+  while (remainingBytes && packet) {
+    ByteCount bytesForPacket = remainingBytes > 65535 ? 65535 : remainingBytes; // 65535 = maximum size of a MIDIPacket
+    const Byte* dataStartPtr = (const Byte *) &message->at( nBytes - remainingBytes );
+    packet = MIDIPacketListAdd( packetList, listSize, packet, timeStamp, bytesForPacket, dataStartPtr);
+    remainingBytes -= bytesForPacket; 
+  }
+
   if ( !packet ) {
     errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";      
     error( RtMidiError::DRIVER_ERROR, errorString_ );
@@ -1071,7 +1038,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 
   // Send to any destinations that may have connected to us.
   if ( data->endpoint ) {
-    result = MIDIReceived( data->endpoint, &packetList );
+    result = MIDIReceived( data->endpoint, packetList );
     if ( result != noErr ) {
       errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
       error( RtMidiError::WARNING, errorString_ );
@@ -1080,7 +1047,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
 
   // And send to an explicit destination port if we're connected.
   if ( connected_ ) {
-    result = MIDISend( data->port, data->destinationId, &packetList );
+    result = MIDISend( data->port, data->destinationId, packetList );
     if ( result != noErr ) {
       errorString_ = "MidiOutCore::sendMessage: error sending MIDI message to port.";
       error( RtMidiError::WARNING, errorString_ );

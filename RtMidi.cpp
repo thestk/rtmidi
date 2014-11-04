@@ -242,14 +242,14 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
 {
   if ( errorCallback_ ) {
 
-    if ( firstErrorOccured_ )
+    if ( firstErrorOccurred_ )
       return;
 
-    firstErrorOccured_ = true;
+    firstErrorOccurred_ = true;
     const std::string errorMessage = errorString;
 
     errorCallback_( type, errorMessage, errorCallbackUserData_);
-    firstErrorOccured_ = false;
+    firstErrorOccurred_ = false;
     return;
   }
 
@@ -986,13 +986,6 @@ void MidiOutCore :: openVirtualPort( std::string portName )
 
   // Save our api-specific connection information.
   data->endpoint = endpoint;
-}
-
-// Not necessary if we don't treat sysex messages any differently than
-// normal messages ... see below.
-static void sysexCompletionProc( MIDISysexSendRequest *sreq )
-{
-  free( sreq );
 }
 
 void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )

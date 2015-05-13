@@ -2678,6 +2678,10 @@ void MidiOutJack :: connect()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   if ( data->client )
     return;
+  
+  // Initialize output ringbuffers  
+  data->buffSize = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
+  data->buffMessage = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
 
   // Initialize JACK client
   if (( data->client = jack_client_open( clientName.c_str(), JackNoStartServer, NULL )) == 0) {
@@ -2687,8 +2691,6 @@ void MidiOutJack :: connect()
   }
 
   jack_set_process_callback( data->client, jackProcessOut, data );
-  data->buffSize = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
-  data->buffMessage = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
   jack_activate( data->client );
 }
 
@@ -2696,12 +2698,12 @@ MidiOutJack :: ~MidiOutJack()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   closePort();
-
+  
+  // Cleanup
+  jack_ringbuffer_free( data->buffSize );
+  jack_ringbuffer_free( data->buffMessage );
   if ( data->client ) {
-    // Cleanup
     jack_client_close( data->client );
-    jack_ringbuffer_free( data->buffSize );
-    jack_ringbuffer_free( data->buffMessage );
   }
 
   delete data;

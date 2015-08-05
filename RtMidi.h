@@ -40,6 +40,8 @@
   \file RtMidi.h
  */
 
+#define __WINDOWS_MM__
+
 #ifndef RTMIDI_H
 #define RTMIDI_H
 
@@ -49,6 +51,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <mutex>
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -492,7 +495,7 @@ class MidiInApi : public MidiApi
     unsigned int size;
     unsigned int ringSize;
     MidiMessage *ring;
-
+	std::mutex _mutex;
     // Default constructor.
   MidiQueue()
   :front(0), back(0), size(0), ringSize(0) {}

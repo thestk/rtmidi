@@ -340,7 +340,7 @@ protected:
 };
 #else
 template<class T>
-typedef std::shared_ptr<T> Pointer;
+using Pointer = std::shared_ptr<T>;
 #endif
 
 class MidiApi;

@@ -55,7 +55,7 @@
 #endif
 
 // Check for C++11 support
-#ifdef _MSC_VER && _MSC_VER >= 1800
+#if defined(_MSC_VER) && _MSC_VER >= 1800
 // At least Visual Studio 2013
 #define RTMIDI_SUPPORTS_CPP11 1
 #elif __cplusplus >= 201103L

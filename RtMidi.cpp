@@ -3709,19 +3709,19 @@ Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor(bool local)
   try {
     if (local) {
       if (data && data->local.client) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new AlsaPortDescriptor(data->local, data->getClientName()));
       }
     } else {
       if (data && data->client) {
-        return Pointer<PortDescriptor>(
-				       new AlsaPortDescriptor(*data, data->getClientName())));
+	return Pointer<PortDescriptor>(
+				       new AlsaPortDescriptor(*data, data->getClientName()));
+      }
     }
+  } catch (Error e) {
+    error(e);
   }
-} catch (Error e) {
-  error(e);
- }
-return NULL;
+  return NULL;
 }
 PortList MidiOutAlsa :: getPortList(int capabilities)
 {

@@ -4,6 +4,12 @@
 #ifndef RTMIDI_C_H
 #define RTMIDI_C_H
 
+#if defined(RTMIDI_EXPORT)
+#define RTMIDIAPI __declspec(dllexport)
+#else
+#define RTMIDIAPI //__declspec(dllimport)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,34 +36,34 @@ enum RtMidiErrorType {
 
 typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message, void *userData);
 
-int rtmidi_sizeof_rtmidi_api ();
+RTMIDIAPI int rtmidi_sizeof_rtmidi_api ();
 
 /* RtMidi API */
-int rtmidi_get_compiled_api (enum RtMidiApi **apis); // return length for NULL argument.
-void rtmidi_error (enum RtMidiErrorType type, const char* errorString);
+RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi **apis); // return length for NULL argument.
+RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);
 
-void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName);
-void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName);
-void rtmidi_close_port (RtMidiPtr device);
-unsigned int rtmidi_get_port_count (RtMidiPtr device);
-const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber);
+RTMIDIAPI void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName);
+RTMIDIAPI void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName);
+RTMIDIAPI void rtmidi_close_port (RtMidiPtr device);
+RTMIDIAPI unsigned int rtmidi_get_port_count (RtMidiPtr device);
+RTMIDIAPI const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber);
 
 /* RtMidiIn API */
-RtMidiInPtr rtmidi_in_create_default ();
-RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsigned int queueSizeLimit);
-void rtmidi_in_free (RtMidiInPtr device);
-enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device);
-void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData);
-void rtmidi_in_cancel_callback (RtMidiInPtr device);
-void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense);
-double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message);
+RTMIDIAPI RtMidiInPtr rtmidi_in_create_default ();
+RTMIDIAPI RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsigned int queueSizeLimit);
+RTMIDIAPI void rtmidi_in_free (RtMidiInPtr device);
+RTMIDIAPI enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device);
+RTMIDIAPI void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData);
+RTMIDIAPI void rtmidi_in_cancel_callback (RtMidiInPtr device);
+RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense);
+RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message);
 
 /* RtMidiOut API */
-RtMidiOutPtr rtmidi_out_create_default ();
-RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName);
-void rtmidi_out_free (RtMidiOutPtr device);
-enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device);
-int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length);
+RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default ();
+RTMIDIAPI RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName);
+RTMIDIAPI void rtmidi_out_free (RtMidiOutPtr device);
+RTMIDIAPI enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device);
+RTMIDIAPI int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length);
 
 
 #ifdef __cplusplus

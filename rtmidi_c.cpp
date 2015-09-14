@@ -67,7 +67,7 @@ unsigned int rtmidi_get_port_count (RtMidiPtr device)
 const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber)
 {
 	std::string name = ((RtMidi*) device)->getPortName (portNumber);
-	return name.c_str ();
+	return strdup (name.c_str ());
 }
 
 /* RtMidiIn API */

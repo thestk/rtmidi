@@ -1,5 +1,6 @@
 /config
 /configure
+/doc/html
 Makefile
 Makefile.in
 /aclocal.m4

@@ -46,12 +46,22 @@
 #define RTMIDI_VERSION "3.0.0alpha"
 
 #ifdef __GNUC__
-#define RTMIDI_DEPRECATED(func) func __attribute__ ((deprecated))
+#define RTMIDI_DEPRECATED(func,message) func __attribute__ ((deprecated(message)))
 #elif defined(_MSC_VER)
-#define RTMIDI_DEPRECATED(func) __declspec(deprecated) func
+#define RTMIDI_DEPRECATED(func,message) __declspec(deprecated(message)) func
 #else
-#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
-#define RTMIDI_DEPRECATED(func) func
+#pragma message("WARNING: You need to implement the macro RTMIDI_DEPRECATED for this compiler if this code doesn't compile")
+#define RTMIDI_DEPRECATED(func,message) func [[deprecated(message)]]
+#endif
+
+// Check for C++11 support
+#if defined(_MSC_VER) && _MSC_VER >= 1800
+// At least Visual Studio 2013
+#define RTMIDI_SUPPORTS_CPP11 1
+#elif __cplusplus >= 201103L
+#define RTMIDI_SUPPORTS_CPP11 1
+#else
+#define RTMIDI_SUPPORTS_CPP11 0
 #endif
 
 #include <exception>
@@ -111,20 +121,6 @@ inline std::string getApiName(ApiType type) {
   return "";
 }
 
-//! C style user callback function type definition.
-/*!
-  This interface type has been replaced by a MidiInterface class.
-
-  \param timeStamp  timestamp indicating when the event has been received
-  \param message    a pointer to the binary MIDI message
-  \param userData   a pointer that can be set using setUserdata
-  \sa MidiIn
-  \sa MidiInApi
-  \sa MidiInterface
-  \deprecated
-*/
-typedef void (*MidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData);
-
 //! C++ style user callback interface.
 /*!
   This interface class can be used to implement type safe MIDI callbacks.
@@ -153,6 +149,20 @@ struct MidiInterface {
   */
   virtual void delete_me() {}
 };
+
+//! C style user callback function type definition.
+/*!
+  This interface type has been replaced by a MidiInterface class.
+
+  \param timeStamp  timestamp indicating when the event has been received
+  \param message    a pointer to the binary MIDI message
+  \param userData   a pointer that can be set using setUserdata
+  \sa MidiIn
+  \sa MidiInApi
+  \sa MidiInterface
+  \deprecated
+*/
+RTMIDI_DEPRECATED(typedef void (*MidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData),"RtMidi now provides a class MidiInterface for MIDI callbacks");
 
 //! Compatibility interface to hold a C style callback function
 struct CompatibilityMidiInterface: MidiInterface {
@@ -205,11 +215,11 @@ public:
 
   //! The constructor.
   Error( const char * message,
-	 Type type,
-	 const char * class_name,
-	 const char * function_name,
-	 const char * file_name,
-	 int line_number, ...) throw();
+         Type type,
+         const char * class_name,
+         const char * function_name,
+         const char * file_name,
+         int line_number, ...) throw();
 
   //! The destructor.
   virtual ~Error( void ) throw() {}
@@ -270,7 +280,7 @@ private:
 
 
 
-#if __cplusplus < 201103L
+#if !RTMIDI_SUPPORTS_CPP11
 class PortDescriptor;
 
 template<class T>
@@ -340,7 +350,7 @@ protected:
 };
 #else
 template<class T>
-typedef std::shared_ptr<T> Pointer;
+using Pointer = std::shared_ptr<T>;
 #endif
 
 class MidiApi;
@@ -591,12 +601,6 @@ public:
   */
   bool isPortOpen() const { return connected_; }
 
-  //! Virtual function to set an error callback function to be invoked when an error has occured.
-  /*!
-    The callback function will be called whenever an error has occured. It is best
-    to set the error callback function before opening a port.
-  */
-  RTMIDI_DEPRECATED(virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ));
 
   //! Virtual function to set the error callback object
   /*!
@@ -631,6 +635,13 @@ public:
   */
   void error( Error e );
 
+  //! Virtual function to set an error callback function to be invoked when an error has occured.
+  /*!
+    The callback function will be called whenever an error has occured. It is best
+    to set the error callback function before opening a port.
+  */
+  RTMIDI_DEPRECATED(virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ), "RtMidi now provides a typesafe ErrorInterface class");
+
 protected:
   virtual void initialize( const std::string& clientName ) = 0;
 
@@ -648,18 +659,9 @@ public:
 
   MidiInApi( unsigned int queueSizeLimit );
   virtual ~MidiInApi( void );
-  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ));
   void setCallback( MidiInterface * callback);
   void cancelCallback( void );
   virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
-  RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ))
-  {
-    if (!message) {
-      error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
-			  Error::WARNING ));
-    }
-    return getMessage(*message);
-  }
   double getMessage( std::vector<unsigned char> &message );
 
   // A MIDI structure used internally by the class to store incoming
@@ -685,6 +687,18 @@ public:
       :front(0), back(0), size(0), ringSize(0) {}
   };
 
+  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ),
+		    "RtMidi now provides a type-safe MidiInterface class.");
+  RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ),
+		    "Please, use a C++ style reference to pass the message vector.")
+  {
+    if (!message) {
+      error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
+			  Error::WARNING ));
+    }
+    return getMessage(*message);
+  }
+
 protected:
   // The RtMidiInData structure is used to pass private class data to
   // the MIDI input handling function or thread.
@@ -706,7 +720,9 @@ public:
 
   MidiOutApi( void );
   virtual ~MidiOutApi( void );
-  RTMIDI_DEPRECATED(void sendMessage( std::vector<unsigned char> *message ))
+  virtual void sendMessage( std::vector<unsigned char> &message ) = 0;
+  RTMIDI_DEPRECATED(void sendMessage( std::vector<unsigned char> *message ),
+		    "Please, use a C++ style reference to pass the message vector.")
   {
     if (!message) {
       error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
@@ -714,7 +730,6 @@ public:
     }
     sendMessage(*message);
   }
-  virtual void sendMessage( std::vector<unsigned char> &message ) = 0;
 };
 #undef RTMIDI_CLASSNAME
 
@@ -734,19 +749,6 @@ typedef std::list <MidiApiPtr> MidiApiList;
 #define RTMIDI_CLASSNAME "Midi"
 class Midi {
 public:
-  typedef rtmidi::ApiType Api;
-  //! defined for compatibility
-  enum Api2 {
-    UNSPECIFIED  = rtmidi::UNSPECIFIED,
-    MACOSX_CORE  = rtmidi::MACOSX_CORE,
-    LINUX_ALSA   = rtmidi::LINUX_ALSA,
-    UNIX_JACK    = rtmidi::UNIX_JACK,
-    WINDOWS_MM   = rtmidi::WINDOWS_MM,
-    WINDOWS_KS   = rtmidi::WINDOWS_KS,
-    RTMIDI_DUMMY = rtmidi::DUMMY
-  };
-
-
   //! A static function to determine the current RtMidi version.
   static std::string getVersion( void ) throw();
 
@@ -785,27 +787,6 @@ public:
     else return rtmidi::UNSPECIFIED;
   }
 
-  //! Compatibilty function for older code
-  virtual
-  RTMIDI_DEPRECATED(void openVirtualPort( const std::string portName = std::string( "RtMidi virtual port" ) )) = 0;
-
-  //! Pure virtual function to open a MIDI connection given by enumeration number.
-  /*! \param portNumber An optional port number greater than 0
-    can be specified.  Otherwise, the default or first port
-    found is opened.
-
-    \param portName An optional name for the applicaction port
-    that will be generated to connect to portId can be
-    specified.
-
-    \deprecated
-  */
-  RTMIDI_DEPRECATED(void openPort( unsigned int portNumber = 0,
-				   const std::string portName = std::string( "RtMidi" ) ))
-  {
-    if (rtapi_) rtapi_->openPort(portNumber,portName);
-  }
-
 
   //! Pure virtual function to return a port descirptor if the port is open
   Pointer<PortDescriptor> getDescriptor(bool local=false)
@@ -840,51 +821,14 @@ public:
     if (list && !list->empty()) {
       PortList retval;
       for (MidiApiList::iterator i = list->begin();
-	   i != list->end();
-	   ++i) {
-	PortList tmp = (*i)->getPortList(capabilities);
-	retval.splice(retval.end(), tmp);
+           i != list->end();
+           ++i) {
+        PortList tmp = (*i)->getPortList(capabilities);
+        retval.splice(retval.end(), tmp);
       }
       return retval;
     }
     return PortList();
-  }
-
-  //! Pure virtual to return the number of available MIDI ports of the current API.
-  /*!
-    \return This function returns the number of MIDI ports of
-    the selected API.
-
-    \note Only ports are counted that can be used with the
-    current API so an input API does ignore all output devices
-    and vice versa.
-
-    \sa getPortName
-    \deprecated
-  */
-  RTMIDI_DEPRECATED(unsigned int getPortCount())
-  {
-    if (rtapi_) return rtapi_->getPortCount();
-    return 0;
-  }
-
-  //! Pure virtual function to return a string identifier for the specified MIDI port number.
-  /*!
-    \param portNumber Number of the device to be referred to.
-    \return The name of the port with the given Id is returned.
-    \retval An empty string is returned if an invalid port specifier is provided.
-
-    \note Only ports are counted that can be used with the
-    current API so an input API does ignore all output devices
-    and vice versa.
-
-    \sa getPortCount()
-    \deprecated
-  */
-  RTMIDI_DEPRECATED(std::string getPortName( unsigned int portNumber = 0 ))
-  {
-    if (rtapi_) return rtapi_->getPortName(portNumber);
-    return "";
   }
 
   //! Close an open MIDI connection (if one exists).
@@ -911,16 +855,6 @@ public:
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  RTMIDI_DEPRECATED(void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ))
-  {
-    if (rtapi_) rtapi_->setErrorCallback(errorCallback, userData);
-  }
-
-  //! Pure virtual function to set an error callback function to be invoked when an error has occured.
-  /*!
-    The callback function will be called whenever an error has occured. It is best
-    to set the error callback function before opening a port.
-  */
   void setErrorCallback( ErrorInterface * callback)
   {
     if (rtapi_) rtapi_->setErrorCallback(callback);
@@ -928,6 +862,101 @@ public:
 
   //! A basic error reporting function for RtMidi classes.
   void error( Error e );
+
+  /* old functions */
+  RTMIDI_DEPRECATED(enum,
+		    "enum RtMidi::Api has been replaced by enum rtmidi::ApiType") Api {
+    UNSPECIFIED  = rtmidi::UNSPECIFIED,
+      MACOSX_CORE  = rtmidi::MACOSX_CORE,
+      LINUX_ALSA   = rtmidi::LINUX_ALSA,
+      UNIX_JACK    = rtmidi::UNIX_JACK,
+      WINDOWS_MM   = rtmidi::WINDOWS_MM,
+      RTMIDI_DUMMY = rtmidi::DUMMY
+      };
+  RTMIDI_DEPRECATED(static void getCompiledApi( std::vector<Api> &apis, bool
+						preferSystem
+						= true ) throw(), "enum RtMidi::Api has been replaced by enum rtmidi::ApiType" ) {
+    std::vector<rtmidi::ApiType> api2;
+    Midi::getCompiledApi(api2,preferSystem);
+    apis.reserve(api2.size());
+    size_t s = api2.size();
+    for (size_t i = 0; i < s; i++) {
+      apis.push_back((Api)api2[i]);
+    }
+  }
+
+  //! Compatibilty function for older code
+  virtual
+  RTMIDI_DEPRECATED(void openVirtualPort( const
+					  std::string portName = std::string( "RtMidi virtual port" ) ),
+		    "For better usability you should call this function from a derived class") = 0;
+
+  //! Pure virtual function to open a MIDI connection given by enumeration number.
+  /*! \param portNumber An optional port number greater than 0
+    can be specified.  Otherwise, the default or first port
+    found is opened.
+
+    \param portName An optional name for the applicaction port
+    that will be generated to connect to portId can be
+    specified.
+
+    \deprecated
+  */
+  RTMIDI_DEPRECATED(void openPort( unsigned int portNumber = 0,
+				   const std::string portName = std::string( "RtMidi" )
+				   ),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)")
+  {
+    if (rtapi_) rtapi_->openPort(portNumber,portName);
+  }
+
+  //! Pure virtual to return the number of available MIDI ports of the current API.
+  /*!
+    \return This function returns the number of MIDI ports of
+    the selected API.
+
+    \note Only ports are counted that can be used with the
+    current API so an input API does ignore all output devices
+    and vice versa.
+
+    \sa getPortName
+    \deprecated
+  */
+  RTMIDI_DEPRECATED(unsigned int getPortCount(),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)")
+  {
+    if (rtapi_) return rtapi_->getPortCount();
+    return 0;
+  }
+
+  //! Pure virtual function to return a string identifier for the specified MIDI port number.
+  /*!
+    \param portNumber Number of the device to be referred to.
+    \return The name of the port with the given Id is returned.
+    \retval An empty string is returned if an invalid port specifier is provided.
+
+    \note Only ports are counted that can be used with the
+    current API so an input API does ignore all output devices
+    and vice versa.
+
+    \sa getPortCount()
+    \deprecated
+  */
+  RTMIDI_DEPRECATED(std::string getPortName( unsigned int portNumber = 0 ),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)")
+  {
+    if (rtapi_) return rtapi_->getPortName(portNumber);
+    return "";
+  }
+
+  //! Pure virtual function to set an error callback function to be invoked when an error has occured.
+  /*!
+    The callback function will be called whenever an error has occured. It is best
+    to set the error callback function before opening a port.
+  */
+  RTMIDI_DEPRECATED(void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ), "setErrorCallback now expects an object of type ErrorInterface")
+  {
+    if (rtapi_) rtapi_->setErrorCallback(errorCallback, userData);
+  }
+
+
 protected:
   MidiApi *rtapi_;
   MidiApiList * list;
@@ -948,6 +977,14 @@ protected:
     }
   }
 };
+
+inline RTMIDI_DEPRECATED(std::string getApiName(Midi::Api type),"Use rtmidi::ApiType instead of RtMidi::Api");
+inline std::string getApiName(Midi::Api type)
+{
+  return getApiName((ApiType)type);
+}
+
+
 #undef RTMIDI_CLASSNAME
 
 /**********************************************************************/
@@ -1072,8 +1109,8 @@ public:
       std::vector< ApiType > apis;
       getCompiledApi( apis );
       for (size_t i = 0 ; i < apis.size() ; i++) {
-	openMidiApi( apis[0] );
-	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+        openMidiApi( apis[0] );
+        if (rtapi_ && rtapi_->hasVirtualPorts()) break;
       }
     }
 
@@ -1092,22 +1129,6 @@ public:
     return 0;
   }
 
-  //! Set a callback function to be invoked for incoming MIDI messages.
-  /*!
-    The callback function will be called whenever an incoming MIDI
-    message is received.  While not absolutely necessary, it is best
-    to set the callback function before opening a MIDI port to avoid
-    leaving some messages in the queue.
-
-    \param callback A callback function must be given.
-    \param userData Opitionally, a pointer to additional data can be
-    passed to the callback function whenever it is called.
-  */
-  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ))
-  {
-    if (rtapi_)
-      static_cast<MidiInApi*>(rtapi_)->setCallback(callback,userData);
-  }
 
   //! Set a callback function to be invoked for incoming MIDI messages.
   /*!
@@ -1170,6 +1191,23 @@ public:
     return 0.0;
   }
 
+  //! Set a callback function to be invoked for incoming MIDI messages.
+  /*!
+    The callback function will be called whenever an incoming MIDI
+    message is received.  While not absolutely necessary, it is best
+    to set the callback function before opening a MIDI port to avoid
+    leaving some messages in the queue.
+
+    \param callback A callback function must be given.
+    \param userData Opitionally, a pointer to additional data can be
+    passed to the callback function whenever it is called.
+  */
+  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ),
+		    "RtMidi now provides a type-safe MidiInterface class.")
+  {
+    if (rtapi_)
+      static_cast<MidiInApi*>(rtapi_)->setCallback(callback,userData);
+  }
   //! Fill the user-provided vector with the data bytes for the next available MIDI message in the input queue and return the event delta-time in seconds.
   /*!
     This function returns immediately whether a new message is
@@ -1180,7 +1218,8 @@ public:
 
     \deprecated
   */
-  RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ))
+  RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ),
+		    "Please, use a C++ style reference to pass the message vector.")
   {
     if (!message) {
       error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
@@ -1301,8 +1340,8 @@ public:
       std::vector< ApiType > apis;
       getCompiledApi( apis );
       for (size_t i = 0 ; i < apis.size() ; i++) {
-	openMidiApi( apis[0] );
-	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+        openMidiApi( apis[0] );
+        if (rtapi_ && rtapi_->hasVirtualPorts()) break;
       }
     }
 
@@ -1322,7 +1361,8 @@ public:
 
     \deprecated
   */
-  RTMIDI_DEPRECATED(void sendMessage( std::vector<unsigned char> *message ))
+  RTMIDI_DEPRECATED(void sendMessage( std::vector<unsigned char> *message ),
+		    "Please, use a C++ style reference to pass the message vector.")
   {
     if (!message) {
       error( RTMIDI_ERROR(gettext_noopt("No data in MIDI message."),
@@ -1366,6 +1406,9 @@ protected:
 #endif
 
 #if defined(__MACOSX_CORE__)
+NAMESPACE_RTMIDI_END
+struct MIDIPacketList;
+NAMESPACE_RTMIDI_START
 
 class MidiInCore: public MidiInApi
 {
@@ -1384,7 +1427,12 @@ public:
   std::string getPortName( unsigned int portNumber );
 
 protected:
+  static void midiInputCallback( const MIDIPacketList *list,
+				 void *procRef,
+				 void */*srcRef*/) throw();
   void initialize( const std::string& clientName );
+  template<int locking>
+  friend class CoreSequencer;
 };
 
 class MidiOutCore: public MidiOutApi
@@ -1607,8 +1655,23 @@ protected:
 
 NAMESPACE_RTMIDI_END
 
-typedef rtmidi::Midi    RtMidi;
-typedef rtmidi::MidiIn  RtMidiIn;
-typedef rtmidi::MidiOut RtMidiOut;
+typedef rtmidi::Midi RTMIDI_DEPRECATED(RtMidi,"RtMidi has been replaced by rtmidi::Midi");
+
+class RtMidiIn: public rtmidi::MidiIn {
+public:
+  RTMIDI_DEPRECATED(RtMidiIn( RtMidi::Api api = RtMidi::UNSPECIFIED,
+			      const std::string clientName = std::string( "RtMidi Input Client")),
+		    "Class RtMidiIn has been replaced by rtmidi::MidiIn"):
+    MidiIn((rtmidi::ApiType)api,
+	   clientName) {}
+};
+class RtMidiOut: public rtmidi::MidiOut {
+public:
+  RTMIDI_DEPRECATED(RtMidiOut( RtMidi::Api api = RtMidi::UNSPECIFIED,
+			       const std::string clientName = std::string( "RtMidi Output Client")),
+		    "Class RtMidiOut has been replaced by rtmidi::MidiOut"):
+    MidiOut((rtmidi::ApiType)api,
+	    clientName) {}
+};
 typedef rtmidi::Error   RtMidiError;
 #endif

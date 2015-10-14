@@ -206,4 +206,5 @@ int main( int /* argc */, char * /*argv*/[] )
 	} catch ( rtmidi::Error &error ) {
 		error.printMessage();
 	}
+	return 0;
 }

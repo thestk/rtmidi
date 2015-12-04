@@ -956,11 +956,17 @@ void MidiOutCore :: openPort( unsigned int portNumber, const std::string portNam
 
 void MidiOutCore :: closePort( void )
 {
-  if ( connected_ ) {
-    CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-    MIDIPortDispose( data->port );
-    connected_ = false;
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+
+  if ( data->endpoint ) {
+    MIDIEndpointDispose( data->endpoint );
   }
+
+  if ( data->port ) {
+    MIDIPortDispose( data->port );
+  }
+
+  connected_ = false;
 }
 
 void MidiOutCore :: openVirtualPort( std::string portName )

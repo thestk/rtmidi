@@ -667,11 +667,17 @@ void MidiInCore :: openVirtualPort( const std::string portName )
 
 void MidiInCore :: closePort( void )
 {
-  if ( connected_ ) {
-    CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-    MIDIPortDispose( data->port );
-    connected_ = false;
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+
+  if ( data->endpoint ) {
+    MIDIEndpointDispose( data->endpoint );
   }
+
+  if ( data->port ) {
+    MIDIPortDispose( data->port );
+  }
+
+  connected_ = false;
 }
 
 unsigned int MidiInCore :: getPortCount()

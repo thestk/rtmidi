@@ -5,6 +5,29 @@ AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
+# libtool version: current:revision:age
+#
+# If the library source code has changed at all since the last update, then
+# increment revision (`c:r:a' becomes `c:r+1:a').
+#
+# If any interfaces have been added, removed, or changed since the last update,
+# increment current, and set revision to 0.
+#
+# If any interfaces have been added since the last public release, then
+# increment age.
+#
+# If any interfaces have been removed since the last public release, then set
+# age to 0.
+m4_define([lt_current], 3)
+m4_define([lt_revision], 0)
+m4_define([lt_age], 0)
+
+m4_define([lt_version_info], [lt_current:lt_revision:lt_age])
+m4_define([lt_current_minus_age], [m4_eval(lt_current - lt_age)])
+
+SO_VERSION=lt_version_info
+AC_SUBST(SO_VERSION)
+
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])

@@ -5,6 +5,10 @@ AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
+# Enable some nice automake features if they are available
+m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 # Fill GXX with something before test.
 AC_SUBST( GXX, ["no"] )
 AC_SUBST(noinst_LIBRARIES)

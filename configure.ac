@@ -2,7 +2,7 @@
 AC_INIT(RtMidi, 2.1.0, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile])
+AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Enable some nice automake features if they are available
@@ -54,6 +54,10 @@ if [test $GXX = "yes" ;] then
 fi
 
 CXXFLAGS="$CXXFLAGS $cxxflag"
+
+# Checks for doxygen
+AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
+AM_CONDITIONAL( MAKE_DOC, [test "x${DOXYGEN}" != x] )
 
 # Checks for package options and external software
 AC_CANONICAL_HOST

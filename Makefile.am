@@ -1,3 +1,8 @@
+SUBDIRS = . tests
+if MAKE_DOC
+SUBDIRS += doc
+endif
+
 lib_LTLIBRARIES = %D%/librtmidi.la
 %C%_librtmidi_la_LDFLAGS = -no-undefined
 %C%_librtmidi_la_SOURCES = \
@@ -11,3 +16,8 @@ rtmidi_inc_HEADERS = \
 
 pkgconfigdatadir = $(libdir)/pkgconfig
 pkgconfigdata_DATA = rtmidi.pc
+
+EXTRA_DIST = autogen.sh readme doc msw
+
+dist-hook:
+	$(MAKE) -C doc

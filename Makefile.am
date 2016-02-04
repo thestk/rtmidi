@@ -5,3 +5,6 @@ lib_LTLIBRARIES = %D%/librtmidi.la
   %D%/RtMidi.h \
   %D%/rtmidi_c.cpp \
   %D%/rtmidi_c.h
+
+pkgconfigdatadir = $(libdir)/pkgconfig
+pkgconfigdata_DATA = rtmidi.pc

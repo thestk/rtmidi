@@ -4,7 +4,7 @@ lib_LTLIBRARIES = %D%/librtmidi.la
   %D%/RtMidi.cpp \
   %D%/rtmidi_c.cpp
 
-rtmidi_incdir = $(includedir)
+rtmidi_incdir = $(includedir)/rtmidi
 rtmidi_inc_HEADERS = \
   %D%/RtMidi.h \
   %D%/rtmidi_c.h

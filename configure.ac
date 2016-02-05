@@ -59,6 +59,14 @@ CXXFLAGS="$CXXFLAGS $cxxflag"
 AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
 AM_CONDITIONAL( MAKE_DOC, [test "x${DOXYGEN}" != x] )
 
+# Copy doc files to build dir if necessary
+AC_CONFIG_LINKS( [doc/doxygen/Doxyfile:doc/doxygen/Doxyfile] )
+AC_CONFIG_LINKS( [doc/doxygen/footer.html:doc/doxygen/footer.html] )
+AC_CONFIG_LINKS( [doc/doxygen/header.html:doc/doxygen/header.html] )
+AC_CONFIG_LINKS( [doc/doxygen/tutorial.txt:doc/doxygen/tutorial.txt] )
+AC_CONFIG_LINKS( [doc/images/ccrma.gif:doc/images/ccrma.gif] )
+AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
+
 # Checks for package options and external software
 AC_CANONICAL_HOST
 

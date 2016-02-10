@@ -39,6 +39,13 @@
 #include "RtMidi.h"
 #include <sstream>
 
+#if defined(__MACOSX_CORE__)
+  #if TARGET_OS_IPHONE
+    #define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
+    #define AudioConvertHostTimeToNanos CAHostTimeBase::ConvertToNanos
+  #endif
+#endif
+
 //*********************************************************************//
 //  RtMidi Definitions
 //*********************************************************************//

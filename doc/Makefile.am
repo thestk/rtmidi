@@ -9,7 +9,7 @@ EXTRA_DIST=html
 
 INSTIMAGES=html/doxygen.png
 
-DOC_STAMPS=html-build.stamp
+DOC_STAMPS=doxygen-build.stamp
 
 DOC_DIR=$(HTML_DIR)
 
@@ -29,3 +29,5 @@ clean-local:
 distclean-local: clean
 	rm -f *.stamp || true
 	if test -d html; then rm -rf html; fi
+
+html-local: $(DOC_STAMPS)

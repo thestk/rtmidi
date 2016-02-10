@@ -2,8 +2,8 @@
 AC_INIT(RtMidi, 2.1.1, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
+AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile])
+AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
 
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
@@ -38,7 +38,7 @@ AC_ARG_ENABLE(debug,
 # Set paths if prefix is defined
 if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
   LIBS="$LIBS -L$prefix/lib"
-  CPPFLAGS="$CPPFLAGS -I$prefix/include"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include/rtmidi"
 fi
 
 # For -I and -D flags
@@ -54,6 +54,18 @@ if [test $GXX = "yes" ;] then
 fi
 
 CXXFLAGS="$CXXFLAGS $cxxflag"
+
+# Checks for doxygen
+AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
+AM_CONDITIONAL( MAKE_DOC, [test "x${DOXYGEN}" != x] )
+
+# Copy doc files to build dir if necessary
+AC_CONFIG_LINKS( [doc/doxygen/Doxyfile:doc/doxygen/Doxyfile] )
+AC_CONFIG_LINKS( [doc/doxygen/footer.html:doc/doxygen/footer.html] )
+AC_CONFIG_LINKS( [doc/doxygen/header.html:doc/doxygen/header.html] )
+AC_CONFIG_LINKS( [doc/doxygen/tutorial.txt:doc/doxygen/tutorial.txt] )
+AC_CONFIG_LINKS( [doc/images/ccrma.gif:doc/images/ccrma.gif] )
+AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
 
 # Checks for package options and external software
 AC_CANONICAL_HOST

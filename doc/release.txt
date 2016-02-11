@@ -1,6 +1,15 @@
-RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK), and Windows (Multimedia, Kernel Streaming).
+RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK), and Windows (Multimedia Library).
 
-By Gary P. Scavone, 2003-2014
+By Gary P. Scavone, 2003-2016
+
+v2.1.1: (11 February 2016)
+- updates to automake routines
+- added C API (thanks to Atsushi Eno!)
+- JACK ringbuffer allocation change
+- OSX virtual port closing fix
+- OSX sysex sending fix
+- moved Windows kernel streaming code to other branch because it is incomplete
+- miscellaneous small fixes
 
 v2.1.0: (30 March 2014)
 - renamed RtError class to RtMidiError and embedded it in RtMidi.h (and deleted RtError.h)

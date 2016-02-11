@@ -6,24 +6,22 @@
 
 RtMidi is a set of C++ classes (RtMidiIn, RtMidiOut and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK), and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
-<UL>
-  <LI>object oriented C++ design</LI>
-  <LI>simple, common API across all supported platforms</LI>
-  <LI>only one header and one source file for easy inclusion in programming projects</LI>
-  <LI>MIDI device enumeration</LI>
-</UL>
+- object oriented C++ design
+- simple, common API across all supported platforms
+- only one header and one source file for easy inclusion in programming projects
+- MIDI device enumeration
 
 Where applicable, multiple API support can be compiled and a particular API specified when creating an RtAudio instance.
 
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
 
-\section whatsnew What's New (Version 2.1)
+\section whatsnew What's New (Version 2.1.1)
 
-A minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.  The Windows Kernel Streaming support was removed because it was uncompilable and incomplete.
+There were no API changes made in the current release. The primary changes involved updates to the build system and some small bug fixes.  With respect to the previous release (2.1.0), a minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.  The Windows Kernel Streaming code was moved to a separate branch because it was uncompilable and incomplete.
 
 \section download Download
 
-Latest Release (30 March 2014): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.0.tar.gz">Version 2.1.0</A>
+Latest Release (11 February 2016): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.1.tar.gz">Version 2.1.1</A>
 
 \section start Getting Started
 
@@ -412,37 +410,36 @@ The Windows Multimedia library MIDI calls used in RtMidi do not make use of stre
 
 RtMidi was originally developed with Visual C++ version 6.0 but has been tested with Virtual Studio 2010.
 
-The \c configure script provides support for the MinGW compiler.
-
 \section acknowledge Development & Acknowledgements
 
 RtMidi is on github (https://github.com/thestk/rtmidi).  Many thanks to the developers that are helping to maintain and improve RtMidi.
 
 In years past, the following people provided bug fixes and improvements:
-<UL>
-<LI>Sebastien Alaiwan (JACK memory leaks, Windows kernel streaming)</LI>
-<LI>Jean-Baptiste Berruchon (Windows sysex code)</LI>
-<LI>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</LI>
-<LI>Jason Champion (MSW project file for library build)</LI>
-<LI>Eduardo Coutinho (Windows device names)</LI>
-<LI>Paul Dean (increment optimization)</LI>
-<LI>Luc Deschenaux (sysex issues)</LI>
-<LI>John Dey (OS-X timestamps)</LI>
-<LI>Christoph Eckert (ALSA sysex fixes)</LI>
-<LI>Martin Koegler (various fixes)</LI>
-<LI>Immanuel Litzroth (OS-X sysex fix)</LI>
-<LI>Jon McCormack (Snow Leopard updates)</LI>
-<LI>Axel Schmidt (client naming)</LI>
-<LI>Alexander Svetalkin (JACK MIDI)</LI>
-<LI>Casey Tucker (OS-X driver information, sysex sending)</LI>
-<LI>Bastiaan Verreijt (Windows sysex multi-buffer code)</LI>
-<LI>Dan Wilcox</LI>
-</UL>
+
+- Stephen Sinclair (Git repo and build system)
+- Atsushi Eno (C API)
+- Sebastien Alaiwan (JACK memory leaks, Windows kernel streaming)
+- Jean-Baptiste Berruchon (Windows sysex code)
+- Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)
+- Jason Champion (MSW project file for library build)
+- Eduardo Coutinho (Windows device names)
+- Paul Dean (increment optimization)
+- Luc Deschenaux (sysex issues)
+- John Dey (OS-X timestamps)
+- Christoph Eckert (ALSA sysex fixes)
+- Martin Koegler (various fixes)
+- Immanuel Litzroth (OS-X sysex fix)
+- Jon McCormack (Snow Leopard updates)
+- Axel Schmidt (client naming)
+- Alexander Svetalkin (JACK MIDI)
+- Casey Tucker (OS-X driver information, sysex sending)
+- Bastiaan Verreijt (Windows sysex multi-buffer code)
+- Dan Wilcox
 
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2014 Gary P. Scavone
+    Copyright (c) 2003-2016 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

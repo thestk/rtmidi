@@ -18,23 +18,19 @@
 Introduction</h1>
 <p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> is a set of C++ classes (<a class="el" href="classRtMidiIn.html" title="A realtime MIDI input class.">RtMidiIn</a>, <a class="el" href="classRtMidiOut.html" title="A realtime MIDI output class.">RtMidiOut</a> and API-specific classes) that provides a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA &amp; JACK), Macintosh OS X (CoreMIDI &amp; JACK), and Windows (Multimedia Library) operating systems. <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> significantly simplifies the process of interacting with computer MIDI hardware and software. It was designed with the following goals:</p>
 <ul>
-<li>
-object oriented C++ design </li>
-<li>
-simple, common API across all supported platforms </li>
-<li>
-only one header and one source file for easy inclusion in programming projects </li>
-<li>
-MIDI device enumeration </li>
+<li>object oriented C++ design</li>
+<li>simple, common API across all supported platforms</li>
+<li>only one header and one source file for easy inclusion in programming projects</li>
+<li>MIDI device enumeration</li>
 </ul>
 <p>Where applicable, multiple API support can be compiled and a particular API specified when creating an RtAudio instance.</p>
 <p>MIDI input and output functionality are separated into two classes, <a class="el" href="classRtMidiIn.html" title="A realtime MIDI input class.">RtMidiIn</a> and <a class="el" href="classRtMidiOut.html" title="A realtime MIDI output class.">RtMidiOut</a>. Each class instance supports only a single MIDI connection. <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> does not provide timing functionality (i.e., output messages are sent immediately). Input messages are timestamped with delta times in seconds (via a <code>double</code> floating point type). MIDI data is passed to the user as raw bytes using an std::vector&lt;unsigned char&gt;.</p>
 <h1><a class="anchor" id="whatsnew"></a>
-What's New (Version 2.1)</h1>
-<p>A minor API change was made. The RtError class was renamed <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> and embedded directly in <a class="el" href="RtMidi_8h.html">RtMidi.h</a>. Thus, all references to RtError should be renamed to <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> and the RtError.h file should be deleted. The Windows Kernel Streaming support was removed because it was uncompilable and incomplete.</p>
+What's New (Version 2.1.1)</h1>
+<p>There were no API changes made in the current release. The primary changes involved updates to the build system and some small bug fixes. With respect to the previous release (2.1.0), a minor API change was made. The RtError class was renamed <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> and embedded directly in <a class="el" href="RtMidi_8h.html">RtMidi.h</a>. Thus, all references to RtError should be renamed to <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> and the RtError.h file should be deleted. The Windows Kernel Streaming code was moved to a separate branch because it was uncompilable and incomplete.</p>
 <h1><a class="anchor" id="download"></a>
 Download</h1>
-<p>Latest Release (30 March 2014): <a href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.0.tar.gz">Version 2.1.0</a></p>
+<p>Latest Release (11 February 2016): <a href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.1.tar.gz">Version 2.1.1</a></p>
 <h1><a class="anchor" id="start"></a>
 Getting Started</h1>
 <p>The first thing that must be done when using <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> is to create an instance of the <a class="el" href="classRtMidiIn.html" title="A realtime MIDI input class.">RtMidiIn</a> or <a class="el" href="classRtMidiOut.html" title="A realtime MIDI output class.">RtMidiOut</a> subclasses. <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> is an abstract base class, which itself cannot be instantiated. Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system. <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions. An <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> can be thrown during instantiation in some circumstances. A warning message may also be reported if no MIDI devices are found during instantiation. The <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated. The following code example demonstrates default object construction and destruction:</p>
@@ -59,7 +55,7 @@ Getting Started</h1>
 </div><!-- fragment --><p>Obviously, this example doesn't demonstrate any of the real functionality of <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a>. However, all uses of <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> must begin with construction and must end with class destruction. Further, it is necessary that all class methods that can throw a C++ exception be called within a try/catch block.</p>
 <h1><a class="anchor" id="error"></a>
 Error Handling</h1>
-<p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> uses a C++ exception handler called <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a>, which is declared and defined in <a class="el" href="RtMidi_8h.html">RtMidi.h</a>. The <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> class is quite simple but it does allow errors to be "caught" by <a class="el" href="classRtMidiError.html#a741314057cec5fb8c743c12f284905ee" title="Defined RtMidiError types.">RtMidiError::Type</a>. Many <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> methods can "throw" an <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a>, most typically if a driver error occurs or an invalid function argument is specified. There are a number of cases within <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> where warning messages may be displayed but an exception is not thrown. A client error callback function can be specified (via the <a class="el" href="classRtMidi.html#a9c9123f494b523f40ee5040a7ed24478" title="Set an error callback function to be invoked when an error has occured.">RtMidi::setErrorCallback</a> function) that is invoked when an error occurs. By default, error messages are not automatically displayed in <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> unless the preprocessor definition <b>RTMIDI_DEBUG</b> is defined during compilation. Messages associated with caught exceptions can be displayed with, for example, the <a class="el" href="classRtMidiError.html#a7f45ae29b66b25817a7aa7b4ea81ab71" title="Prints thrown error message to stderr.">RtMidiError::printMessage()</a> function.</p>
+<p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> uses a C++ exception handler called <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a>, which is declared and defined in <a class="el" href="RtMidi_8h.html">RtMidi.h</a>. The <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a> class is quite simple but it does allow errors to be "caught" by <a class="el" href="classRtMidiError.html#a741314057cec5fb8c743c12f284905ee" title="Defined RtMidiError types.">RtMidiError::Type</a>. Many <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> methods can "throw" an <a class="el" href="classRtMidiError.html" title="Exception handling class for RtMidi.">RtMidiError</a>, most typically if a driver error occurs or an invalid function argument is specified. There are a number of cases within <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> where warning messages may be displayed but an exception is not thrown. A client error callback function can be specified (via the <a class="el" href="classRtMidi.html#aa6d6f2e0d06c64268c8898aa15f3a5df" title="Set an error callback function to be invoked when an error has occured.">RtMidi::setErrorCallback</a> function) that is invoked when an error occurs. By default, error messages are not automatically displayed in <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> unless the preprocessor definition <b>RTMIDI_DEBUG</b> is defined during compilation. Messages associated with caught exceptions can be displayed with, for example, the <a class="el" href="classRtMidiError.html#a7f45ae29b66b25817a7aa7b4ea81ab71" title="Prints thrown error message to stderr.">RtMidiError::printMessage()</a> function.</p>
 <h1><a class="anchor" id="probing"></a>
 Probing Ports</h1>
 <p>A client generally must query the available MIDI ports before deciding which to use. The following example outlines how this can be done.</p>
@@ -338,51 +334,35 @@ Windows (Multimedia Library):</h2>
 <p>The <code>configure</code> script provides support for the MinGW compiler.</p>
 <p>The Windows Multimedia library MIDI calls used in <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> do not make use of streaming functionality. Incoming system exclusive messages read by <a class="el" href="classRtMidiIn.html" title="A realtime MIDI input class.">RtMidiIn</a> are limited to a length as defined by the preprocessor definition RT_SYSEX_BUFFER_SIZE (set in RtMidi.cpp). The default value is 1024. There is no such limit for outgoing sysex messages via <a class="el" href="classRtMidiOut.html" title="A realtime MIDI output class.">RtMidiOut</a>.</p>
 <p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> was originally developed with Visual C++ version 6.0 but has been tested with Virtual Studio 2010.</p>
-<p>The <code>configure</code> script provides support for the MinGW compiler.</p>
 <h1><a class="anchor" id="acknowledge"></a>
 Development &amp; Acknowledgements</h1>
 <p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> is on github (<a href="https://github.com/thestk/rtmidi">https://github.com/thestk/rtmidi</a>). Many thanks to the developers that are helping to maintain and improve <a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a>.</p>
-<p>In years past, the following people provided bug fixes and improvements: </p>
+<p>In years past, the following people provided bug fixes and improvements:</p>
 <ul>
-<li>
-Sebastien Alaiwan (JACK memory leaks, Windows kernel streaming) </li>
-<li>
-Jean-Baptiste Berruchon (Windows sysex code) </li>
-<li>
-Pedro Lopez-Cabanillas (ALSA sequencer API, client naming) </li>
-<li>
-Jason Champion (MSW project file for library build) </li>
-<li>
-Eduardo Coutinho (Windows device names) </li>
-<li>
-Paul Dean (increment optimization) </li>
-<li>
-Luc Deschenaux (sysex issues) </li>
-<li>
-John Dey (OS-X timestamps) </li>
-<li>
-Christoph Eckert (ALSA sysex fixes) </li>
-<li>
-Martin Koegler (various fixes) </li>
-<li>
-Immanuel Litzroth (OS-X sysex fix) </li>
-<li>
-Jon McCormack (Snow Leopard updates) </li>
-<li>
-Axel Schmidt (client naming) </li>
-<li>
-Alexander Svetalkin (JACK MIDI) </li>
-<li>
-Casey Tucker (OS-X driver information, sysex sending) </li>
-<li>
-Bastiaan Verreijt (Windows sysex multi-buffer code) </li>
-<li>
-Dan Wilcox </li>
+<li>Stephen Sinclair (Git repo and build system)</li>
+<li>Atsushi Eno (C API)</li>
+<li>Sebastien Alaiwan (JACK memory leaks, Windows kernel streaming)</li>
+<li>Jean-Baptiste Berruchon (Windows sysex code)</li>
+<li>Pedro Lopez-Cabanillas (ALSA sequencer API, client naming)</li>
+<li>Jason Champion (MSW project file for library build)</li>
+<li>Eduardo Coutinho (Windows device names)</li>
+<li>Paul Dean (increment optimization)</li>
+<li>Luc Deschenaux (sysex issues)</li>
+<li>John Dey (OS-X timestamps)</li>
+<li>Christoph Eckert (ALSA sysex fixes)</li>
+<li>Martin Koegler (various fixes)</li>
+<li>Immanuel Litzroth (OS-X sysex fix)</li>
+<li>Jon McCormack (Snow Leopard updates)</li>
+<li>Axel Schmidt (client naming)</li>
+<li>Alexander Svetalkin (JACK MIDI)</li>
+<li>Casey Tucker (OS-X driver information, sysex sending)</li>
+<li>Bastiaan Verreijt (Windows sysex multi-buffer code)</li>
+<li>Dan Wilcox</li>
 </ul>
 <h1><a class="anchor" id="license"></a>
 License</h1>
 <pre class="fragment">RtMidi: realtime MIDI i/o C++ classes&lt;BR&gt;
-Copyright (c) 2003-2014 Gary P. Scavone
+Copyright (c) 2003-2016 Gary P. Scavone
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
@@ -409,7 +389,7 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre> </div></div><!-- contents -->
 <HR>
 <table><tr><td><img src="../images/mcgill.gif" width=165></td>
-  <td>&copy;2003-2014 Gary P. Scavone, McGill University. All Rights Reserved.<br>
+  <td>&copy;2003-2016 Gary P. Scavone, McGill University. All Rights Reserved.<br>
   Maintained by Gary P. Scavone, gary at music.mcgill.ca</td></tr>
 </table>
 </BODY>

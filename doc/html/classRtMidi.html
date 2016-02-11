@@ -76,9 +76,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidi.html#a74fc50ce1aec6b8ecb0c31094b3024a9">isPortOpen</a> (void) const =0</td></tr>
 <tr class="memdesc:a74fc50ce1aec6b8ecb0c31094b3024a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns true if a port is open and false if not. <br/></td></tr>
 <tr class="separator:a74fc50ce1aec6b8ecb0c31094b3024a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9c9123f494b523f40ee5040a7ed24478"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidi.html#a9c9123f494b523f40ee5040a7ed24478">setErrorCallback</a> (<a class="el" href="RtMidi_8h.html#a530aef8e3582ad9c4042f732eea14abb">RtMidiErrorCallback</a> errorCallback=NULL)=0</td></tr>
-<tr class="memdesc:a9c9123f494b523f40ee5040a7ed24478"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set an error callback function to be invoked when an error has occured.  <a href="#a9c9123f494b523f40ee5040a7ed24478">More...</a><br/></td></tr>
-<tr class="separator:a9c9123f494b523f40ee5040a7ed24478"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa6d6f2e0d06c64268c8898aa15f3a5df"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidi.html#aa6d6f2e0d06c64268c8898aa15f3a5df">setErrorCallback</a> (<a class="el" href="RtMidi_8h.html#a36eff69cc45bba67a1f315823c7bc78d">RtMidiErrorCallback</a> errorCallback=NULL, void *userData=0)=0</td></tr>
+<tr class="memdesc:aa6d6f2e0d06c64268c8898aa15f3a5df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set an error callback function to be invoked when an error has occured.  <a href="#aa6d6f2e0d06c64268c8898aa15f3a5df">More...</a><br/></td></tr>
+<tr class="separator:aa6d6f2e0d06c64268c8898aa15f3a5df"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -94,7 +94,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <div class="textblock"><p>An abstract base class for realtime MIDI input/output. </p>
 <p>This class implements some common functionality for the realtime MIDI input/output subclasses <a class="el" href="classRtMidiIn.html" title="A realtime MIDI input class.">RtMidiIn</a> and <a class="el" href="classRtMidiOut.html" title="A realtime MIDI output class.">RtMidiOut</a>.</p>
 <p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a> WWW site: <a href="http://music.mcgill.ca/~gary/rtmidi/">http://music.mcgill.ca/~gary/rtmidi/</a></p>
-<p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a>: realtime MIDI i/o C++ classes Copyright (c) 2003-2014 Gary P. Scavone</p>
+<p><a class="el" href="classRtMidi.html" title="An abstract base class for realtime MIDI input/output.">RtMidi</a>: realtime MIDI i/o C++ classes Copyright (c) 2003-2016 Gary P. Scavone</p>
 <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
 <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
 <p>Any person wishing to distribute modifications to the Software is asked to send the modifications to the original developer so that they can be incorporated into the canonical version. This is, however, not a binding provision of this license.</p>
@@ -162,7 +162,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 
 </div>
 </div>
-<a class="anchor" id="a9c9123f494b523f40ee5040a7ed24478"></a>
+<a class="anchor" id="aa6d6f2e0d06c64268c8898aa15f3a5df"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -172,9 +172,19 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="memname">virtual void RtMidi::setErrorCallback </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="RtMidi_8h.html#a530aef8e3582ad9c4042f732eea14abb">RtMidiErrorCallback</a>&#160;</td>
-          <td class="paramname"><em>errorCallback</em> = <code>NULL</code></td><td>)</td>
+          <td class="paramtype"><a class="el" href="RtMidi_8h.html#a36eff69cc45bba67a1f315823c7bc78d">RtMidiErrorCallback</a>&#160;</td>
+          <td class="paramname"><em>errorCallback</em> = <code>NULL</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>userData</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -187,7 +197,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Set an error callback function to be invoked when an error has occured. </p>
 <p>The callback function will be called whenever an error has occured. It is best to set the error callback function before opening a port. </p>
 
-<p>Implemented in <a class="el" href="classRtMidiOut.html#afcabeb089fb3c491707d14e085433500">RtMidiOut</a>, and <a class="el" href="classRtMidiIn.html#ac890a603444f0e5876c34f430505fdb0">RtMidiIn</a>.</p>
+<p>Implemented in <a class="el" href="classRtMidiOut.html#a91a4571214f7b033312cc6cb661d3253">RtMidiOut</a>, and <a class="el" href="classRtMidiIn.html#ad70189a24427b3169d81fcc69f6441e0">RtMidiIn</a>.</p>
 
 </div>
 </div>
@@ -197,7 +207,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div><!-- contents -->
 <HR>
 <table><tr><td><img src="../images/mcgill.gif" width=165></td>
-  <td>&copy;2003-2014 Gary P. Scavone, McGill University. All Rights Reserved.<br>
+  <td>&copy;2003-2016 Gary P. Scavone, McGill University. All Rights Reserved.<br>
   Maintained by Gary P. Scavone, gary at music.mcgill.ca</td></tr>
 </table>
 </BODY>

@@ -98,9 +98,9 @@ virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 <tr class="memitem:a1ba10ecd276b30a8579c7d60a9c890eb"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiIn.html#a1ba10ecd276b30a8579c7d60a9c890eb">getMessage</a> (std::vector&lt; unsigned char &gt; *message)</td></tr>
 <tr class="memdesc:a1ba10ecd276b30a8579c7d60a9c890eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fill the user-provided vector with the data bytes for the next available MIDI message in the input queue and return the event delta-time in seconds.  <a href="#a1ba10ecd276b30a8579c7d60a9c890eb">More...</a><br/></td></tr>
 <tr class="separator:a1ba10ecd276b30a8579c7d60a9c890eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac890a603444f0e5876c34f430505fdb0"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiIn.html#ac890a603444f0e5876c34f430505fdb0">setErrorCallback</a> (<a class="el" href="RtMidi_8h.html#a530aef8e3582ad9c4042f732eea14abb">RtMidiErrorCallback</a> errorCallback=NULL)</td></tr>
-<tr class="memdesc:ac890a603444f0e5876c34f430505fdb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set an error callback function to be invoked when an error has occured.  <a href="#ac890a603444f0e5876c34f430505fdb0">More...</a><br/></td></tr>
-<tr class="separator:ac890a603444f0e5876c34f430505fdb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad70189a24427b3169d81fcc69f6441e0"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRtMidiIn.html#ad70189a24427b3169d81fcc69f6441e0">setErrorCallback</a> (<a class="el" href="RtMidi_8h.html#a36eff69cc45bba67a1f315823c7bc78d">RtMidiErrorCallback</a> errorCallback=NULL, void *userData=0)</td></tr>
+<tr class="memdesc:ad70189a24427b3169d81fcc69f6441e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set an error callback function to be invoked when an error has occured.  <a href="#ad70189a24427b3169d81fcc69f6441e0">More...</a><br/></td></tr>
+<tr class="separator:ad70189a24427b3169d81fcc69f6441e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -448,7 +448,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 
 </div>
 </div>
-<a class="anchor" id="ac890a603444f0e5876c34f430505fdb0"></a>
+<a class="anchor" id="ad70189a24427b3169d81fcc69f6441e0"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -458,9 +458,19 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="memname">void RtMidiIn::setErrorCallback </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="RtMidi_8h.html#a530aef8e3582ad9c4042f732eea14abb">RtMidiErrorCallback</a>&#160;</td>
-          <td class="paramname"><em>errorCallback</em> = <code>NULL</code></td><td>)</td>
+          <td class="paramtype"><a class="el" href="RtMidi_8h.html#a36eff69cc45bba67a1f315823c7bc78d">RtMidiErrorCallback</a>&#160;</td>
+          <td class="paramname"><em>errorCallback</em> = <code>NULL</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>userData</em> = <code>0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -473,7 +483,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Set an error callback function to be invoked when an error has occured. </p>
 <p>The callback function will be called whenever an error has occured. It is best to set the error callback function before opening a port. </p>
 
-<p>Implements <a class="el" href="classRtMidi.html#a9c9123f494b523f40ee5040a7ed24478">RtMidi</a>.</p>
+<p>Implements <a class="el" href="classRtMidi.html#aa6d6f2e0d06c64268c8898aa15f3a5df">RtMidi</a>.</p>
 
 </div>
 </div>
@@ -483,7 +493,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div><!-- contents -->
 <HR>
 <table><tr><td><img src="../images/mcgill.gif" width=165></td>
-  <td>&copy;2003-2014 Gary P. Scavone, McGill University. All Rights Reserved.<br>
+  <td>&copy;2003-2016 Gary P. Scavone, McGill University. All Rights Reserved.<br>
   Maintained by Gary P. Scavone, gary at music.mcgill.ca</td></tr>
 </table>
 </BODY>

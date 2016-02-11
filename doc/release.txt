@@ -1,8 +1,8 @@
-RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK), and Windows (Multimedia, Kernel Streaming).
+RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK), and Windows (Multimedia Library).
 
 By Gary P. Scavone, 2003-2016
 
-v2.1.1: (?? February 2016)
+v2.1.1: (11 February 2016)
 - updates to automake routines
 - added C API (thanks to Atsushi Eno!)
 - JACK ringbuffer allocation change

@@ -21,6 +21,10 @@ fi
     exit 1
 }
 
+# Make some directories required by automake, if they don't exist
+if ! [ -d config ]; then mkdir -v config; fi
+if ! [ -d m4     ]; then mkdir -v m4;     fi
+
 if ! autoreconf --version </dev/null >/dev/null 2>&1
 then
 
@@ -66,10 +70,6 @@ test -n "$NO_AUTOMAKE" || (aclocal --version) < /dev/null > /dev/null 2>&1 || {
 if test "$DIE" -eq 1; then
   exit 1
 fi
-
-# Make some directories required by automake, if they don't exist
-if ! [ -d config ]; then mkdir -v config; fi
-if ! [ -d m4     ]; then mkdir -v m4;     fi
 
 case $CC in
 xlc )

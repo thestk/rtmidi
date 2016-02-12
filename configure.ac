@@ -28,6 +28,15 @@ m4_define([lt_current_minus_age], [m4_eval(lt_current - lt_age)])
 SO_VERSION=lt_version_info
 AC_SUBST(SO_VERSION)
 
+# Check version number coherency between RtMidi.h and configure.ac
+AC_MSG_CHECKING([that version numbers are coherent])
+AC_RUN_IFELSE(
+   [AC_LANG_PROGRAM([#include <string.h>
+                     `grep "define RTMIDI_VERSION" $srcdir/RtMidi.h`],
+                    [return strcmp(RTMIDI_VERSION, PACKAGE_VERSION);])],
+   [AC_MSG_RESULT([yes])],
+   [AC_MSG_FAILURE([testing RTMIDI_VERSION==PACKAGE_VERSION failed, check that RtMidi.h defines RTMIDI_VERSION as "$PACKAGE_VERSION" or that the first line of configure.ac has been updated.])])
+
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])

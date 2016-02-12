@@ -2,7 +2,7 @@
 AC_INIT(RtMidi, 2.1.1, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile])
+AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile doc/doxygen/Doxyfile])
 AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
 
 # libtool version: current:revision:age
@@ -83,7 +83,6 @@ AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
 AM_CONDITIONAL( MAKE_DOC, [test "x${DOXYGEN}" != x] )
 
 # Copy doc files to build dir if necessary
-AC_CONFIG_LINKS( [doc/doxygen/Doxyfile:doc/doxygen/Doxyfile] )
 AC_CONFIG_LINKS( [doc/doxygen/footer.html:doc/doxygen/footer.html] )
 AC_CONFIG_LINKS( [doc/doxygen/header.html:doc/doxygen/header.html] )
 AC_CONFIG_LINKS( [doc/doxygen/tutorial.txt:doc/doxygen/tutorial.txt] )

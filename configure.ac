@@ -101,16 +101,6 @@ AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
 # Checks for package options and external software
 AC_CANONICAL_HOST
 
-AC_SUBST( sharedlib, ["librtmidi.so"] )
-AC_SUBST( sharedname, ["librtmidi.so.\$(RELEASE)"] )
-AC_SUBST( libflags, ["-shared -Wl,-soname,\$(SHARED).\$(MAJOR) -o \$(SHARED).\$(RELEASE)"] )
-case $host in
-  *-apple*)
-  AC_SUBST( sharedlib, ["librtmidi.dylib"] )
-  AC_SUBST( sharedname, ["librtmidi.\$(RELEASE).dylib"] )
-  AC_SUBST( libflags, ["-dynamiclib -o librtmidi.\$(RELEASE).dylib"] )
-esac
-
 AC_SUBST( api, [""] )
 AC_SUBST( req, [""] )
 AC_MSG_CHECKING(for MIDI API)

@@ -2,7 +2,7 @@
 AC_INIT(RtMidi, 2.1.1, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile])
+AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile doc/doxygen/Doxyfile])
 AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
 
 # libtool version: current:revision:age
@@ -27,6 +27,15 @@ m4_define([lt_current_minus_age], [m4_eval(lt_current - lt_age)])
 
 SO_VERSION=lt_version_info
 AC_SUBST(SO_VERSION)
+
+# Check version number coherency between RtMidi.h and configure.ac
+AC_MSG_CHECKING([that version numbers are coherent])
+AC_RUN_IFELSE(
+   [AC_LANG_PROGRAM([#include <string.h>
+                     `grep "define RTMIDI_VERSION" $srcdir/RtMidi.h`],
+                    [return strcmp(RTMIDI_VERSION, PACKAGE_VERSION);])],
+   [AC_MSG_RESULT([yes])],
+   [AC_MSG_FAILURE([testing RTMIDI_VERSION==PACKAGE_VERSION failed, check that RtMidi.h defines RTMIDI_VERSION as "$PACKAGE_VERSION" or that the first line of configure.ac has been updated.])])
 
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
@@ -83,7 +92,6 @@ AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
 AM_CONDITIONAL( MAKE_DOC, [test "x${DOXYGEN}" != x] )
 
 # Copy doc files to build dir if necessary
-AC_CONFIG_LINKS( [doc/doxygen/Doxyfile:doc/doxygen/Doxyfile] )
 AC_CONFIG_LINKS( [doc/doxygen/footer.html:doc/doxygen/footer.html] )
 AC_CONFIG_LINKS( [doc/doxygen/header.html:doc/doxygen/header.html] )
 AC_CONFIG_LINKS( [doc/doxygen/tutorial.txt:doc/doxygen/tutorial.txt] )

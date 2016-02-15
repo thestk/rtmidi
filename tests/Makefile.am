@@ -17,3 +17,6 @@ cmidiin_LDADD = $(top_builddir)/librtmidi.la
 
 sysextest_SOURCES = sysextest.cpp
 sysextest_LDADD = $(top_builddir)/librtmidi.la
+
+EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
+	sysextest.dsp RtMidi.dsw

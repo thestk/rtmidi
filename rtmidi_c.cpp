@@ -44,52 +44,124 @@ void rtmidi_error (MidiApi *api, enum RtMidiErrorType type, const char* errorStr
 
 void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName)
 {
-	std::string name = portName;
-	((RtMidi*) device)->openPort (portNumber, name);
+    std::string name = portName;
+    try {
+        ((RtMidi*) device->ptr)->openPort (portNumber, name);
+    
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+    }
 }
 
 void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
 {
-	std::string name = portName;
-	((RtMidi*) device)->openVirtualPort (name);
+    std::string name = portName;
+    try {
+        ((RtMidi*) device->ptr)->openVirtualPort (name);
+    
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+    }
+
 }
 
 void rtmidi_close_port (RtMidiPtr device)
 {
-	((RtMidi*) device)->closePort ();
+    try { 
+        ((RtMidi*) device->ptr)->closePort ();
+
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+    }
 }
 
 unsigned int rtmidi_get_port_count (RtMidiPtr device)
 {
-	return ((RtMidi*) device)->getPortCount ();
+    try {
+        return ((RtMidi*) device->ptr)->getPortCount ();
+
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+        return -1;
+    }
 }
 
 const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber)
 {
-	std::string name = ((RtMidi*) device)->getPortName (portNumber);
-	return strdup (name.c_str ());
+    try {
+        std::string name = ((RtMidi*) device->ptr)->getPortName (portNumber);
+        return strdup (name.c_str ());
+    
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+        return "";
+    }
 }
 
 /* RtMidiIn API */
 RtMidiInPtr rtmidi_in_create_default ()
 {
-	return new RtMidiIn ();
+    RtMidiWrapper* wrp = new RtMidiWrapper;
+    
+    try {
+        RtMidiIn* rIn = new RtMidiIn ();
+        
+        wrp->ptr = (void*) rIn;
+        wrp->ok  = true;
+        wrp->msg = "";
+    
+    } catch (const RtMidiError & err) {
+        wrp->ptr = 0;
+        wrp->ok  = false;
+        wrp->msg = err.what ();
+    }
+
+    return wrp;
 }
 
 RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsigned int queueSizeLimit)
 {
-	std::string name = clientName;
-	return new RtMidiIn ((RtMidi::Api) api, name, queueSizeLimit);
+    std::string name = clientName;
+    RtMidiWrapper* wrp = new RtMidiWrapper;
+    
+    try {
+        RtMidiIn* rIn = new RtMidiIn ((RtMidi::Api) api, name, queueSizeLimit);
+        
+        wrp->ptr = (void*) rIn;
+        wrp->ok  = true;
+        wrp->msg = "";
+
+    } catch (const RtMidiError & err) {
+        wrp->ptr = 0; 
+        wrp->ok  = false;
+        wrp->msg = err.what ();
+    }
+
+    return wrp;
 }
 
 void rtmidi_in_free (RtMidiInPtr device)
 {
-	delete (RtMidiIn*) device;
+    delete (RtMidiIn*) device->ptr;
+    delete device;
 }
 
 enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
 {
-	return (RtMidiApi) ((RtMidiIn*) device)->getCurrentApi ();
+    try {
+        return (RtMidiApi) ((RtMidiIn*) device->ptr)->getCurrentApi ();
+    
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+
+        return RT_MIDI_API_UNSPECIFIED;
+    }
 }
 
 class CallbackProxyUserData
@@ -111,13 +183,25 @@ void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)
 {
-	void *data = (void *) new CallbackProxyUserData (callback, userData);
-	((RtMidiIn*) device)->setCallback (callback_proxy, data);
+    try {
+        void *data = (void *) new CallbackProxyUserData (callback, userData);
+        ((RtMidiIn*) device->ptr)->setCallback (callback_proxy, data);
+    
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+    }
 }
 
 void rtmidi_in_cancel_callback (RtMidiInPtr device)
 {
-	((RtMidiIn*) device)->cancelCallback ();
+    try {
+        ((RtMidiIn*) device->ptr)->cancelCallback ();
+
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+    }
 }
 
 void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense)
@@ -127,51 +211,107 @@ void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, 
 
 double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message)
 {
-	try {
-		// FIXME: use allocator to achieve efficient buffering
-		std::vector<unsigned char> *v = new std::vector<unsigned char> ();
-		double ret = ((RtMidiIn*) device)->getMessage (v);
-		*message = (unsigned char *) malloc ((int) ret);
-		memcpy (*message, v->data (), (int) ret);
-		delete v;
-		return ret;
-	} catch (...) {
-		return -1;
-	}
+    try {
+        // FIXME: use allocator to achieve efficient buffering
+        std::vector<unsigned char> *v = new std::vector<unsigned char> ();
+        double ret = ((RtMidiIn*) device->ptr)->getMessage (v);
+        *message = (unsigned char *) malloc ((int) ret);
+        memcpy (*message, v->data (), (int) ret);
+        delete v;
+        return ret;
+    } 
+    catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+        return -1;
+    }
+    catch (...) {
+        device->ok  = false;
+        device->msg = "Unknown error";
+        return -1;
+    }
 }
 
 /* RtMidiOut API */
 RtMidiOutPtr rtmidi_out_create_default ()
 {
-	return new RtMidiOut ();
+    RtMidiWrapper* wrp = new RtMidiWrapper;
+
+    try {
+        RtMidiOut* rOut = new RtMidiOut ();
+        
+        wrp->ptr = (void*) rOut;
+        wrp->ok  = true;
+        wrp->msg = "";
+    
+    } catch (const RtMidiError & err) {
+        wrp->ptr = 0;
+        wrp->ok  = false;
+        wrp->msg = err.what ();
+    }
+
+    return wrp;
 }
 
 RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
 {
-	std::string name = clientName;
-	return new RtMidiOut ((RtMidi::Api) api, name);
+    RtMidiWrapper* wrp = new RtMidiWrapper;
+    std::string name = clientName;
+
+    try {
+        RtMidiOut* rOut = new RtMidiOut ((RtMidi::Api) api, name);
+        
+        wrp->ptr = (void*) rOut;
+        wrp->ok  = true;
+        wrp->msg = "";
+    
+    } catch (const RtMidiError & err) {
+        wrp->ptr = 0;
+        wrp->ok  = false;
+        wrp->msg = err.what ();
+    }
+
+
+    return wrp;
 }
 
 void rtmidi_out_free (RtMidiOutPtr device)
 {
-	delete (RtMidiOut*) device;
+    delete (RtMidiOut*) device->ptr;
+    delete device;
 }
 
 enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 {
-	return (RtMidiApi) ((RtMidiOut*) device)->getCurrentApi ();
+    try {
+        return (RtMidiApi) ((RtMidiOut*) device->ptr)->getCurrentApi ();
+
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+
+        return RT_MIDI_API_UNSPECIFIED;
+    }
 }
 
 int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length)
 {
-	try {
-		// FIXME: use allocator to achieve efficient buffering
-		std::vector<unsigned char> *v = new std::vector<unsigned char> (length);
-		memcpy (v->data (), message, length);
-		((RtMidiOut*) device)->sendMessage (v);
-		delete v;
-		return 0;
-	} catch (...) {
-		return -1;
-	}
+    try {
+        // FIXME: use allocator to achieve efficient buffering
+        std::vector<unsigned char> *v = new std::vector<unsigned char> (length);
+        memcpy (v->data (), message, length);
+        ((RtMidiOut*) device->ptr)->sendMessage (v);
+        delete v;
+        return 0;
+    }
+    catch (const RtMidiError & err) {
+        device->ok  = false;
+        device->msg = err.what ();
+        return -1;
+    }
+    catch (...) {
+        device->ok  = false;
+        device->msg = "Unknown error";
+        return -1;
+    }
 }

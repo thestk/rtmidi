@@ -1,6 +1,5 @@
 
 #include <stdbool.h>
-
 #ifndef RTMIDI_C_H
 #define RTMIDI_C_H
 
@@ -14,9 +13,15 @@
 extern "C" {
 #endif
 
-typedef void* RtMidiPtr;
-typedef void* RtMidiInPtr;
-typedef void* RtMidiOutPtr;
+struct RtMidiWrapper {
+    void* ptr;
+    bool  ok;
+    const char* msg;
+};
+
+typedef RtMidiWrapper* RtMidiPtr;
+typedef RtMidiWrapper* RtMidiInPtr;
+typedef RtMidiWrapper* RtMidiOutPtr;
 
   enum RtMidiApi {
     RT_MIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */

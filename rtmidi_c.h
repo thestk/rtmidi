@@ -61,7 +61,7 @@ RTMIDIAPI enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device);
 RTMIDIAPI void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData);
 RTMIDIAPI void rtmidi_in_cancel_callback (RtMidiInPtr device);
 RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense);
-RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message);
+RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message, size_t * size);
 
 /* RtMidiOut API */
 RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default ();

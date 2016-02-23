@@ -209,14 +209,21 @@ void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, 
 	((RtMidiIn*) device)->ignoreTypes (midiSysex, midiTime, midiSense);
 }
 
-double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message)
+double rtmidi_in_get_message (RtMidiInPtr device, 
+                              unsigned char **message, 
+                              size_t * size)
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
         std::vector<unsigned char> *v = new std::vector<unsigned char> ();
         double ret = ((RtMidiIn*) device->ptr)->getMessage (v);
-        *message = (unsigned char *) malloc ((int) ret);
-        memcpy (*message, v->data (), (int) ret);
+        *size = v->size ();
+
+        if (v->size () > 0) {
+            *message = (unsigned char *) 
+                        malloc (sizeof (unsigned char *) * (int) v->size ());
+            memcpy (*message, v->data (), (int) v->size ());
+        }
         delete v;
         return ret;
     } 

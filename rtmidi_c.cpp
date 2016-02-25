@@ -206,7 +206,7 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
 
 void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense)
 {
-	((RtMidiIn*) device)->ignoreTypes (midiSysex, midiTime, midiSense);
+	((RtMidiIn*) device->ptr)->ignoreTypes (midiSysex, midiTime, midiSense);
 }
 
 double rtmidi_in_get_message (RtMidiInPtr device, 

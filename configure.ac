@@ -2,7 +2,7 @@
 AC_INIT(RtMidi, 2.1.0, gary@music.mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile])
+AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile po/Makefile.in])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Fill GXX with something before test.
@@ -51,6 +51,74 @@ fi
 
 CXXFLAGS="$CXXFLAGS $cxxflag"
 
+AC_ARG_ENABLE(address-sanitizer,
+	AS_HELP_STRING([--enable-address-sanitizer],[Enable gcc/clang address santizer]),
+	[AS_IF(test "$enableval" = yes,
+
+	       AC_LANG_PUSH(C++)
+	       for flag in  -fsanitize=address  -fno-omit-frame-pointer  -fno-common
+	       do
+		       tmpcxxflags="$CXXFLAGS"
+		       CXXFLAGS="$CXXFLAGS $flag"
+		       AC_MSG_CHECKING([whether $CXX supports $flag])
+		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [CXXFLAGS="$tmpcxxflags"
+			         AC_MSG_RESULT([no])])
+			AC_LANG_PUSH(C)
+			tmpcflags="$CFLAGS"
+			CFLAGS="$CFLAGS $flag"
+			AC_MSG_CHECKING([whether $CC supports $flag])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                          [AC_MSG_RESULT([yes])],
+					  [CFLAGS="$tmpcflags"
+			          AC_MSG_RESULT([no])])
+			AC_LANG_POP(C)
+	       done
+	       AC_LANG_POP(C++)
+	       )
+	]
+)
+
+AC_ARG_ENABLE(thread-sanitizer,
+	AS_HELP_STRING([--enable-thread-sanitizer],[Enable gcc/clang thread santizer]),
+	[AS_IF(test "$enableval" = yes,
+	       AC_LANG_PUSH(C++)
+	       for flag in  -fsanitize=thread  -fno-omit-frame-pointer  -fno-common -fPIC
+	       do
+		       tmpcxxflags="$CXXFLAGS"
+		       CXXFLAGS="$CXXFLAGS $flag"
+		       AC_MSG_CHECKING([whether $CXX supports $flag])
+		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [CXXFLAGS="$tmpcxxflags"
+			         AC_MSG_RESULT([no])])
+		       AC_LANG_PUSH(C)
+		       tmpcflags="$CFLAGS"
+		       CFLAGS="$CFLAGS $flag"
+		       AC_MSG_CHECKING([whether $CC supports $flag])
+		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [CFLAGS="$tmpcflags"
+			         AC_MSG_RESULT([no])])
+		       AC_LANG_POP(C)
+	       done
+	       for flag in  -pie
+	       do
+		       tmpldflags="$LDFLAGS"
+		       LDFLAGS="$LDFLAGS $flag"
+		       AC_MSG_CHECKING([whether $LD supports $flag])
+		       AC_LINK_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+		                         [AC_MSG_RESULT([yes])],
+					 [LDFLAGS="$tmpldflags"
+			         AC_MSG_RESULT([no])])
+	       done
+	       AC_LANG_POP(C++)
+	       )
+	]
+)
+
+
 # Checks for package options and external software
 AC_CANONICAL_HOST
 
@@ -67,15 +135,25 @@ esac
 AC_SUBST( api, [""] )
 AC_SUBST( req, [""] )
 AC_MSG_CHECKING(for MIDI API)
+have_virtual_devices=no
 case $host in
   *-*-linux*)
   AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
+  have_virtual_devices=yes
   api="$api -D__UNIX_JACK__"
   AC_MSG_RESULT(using JACK)
   AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
+  AC_LANG_PUSH(C++)
+  AC_TRY_COMPILE([
+#include <jack/jack.h>
+	 ],[
+return jack_port_uuid(NULL);
+       ],api="$api -D__UNIX_JACK_HAS_UUID__")
+  AC_LANG_POP(C++)
 
   # Look for ALSA flag
   AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)], [
+    have_virtual_devices=yes
     api="$api -D__LINUX_ALSA__"
     req="$req alsa"
     AC_MSG_RESULT(using ALSA)
@@ -85,6 +163,7 @@ case $host in
     AC_MSG_RESULT(using ALSA)
     AC_SUBST( api, [-D__LINUX_ALSA__] )
     req="$req alsa"
+    have_virtual_devices=yes
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA sequencer support requires the asound library!))
   fi
 
@@ -94,12 +173,21 @@ case $host in
 
   *-apple*)
   AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
+  have_virtual_devices=yes
   api="$api -D__UNIX_JACK__"
   AC_MSG_RESULT(using JACK)
   AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
+  AC_LANG_PUSH(C++)
+  AC_TRY_COMPILE([
+#include <jack/jack.h>
+	 ],[
+return jack_port_uuid(NULL);
+       ],api="$api -D__UNIX_JACK_HAS_UUID__")
+  AC_LANG_POP(C++)
 
   # Look for Core flag
   AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)], [
+    have_virtual_devices=yes
     api="$api -D__MACOSX_CORE__"
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
@@ -107,6 +195,7 @@ case $host in
 
   # If no api flags specified, use CoreMidi
   if [test "$api" == ""; ] then
+    have_virtual_devices=yes
     AC_SUBST( api, [-D__MACOSX_CORE__] )
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
@@ -138,6 +227,22 @@ case $host in
     AC_MSG_RESULT(using WinMM)
     AC_SUBST( LIBS, [-lwinmm] )
   fi
+
+  AC_CACHE_CHECK([where to find support dlls], [ac_cv_mingw_dll_dirs],
+  [
+       gccsearchdirs=`$CXX $CXXFLAGS -print-search-dirs|\
+			sed -e '/^libraries:/ { s/^libraries: *=\?//;s/:/ /g; p } ; d'`
+       SEARCHDIRS=""
+       for d in $gccsearchdirs /usr/share/doc/mingw32-runtime /mingw/lib /mingw/bin  /usr/lib /lib /usr/bin /bin
+       do
+	  AS_IF(test -d $d,
+	  [ SEARCHDIRS="$SEARCHDIRS $d" ])
+       done
+       ac_cv_mingw_dll_dirs="$SEARCHDIRS"
+  ])
+
+  AC_SUBST(DLLSEARCHPATH,"$ac_cv_mingw_dll_dirs")
+
   ;;
 
   *)
@@ -145,6 +250,10 @@ case $host in
   AC_MSG_ERROR(Unknown system type for MIDI support!)
   ;;
 esac
+AM_CONDITIONAL(COPYDLLS,test -n "$DLLSEARCHPATH")
+AM_CONDITIONAL(HAVE_VIRTUAL_DEVICES,test "$have_virtual_devices" == yes)
+AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.18])
 
 CPPFLAGS="$CPPFLAGS $api"
 

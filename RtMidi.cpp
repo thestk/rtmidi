@@ -569,11 +569,12 @@ static inline std::string &rtrim(std::string &s) {
   s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
   return s;
 }
-
+#if 0
 // trim from both ends
 static inline std::string &trim(std::string &s) {
   return ltrim(rtrim(s));
 }
+#endif
 NAMESPACE_RTMIDI_END
 
 // *************************************************** //

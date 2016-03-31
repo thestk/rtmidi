@@ -51,7 +51,7 @@ const char * rtmidi_gettext (const char * s) {
 }
 
 void init_rtmidi_gettext() {
-  static initialized = false;
+  static bool initialized = false;
   if (initialized)
     return;
   bindtextdomain("rtmidi",LOCALEDIR);
@@ -86,7 +86,7 @@ Error::Error( const char * message,
   } else {
     const char * fmt = gettext_noopt("Error formatting the error string:\n'%s'\nFound in %s::%s at \n%s:%d");
 #ifdef RTMIDI_GETTEXT
-    fmt = gettext(fmt);
+    fmt = rtmidi_gettext(fmt);
 #endif
 
     length = snprintf(NULL,0,fmt,message,class_name,function_name,file_name,line);
@@ -98,7 +98,7 @@ Error::Error( const char * message,
       const char * msg
         = gettext_noopt("Error: could not format the error message");
 #ifdef RTMIDI_GETTEXT
-      msg = gettext(msg);
+      msg = rtmidi_gettext(msg);
 #endif
       message_ = msg;
     }

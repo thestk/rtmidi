@@ -77,7 +77,7 @@
 #include <cstdio>
 
 #ifdef RTMIDI_GETTEXT
-#include "gettext.h"
+#include "libintl.h"
 #endif
 #define gettext_noopt(str) (str)
 

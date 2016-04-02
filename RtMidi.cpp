@@ -233,7 +233,7 @@ void MidiIn :: openMidiApi( ApiType api )
 MidiApiList MidiIn::queryApis;
 
 MidiIn :: MidiIn( ApiType api,
-		  const std::string clientName,
+		  const std::string & clientName,
 		  unsigned int queueSize,
 		  bool pfsystem )
   : Midi(&queryApis,pfsystem,clientName),
@@ -250,8 +250,8 @@ MidiIn :: MidiIn( ApiType api,
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       openMidiApi( apis[i] );
       if ( rtapi_ ) {
-        queryApis.push_back(MidiApiPtr(rtapi_));
-        rtapi_=NULL;
+	queryApis.push_back(MidiApiPtr(rtapi_));
+	rtapi_=NULL;
       }
     }
     return;
@@ -339,7 +339,7 @@ void MidiOut :: openMidiApi( ApiType api )
 
 MidiApiList MidiOut::queryApis;
 
-MidiOut :: MidiOut( ApiType api, const std::string clientName, bool pfsystem )
+MidiOut :: MidiOut( ApiType api, const std::string & clientName, bool pfsystem )
   : Midi(&queryApis, pfsystem, clientName)
 {
   if ( api == rtmidi::ALL_API) {
@@ -353,8 +353,8 @@ MidiOut :: MidiOut( ApiType api, const std::string clientName, bool pfsystem )
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       openMidiApi( apis[i] );
       if ( rtapi_ ) {
-        queryApis.push_back(MidiApiPtr(rtapi_));
-        rtapi_ = NULL;
+	queryApis.push_back(MidiApiPtr(rtapi_));
+	rtapi_ = NULL;
       }
     }
     return;
@@ -2995,7 +2995,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
   return 0;
 }
 
-MidiInAlsa :: MidiInAlsa( const std::string clientName,
+MidiInAlsa :: MidiInAlsa( const std::string & clientName,
 			  unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
   initialize( clientName );
@@ -3310,7 +3310,7 @@ PortList MidiInAlsa :: getPortList(int capabilities)
 
 
 
-void MidiInAlsa :: openVirtualPort( std::string portName )
+void MidiInAlsa :: openVirtualPort(const std::string & portName )
 {
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
   if ( !data->local.client ) {
@@ -3409,7 +3409,7 @@ void MidiInAlsa :: closePort( void )
 //*********************************************************************//
 
 #define RTMIDI_CLASSNAME "MidiOutAlsa"
-MidiOutAlsa :: MidiOutAlsa( const std::string clientName ) : MidiOutApi()
+MidiOutAlsa :: MidiOutAlsa( const std::string & clientName ) : MidiOutApi()
 {
   initialize( clientName );
 }
@@ -3581,7 +3581,7 @@ void MidiOutAlsa :: closePort( void )
   }
 }
 
-void MidiOutAlsa :: openVirtualPort( std::string portName )
+void MidiOutAlsa :: openVirtualPort(const std::string & portName )
 {
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
   if ( !data->local.client ) {
@@ -5309,7 +5309,7 @@ int JackBackendCallbacks::jackProcessOut( jack_nframes_t nframes, void *arg )
 #undef RTMIDI_CLASSNAME
 
 #define RTMIDI_CLASSNAME "MidiInJack"
-MidiInJack :: MidiInJack( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
+MidiInJack :: MidiInJack( const std::string & clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
   initialize( clientName );
 }
@@ -5391,7 +5391,7 @@ void MidiInJack :: openPort( unsigned int portNumber, const std::string & portNa
   jack_connect( *(data->seq), name.c_str(), jack_port_name( data->local ) );
 }
 
-void MidiInJack :: openVirtualPort( const std::string portName )
+void MidiInJack :: openVirtualPort( const std::string & portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
@@ -5541,7 +5541,7 @@ void MidiInJack :: closePort()
 
 
 #define RTMIDI_CLASSNAME "MidiOutJack"
-MidiOutJack :: MidiOutJack( const std::string clientName ) : MidiOutApi()
+MidiOutJack :: MidiOutJack( const std::string & clientName ) : MidiOutApi()
 {
   initialize( clientName );
 }
@@ -5608,7 +5608,7 @@ void MidiOutJack :: openPort( unsigned int portNumber, const std::string & portN
   jack_connect( *(data->seq), jack_port_name( data->local ), name.c_str() );
 }
 
-void MidiOutJack :: openVirtualPort( const std::string portName )
+void MidiOutJack :: openVirtualPort( const std::string & portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 

@@ -137,7 +137,7 @@ struct MidiInterface {
     \param timestamp the timestamp when the MIDI message has been received
     \param message   the message itself.
   */
-  virtual void rtmidi_midi_in(double timestamp, std::vector<unsigned char> *message) = 0;
+  virtual void rtmidi_midi_in(double timestamp, std::vector<unsigned char> &message) = 0;
 
   //! Delete the object if necessary.
   /*! This function allows the user to delete the Midi callback object,
@@ -1692,8 +1692,8 @@ struct CompatibilityMidiInterface: MidiInterface {
   CompatibilityMidiInterface(MidiCallback cb, void * ud):
     callback(cb),
     userData(ud) {}
-  void rtmidi_midi_in(double timestamp, std::vector<unsigned char> *message) {
-    callback (timestamp, message, userData);
+  void rtmidi_midi_in(double timestamp, std::vector<unsigned char> &message) {
+    callback (timestamp, &message, userData);
   }
   void delete_me() { delete this; }
   MidiCallback callback;

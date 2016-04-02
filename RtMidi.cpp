@@ -2959,7 +2959,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
             // don't bother ALSA with an unhandled exception
           }
 #endif
-        }
+	}
       }
     }
 
@@ -2967,23 +2967,23 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     if ( message.bytes.size() == 0 || continueSysex ) continue;
 
     if ( data->userCallback ) {
-      data->userCallback->rtmidi_midi_in( message.timeStamp, &message.bytes);
+      data->userCallback->rtmidi_midi_in( message.timeStamp, message.bytes);
     }
     else {
       // As long as we haven't reached our queue size limit, push the message.
       if ( data->queue.size < data->queue.ringSize ) {
-        data->queue.ring[data->queue.back++] = message;
-        if ( data->queue.back == data->queue.ringSize )
-          data->queue.back = 0;
-        data->queue.size++;
+	data->queue.ring[data->queue.back++] = message;
+	if ( data->queue.back == data->queue.ringSize )
+	  data->queue.back = 0;
+	data->queue.size++;
       }
       else {
-        try {
-          data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	try {
+	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-        } catch (Error e) {
-          // don't bother ALSA with an unhandled exception
-        }
+	} catch (Error e) {
+	  // don't bother ALSA with an unhandled exception
+	}
       }
     }
   }
@@ -4091,18 +4091,18 @@ struct WinMMCallbacks {
       else if ( status < 0xE0 ) nBytes = 2;
       else if ( status < 0xF0 ) nBytes = 3;
       else if ( status == 0xF1 ) {
-        if ( data->ignoreFlags & 0x02 ) return;
-        else nBytes = 2;
+	if ( data->ignoreFlags & 0x02 ) return;
+	else nBytes = 2;
       }
       else if ( status == 0xF2 ) nBytes = 3;
       else if ( status == 0xF3 ) nBytes = 2;
       else if ( status == 0xF8 && (data->ignoreFlags & 0x02) ) {
-        // A MIDI timing tick message and we're ignoring it.
-        return;
+	// A MIDI timing tick message and we're ignoring it.
+	return;
       }
       else if ( status == 0xFE && (data->ignoreFlags & 0x04) ) {
-        // A MIDI active sensing message and we're ignoring it.
-        return;
+	// A MIDI active sensing message and we're ignoring it.
+	return;
       }
 
       // Copy bytes to our MIDI message.
@@ -4112,9 +4112,9 @@ struct WinMMCallbacks {
     else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
       MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
       if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
-        // Sysex message and we're not ignoring it
-        for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-          apiData->message.bytes.push_back( sysex->lpData[i] );
+	// Sysex message and we're not ignoring it
+	for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
+	  apiData->message.bytes.push_back( sysex->lpData[i] );
       }
 
       // The WinMM API requires that the sysex buffer be requeued after
@@ -4126,42 +4126,42 @@ struct WinMMCallbacks {
       // avoid requeueing it, else the computer suddenly reboots after
       // one or two minutes.
       if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-        //if ( sysex->dwBytesRecorded > 0 ) {
-        EnterCriticalSection( &(apiData->_mutex) );
-        MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-        LeaveCriticalSection( &(apiData->_mutex) );
-        if ( result != MMSYSERR_NOERROR ){
-          try {
-            data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
+	//if ( sysex->dwBytesRecorded > 0 ) {
+	EnterCriticalSection( &(apiData->_mutex) );
+	MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
+	LeaveCriticalSection( &(apiData->_mutex) );
+	if ( result != MMSYSERR_NOERROR ){
+	  try {
+	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
 				     Error::WARNING));
-          } catch (Error e) {
-            // don't bother WinMM with an unhandled exception
-          }
-        }
+	  } catch (Error e) {
+	    // don't bother WinMM with an unhandled exception
+	  }
+	}
 
-        if ( data->ignoreFlags & 0x01 ) return;
+	if ( data->ignoreFlags & 0x01 ) return;
       }
       else return;
     }
 
     if ( data->userCallback ) {
-      data->userCallback->rtmidi_midi_in( apiData->message.timeStamp, &apiData->message.bytes );
+      data->userCallback->rtmidi_midi_in( apiData->message.timeStamp, apiData->message.bytes );
     }
     else {
       // As long as we haven't reached our queue size limit, push the message.
       if ( data->queue.size < data->queue.ringSize ) {
-        data->queue.ring[data->queue.back++] = apiData->message;
-        if ( data->queue.back == data->queue.ringSize )
-          data->queue.back = 0;
-        data->queue.size++;
+	data->queue.ring[data->queue.back++] = apiData->message;
+	if ( data->queue.back == data->queue.ringSize )
+	  data->queue.back = 0;
+	data->queue.size++;
       }
       else {
-        try {
-          data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	try {
+	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-        } catch (Error e) {
-          // don't bother WinMM with an unhandled exception
-        }
+	} catch (Error e) {
+	  // don't bother WinMM with an unhandled exception
+	}
       }
     }
 
@@ -5219,24 +5219,24 @@ int JackBackendCallbacks::jackProcessIn( jack_nframes_t nframes, void *arg )
 
     if ( !rtData->continueSysex ) {
       if ( rtData->userCallback ) {
-        rtData->userCallback->rtmidi_midi_in( message.timeStamp, &message.bytes);
+	rtData->userCallback->rtmidi_midi_in( message.timeStamp, message.bytes);
       }
       else {
-        // As long as we haven't reached our queue size limit, push the message.
-        if ( rtData->queue.size < rtData->queue.ringSize ) {
-          rtData->queue.ring[rtData->queue.back++] = message;
-          if ( rtData->queue.back == rtData->queue.ringSize )
-            rtData->queue.back = 0;
-          rtData->queue.size++;
-        }
-        else {
-          try {
-            rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	// As long as we haven't reached our queue size limit, push the message.
+	if ( rtData->queue.size < rtData->queue.ringSize ) {
+	  rtData->queue.ring[rtData->queue.back++] = message;
+	  if ( rtData->queue.back == rtData->queue.ringSize )
+	    rtData->queue.back = 0;
+	  rtData->queue.size++;
+	}
+	else {
+	  try {
+	    rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				       Error::WARNING));
-          } catch (Error e) {
-            // don't bother WinMM with an unhandled exception
-          }
-        }
+	  } catch (Error e) {
+	    // don't bother WinMM with an unhandled exception
+	  }
+	}
       }
     }
   }

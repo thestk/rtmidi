@@ -397,8 +397,8 @@ MidiOut :: ~MidiOut() throw()
 MidiApi :: MidiApi( void )
   : apiData_( 0 ),
     connected_( false ),
-    errorCallback_(0),
-    firstErrorOccurred_ (false)
+    firstErrorOccurred_ (false),
+    errorCallback_(0)
 {
 }
 

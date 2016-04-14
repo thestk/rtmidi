@@ -1411,8 +1411,9 @@ public:
   void sendMessage( std::vector<unsigned char> &message ) {
     if (rtapi_)
       static_cast<MidiOutApi *>(rtapi_)->sendMessage(message);
-    error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
-			Error::WARNING));
+    else
+      error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
+			  Error::WARNING));
   }
 protected:
   static MidiApiList queryApis;

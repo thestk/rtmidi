@@ -3,5 +3,8 @@ language: cpp
 compiler:
 - clang
 - gcc
-before_script: ./autogen.sh
+before_script:
+- brew update
+- brew install doxygen
+- ./autogen.sh
 script: make distcheck

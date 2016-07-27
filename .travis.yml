@@ -5,6 +5,8 @@ compiler:
 - gcc
 before_script:
 - brew update
+- brew unlink libtool
+- brew install libtool
 - brew install doxygen
 - ./autogen.sh
 script: make distcheck

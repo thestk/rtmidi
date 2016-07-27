@@ -4,4 +4,4 @@ compiler:
 - clang
 - gcc
 before_script: ./autogen.sh
-script: make
+script: make distcheck

@@ -17,5 +17,5 @@ rtmidi_inc_HEADERS = \
 pkgconfigdatadir = $(libdir)/pkgconfig
 pkgconfigdata_DATA = rtmidi.pc
 
-EXTRA_DIST = autogen.sh readme msw
+EXTRA_DIST = autogen.sh README.md msw
 

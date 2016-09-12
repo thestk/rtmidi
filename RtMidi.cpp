@@ -231,7 +231,7 @@ RtMidiOut :: ~RtMidiOut() throw()
 //*********************************************************************//
 
 MidiApi :: MidiApi( void )
-  : apiData_( 0 ), connected_( false ), errorCallback_(0), errorCallbackUserData_(0)
+  : apiData_( 0 ), connected_( false ), errorCallback_(0), firstErrorOccurred_(false), errorCallbackUserData_(0)
 {
 }
 

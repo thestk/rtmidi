@@ -46,7 +46,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
   if (msg == 0xF8) {
     if (++*clock_count == 24) {
       double bpm = 60.0 / 24.0 / deltatime;
-      printf("Quarter note, estimated BPM = %f\n", bpm);
+      printf("One beat, estimated BPM = %f\n", bpm);
       *clock_count = 0;
     }
   }
@@ -117,6 +117,9 @@ int clock_out()
   // Period in ms = 90 BPM
   // 90*24 ticks / 1 minute, so (60*1000) / (90*24) ~= 28 ms / tick
   sleep_ms = 28;
+  std::cout << "Generating clock at "
+            << (60.0 / 24.0 / sleep_ms * 1000.0)
+            << " BPM." << std::endl;
 
   // Send out a series of MIDI clock messages.
   // MIDI start
@@ -141,8 +144,8 @@ int clock_out()
       message.clear();
       message.push_back( 0xF8 );
       midiout->sendMessage( &message );
-      if (k % 16 == 0)
-        std::cout << "MIDI clock (1/16)" << std::endl;
+      if (k % 24 == 0)
+        std::cout << "MIDI clock (one beat)" << std::endl;
       SLEEP( sleep_ms );
     }
 

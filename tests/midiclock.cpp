@@ -114,9 +114,9 @@ int clock_out()
     goto cleanup;
   }
 
-  // Period in ms = 90 BPM
-  // 90*24 ticks / 1 minute, so (60*1000) / (90*24) ~= 28 ms / tick
-  sleep_ms = 28;
+  // Period in ms = 100 BPM
+  // 100*24 ticks / 1 minute, so (60*1000) / (100*24) = 25 ms / tick
+  sleep_ms = 25;
   std::cout << "Generating clock at "
             << (60.0 / 24.0 / sleep_ms * 1000.0)
             << " BPM." << std::endl;

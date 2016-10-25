@@ -46,7 +46,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
   if (msg == 0xF8) {
     if (++*clock_count == 24) {
       double bpm = 60.0 / 24.0 / deltatime;
-      printf("One beat, estimated BPM = %f\n", bpm);
+      std::cout << "One beat, estimated BPM = " << bpm <<std::endl;
       *clock_count = 0;
     }
   }

@@ -736,7 +736,7 @@ class MidiInDummy: public MidiInApi
   void openVirtualPort( const std::string /*portName*/ ) {}
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
-  std::string getPortName( unsigned int portNumber ) { return ""; }
+  std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }
 
  protected:
   void initialize( const std::string& /*clientName*/ ) {}

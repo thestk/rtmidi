@@ -15,6 +15,7 @@ extern "C" {
 
 struct RtMidiWrapper {
     void* ptr;
+    void* data;
     bool  ok;
     const char* msg;
 };

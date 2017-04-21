@@ -945,9 +945,11 @@ void MidiOutCore :: openPort( unsigned int portNumber, const std::string portNam
 
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
   OSStatus result = MIDIOutputPortCreate( data->client, 
-                                          CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+                                          portNameRef,
                                           &port );
+  CFRelease( portNameRef );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
     errorString_ = "MidiOutCore::openPort: error creating OS-X MIDI output port.";

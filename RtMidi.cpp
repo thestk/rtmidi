@@ -1643,6 +1643,9 @@ void MidiInAlsa :: closePort( void )
       snd_seq_port_subscribe_free( data->subscription );
       data->subscription = 0;
     }
+    snd_seq_delete_port( data->seq, data->vport );
+    data->vport = -1;
+
     // Stop the input queue
 #ifndef AVOID_TIMESTAMPING
     snd_seq_stop_queue( data->seq, data->queue_id, NULL );
@@ -1833,6 +1836,8 @@ void MidiOutAlsa :: closePort( void )
     AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
     snd_seq_unsubscribe_port( data->seq, data->subscription );
     snd_seq_port_subscribe_free( data->subscription );
+    snd_seq_delete_port( data->seq, data->vport );
+    data->vport = -1;
     connected_ = false;
   }
 }

@@ -1,5 +1,6 @@
 
 #include <stdbool.h>
+#include <stddef.h>
 #ifndef RTMIDI_C_H
 #define RTMIDI_C_H
 
@@ -20,9 +21,9 @@ struct RtMidiWrapper {
     const char* msg;
 };
 
-typedef RtMidiWrapper* RtMidiPtr;
-typedef RtMidiWrapper* RtMidiInPtr;
-typedef RtMidiWrapper* RtMidiOutPtr;
+typedef struct RtMidiWrapper* RtMidiPtr;
+typedef struct RtMidiWrapper* RtMidiInPtr;
+typedef struct RtMidiWrapper* RtMidiOutPtr;
 
   enum RtMidiApi {
     RT_MIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */

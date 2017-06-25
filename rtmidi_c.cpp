@@ -222,16 +222,15 @@ double rtmidi_in_get_message (RtMidiInPtr device,
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
-        std::vector<unsigned char> *v = new std::vector<unsigned char> ();
-        double ret = ((RtMidiIn*) device->ptr)->getMessage (v);
-        *size = v->size ();
+        std::vector<unsigned char> v;
+        double ret = ((RtMidiIn*) device->ptr)->getMessage (&v);
+        *size = v.size ();
 
-        if (v->size () > 0) {
+        if (v.size () > 0) {
             *message = (unsigned char *) 
-                        malloc (sizeof (unsigned char *) * (int) v->size ());
-            memcpy (*message, v->data (), (int) v->size ());
+                        malloc (sizeof (unsigned char *) * (int) v.size ());
+            memcpy (*message, v.data (), (int) v.size ());
         }
-        delete v;
         return ret;
     } 
     catch (const RtMidiError & err) {
@@ -312,10 +311,8 @@ int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, 
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
-        std::vector<unsigned char> *v = new std::vector<unsigned char> (length);
-        memcpy (v->data (), message, length);
-        ((RtMidiOut*) device->ptr)->sendMessage (v);
-        delete v;
+        std::vector<unsigned char> v (message, message + length);
+        ((RtMidiOut*) device->ptr)->sendMessage (&v);
         return 0;
     }
     catch (const RtMidiError & err) {

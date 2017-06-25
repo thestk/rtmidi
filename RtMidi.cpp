@@ -1013,7 +1013,7 @@ void MidiOutCore :: openVirtualPort( std::string portName )
   data->endpoint = endpoint;
 }
 
-void MidiOutCore :: sendMessage( std::vector<unsigned char> *message )
+void MidiOutCore :: sendMessage( const std::vector<unsigned char> *message )
 {
   // We use the MIDISendSysex() function to asynchronously send sysex
   // messages.  Otherwise, we use a single CoreMidi MIDIPacket.
@@ -1852,7 +1852,7 @@ void MidiOutAlsa :: openVirtualPort( std::string portName )
   }
 }
 
-void MidiOutAlsa :: sendMessage( std::vector<unsigned char> *message )
+void MidiOutAlsa :: sendMessage( const std::vector<unsigned char> *message )
 {
   int result;
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
@@ -2349,7 +2349,7 @@ void MidiOutWinMM :: openVirtualPort( std::string /*portName*/ )
   error( RtMidiError::WARNING, errorString_ );
 }
 
-void MidiOutWinMM :: sendMessage( std::vector<unsigned char> *message )
+void MidiOutWinMM :: sendMessage( const std::vector<unsigned char> *message )
 {
   if ( !connected_ ) return;
 
@@ -2833,7 +2833,7 @@ void MidiOutJack :: closePort()
   data->port = NULL;
 }
 
-void MidiOutJack :: sendMessage( std::vector<unsigned char> *message )
+void MidiOutJack :: sendMessage( const std::vector<unsigned char> *message )
 {
   int nBytes = message->size();
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);

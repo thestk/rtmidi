@@ -406,7 +406,7 @@ class RtMidiOut : public RtMidi
       An exception is thrown if an error occurs during output or an
       output connection was not previously established.
   */
-  void sendMessage( std::vector<unsigned char> *message );
+  void sendMessage( const std::vector<unsigned char> *message );
 
   //! Set an error callback function to be invoked when an error has occured.
   /*!
@@ -529,7 +529,7 @@ class MidiOutApi : public MidiApi
 
   MidiOutApi( void );
   virtual ~MidiOutApi( void );
-  virtual void sendMessage( std::vector<unsigned char> *message ) = 0;
+  virtual void sendMessage( const std::vector<unsigned char> *message ) = 0;
 };
 
 // **************************************************************** //
@@ -558,7 +558,7 @@ inline void RtMidiOut :: closePort( void ) { rtapi_->closePort(); }
 inline bool RtMidiOut :: isPortOpen() const { return rtapi_->isPortOpen(); }
 inline unsigned int RtMidiOut :: getPortCount( void ) { return rtapi_->getPortCount(); }
 inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return rtapi_->getPortName( portNumber ); }
-inline void RtMidiOut :: sendMessage( std::vector<unsigned char> *message ) { ((MidiOutApi *)rtapi_)->sendMessage( message ); }
+inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { ((MidiOutApi *)rtapi_)->sendMessage( message ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
 // **************************************************************** //
@@ -600,7 +600,7 @@ class MidiOutCore: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( std::vector<unsigned char> *message );
+  void sendMessage( const std::vector<unsigned char> *message );
 
  protected:
   void initialize( const std::string& clientName );
@@ -640,7 +640,7 @@ class MidiOutJack: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( std::vector<unsigned char> *message );
+  void sendMessage( const std::vector<unsigned char> *message );
 
  protected:
   std::string clientName;
@@ -680,7 +680,7 @@ class MidiOutAlsa: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( std::vector<unsigned char> *message );
+  void sendMessage( const std::vector<unsigned char> *message );
 
  protected:
   void initialize( const std::string& clientName );
@@ -717,7 +717,7 @@ class MidiOutWinMM: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( std::vector<unsigned char> *message );
+  void sendMessage( const std::vector<unsigned char> *message );
 
  protected:
   void initialize( const std::string& clientName );
@@ -752,7 +752,7 @@ class MidiOutDummy: public MidiOutApi
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }
-  void sendMessage( std::vector<unsigned char> * /*message*/ ) {}
+  void sendMessage( const std::vector<unsigned char> * /*message*/ ) {}
 
  protected:
   void initialize( const std::string& /*clientName*/ ) {}

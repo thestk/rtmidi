@@ -40,6 +40,8 @@
   \file RtMidi.h
  */
 
+#define __WINDOWS_MM__
+
 #ifndef RTMIDI_H
 #define RTMIDI_H
 
@@ -49,6 +51,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <mutex>
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -494,8 +497,33 @@ class MidiInApi : public MidiApi
     unsigned int size;
     unsigned int ringSize;
     MidiMessage *ring;
-
+	std::mutex _mutex;
     // Default constructor.
+
+	unsigned int frontPrev;
+	unsigned int backPrev;
+	unsigned int sizePrev;
+	unsigned int ringSizePrev;
+
+	// for testing
+	void validate() {
+		bool isValid = true;
+		if (front <= back) {
+			isValid = back - front == size;
+		}
+		else {
+			isValid = ringSize - front + back == size;
+		}
+		if (!isValid) {
+			throw runtime_error("invalid queue");
+		}
+
+		frontPrev = front;
+		backPrev = back;
+		sizePrev = size;
+		ringSizePrev = ringSize;
+ 
+	}
   MidiQueue()
   :front(0), back(0), size(0), ringSize(0) {}
   };

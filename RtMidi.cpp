@@ -36,6 +36,7 @@
 */
 /**********************************************************************/
 
+#include "stdafx.h"
 #include "RtMidi.h"
 #include <sstream>
 
@@ -53,6 +54,11 @@
 //*********************************************************************//
 //  RtMidi Definitions
 //*********************************************************************//
+
+
+
+/////////////////////////// debug /////////////////////////
+
 
 RtMidi :: RtMidi()
   : rtapi_(0)
@@ -341,6 +347,9 @@ double MidiInApi :: getMessage( std::vector<unsigned char> *message )
 {
   message->clear();
 
+  std::lock_guard<std::mutex> lock(inputData_.queue._mutex);
+  inputData_.queue.validate();
+
   if ( inputData_.usingCallback ) {
     errorString_ = "RtMidiIn::getNextMessage: a user callback is currently set for this port.";
     error( RtMidiError::WARNING, errorString_ );
@@ -358,6 +367,8 @@ double MidiInApi :: getMessage( std::vector<unsigned char> *message )
   if ( inputData_.queue.front == inputData_.queue.ringSize )
     inputData_.queue.front = 0;
 
+
+  inputData_.queue.validate();
   return deltaTime;
 }
 
@@ -2049,6 +2060,10 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     callback( apiData->message.timeStamp, &apiData->message.bytes, data->userData );
   }
   else {
+
+	std::lock_guard<std::mutex> lock(data->queue._mutex);
+	data->queue.validate();
+
     // As long as we haven't reached our queue size limit, push the message.
     if ( data->queue.size < data->queue.ringSize ) {
       data->queue.ring[data->queue.back++] = apiData->message;
@@ -2058,7 +2073,11 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     }
     else
       std::cerr << "\nRtMidiIn: message queue limit reached!!\n\n";
+
   }
+
+
+  data->queue.validate();
 
   // Clear the vector for the next input message.
   apiData->message.bytes.clear();

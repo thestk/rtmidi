@@ -363,14 +363,14 @@ bool MidiInApi::MidiQueue::push(const MidiInApi::MidiMessage& msg)
   unsigned int _front = front;
   unsigned int size;
 
-  if (back >= front)
-    size = back - front;
+  if (_back >= _front)
+    size = _back - _front;
   else
-    size = ringSize - front + back;
+    size = ringSize - _front + _back;
 
   if ( size < ringSize-1 )
   {
-    ring[back] = msg;
+    ring[_back] = msg;
     back = (back+1)%ringSize;
     return true;
   }
@@ -384,17 +384,17 @@ bool MidiInApi::MidiQueue::pop(std::vector<unsigned char> *msg, double* timeStam
   unsigned int _front = front;
   unsigned int size;
 
-  if (back >= front)
-    size = back - front;
+  if (_back >= _front)
+    size = _back - _front;
   else
-    size = ringSize - front + back;
+    size = ringSize - _front + _back;
 
   if (size == 0)
     return false;
 
   // Copy queued message to the vector pointer argument and then "pop" it.
-  msg->assign( ring[front].bytes.begin(), ring[front].bytes.end() );
-  *timeStamp = ring[front].timeStamp;
+  msg->assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
+  *timeStamp = ring[_front].timeStamp;
   front = (front+1)%ringSize;
   return true;
 }

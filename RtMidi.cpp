@@ -1017,11 +1017,11 @@ void MidiOutCore :: openVirtualPort( std::string portName )
   data->endpoint = endpoint;
 }
 
-void MidiOutCore :: sendMessage( const std::vector<unsigned char> *message )
+void MidiOutCore :: sendMessage( const RtMidiMessage &message )
 {
   // We use the MIDISendSysex() function to asynchronously send sysex
   // messages.  Otherwise, we use a single CoreMidi MIDIPacket.
-  unsigned int nBytes = message->size();
+  unsigned int nBytes = message.size();
   if ( nBytes == 0 ) {
     errorString_ = "MidiOutCore::sendMessage: no data in message argument!";      
     error( RtMidiError::WARNING, errorString_ );
@@ -1032,7 +1032,7 @@ void MidiOutCore :: sendMessage( const std::vector<unsigned char> *message )
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
 
-  if ( message->at(0) != 0xF0 && nBytes > 3 ) {
+  if ( message.at(0) != 0xF0 && nBytes > 3 ) {
     errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
     error( RtMidiError::WARNING, errorString_ );
     return;
@@ -1046,13 +1046,13 @@ void MidiOutCore :: sendMessage( const std::vector<unsigned char> *message )
   ByteCount remainingBytes = nBytes;
   while (remainingBytes && packet) {
     ByteCount bytesForPacket = remainingBytes > 65535 ? 65535 : remainingBytes; // 65535 = maximum size of a MIDIPacket
-    const Byte* dataStartPtr = (const Byte *) &message->at( nBytes - remainingBytes );
+    const Byte* dataStartPtr = (const Byte *) &message.at( nBytes - remainingBytes );
     packet = MIDIPacketListAdd( packetList, listSize, packet, timeStamp, bytesForPacket, dataStartPtr);
     remainingBytes -= bytesForPacket; 
   }
 
   if ( !packet ) {
-    errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";      
+    errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
@@ -1860,11 +1860,11 @@ void MidiOutAlsa :: openVirtualPort( std::string portName )
   }
 }
 
-void MidiOutAlsa :: sendMessage( const std::vector<unsigned char> *message )
+void MidiOutAlsa :: sendMessage( const RtMidiMessage &message )
 {
   int result;
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-  unsigned int nBytes = message->size();
+  unsigned int nBytes = message.size();
   if ( nBytes > data->bufferSize ) {
     data->bufferSize = nBytes;
     result = snd_midi_event_resize_buffer ( data->coder, nBytes);
@@ -1887,7 +1887,7 @@ void MidiOutAlsa :: sendMessage( const std::vector<unsigned char> *message )
   snd_seq_ev_set_source(&ev, data->vport);
   snd_seq_ev_set_subs(&ev);
   snd_seq_ev_set_direct(&ev);
-  for ( unsigned int i=0; i<nBytes; ++i ) data->buffer[i] = message->at(i);
+  for ( unsigned int i=0; i<nBytes; ++i ) data->buffer[i] = message.at(i);
   result = snd_midi_event_encode( data->coder, data->buffer, (long)nBytes, &ev );
   if ( result < (int)nBytes ) {
     errorString_ = "MidiOutAlsa::sendMessage: event parsing error!";
@@ -1994,14 +1994,14 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
 
     // Copy bytes to our MIDI message.
     unsigned char *ptr = (unsigned char *) &midiMessage;
-    for ( int i=0; i<nBytes; ++i ) apiData->message.bytes.push_back( *ptr++ );
+    apiData->message.bytes.insert( apiData->message.bytes.end(), ptr, ptr + nBytes );
   }
   else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
-    MIDIHDR *sysex = ( MIDIHDR *) midiMessage; 
-    if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {  
+    MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
+    if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
       // Sysex message and we're not ignoring it
-      for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-        apiData->message.bytes.push_back( sysex->lpData[i] );
+      unsigned char *ptr = (unsigned char *)sysex->lpData;
+      apiData->message.bytes.insert( apiData->message.bytes.end(), ptr, ptr + sysex->dwBytesRecorded);
     }
 
     // The WinMM API requires that the sysex buffer be requeued after
@@ -2361,11 +2361,11 @@ void MidiOutWinMM :: openVirtualPort( std::string /*portName*/ )
   error( RtMidiError::WARNING, errorString_ );
 }
 
-void MidiOutWinMM :: sendMessage( const std::vector<unsigned char> *message )
+void MidiOutWinMM :: sendMessage( const RtMidiMessage &message )
 {
   if ( !connected_ ) return;
 
-  unsigned int nBytes = static_cast<unsigned int>(message->size());
+  unsigned int nBytes = static_cast<unsigned int>(message.size());
   if ( nBytes == 0 ) {
     errorString_ = "MidiOutWinMM::sendMessage: message argument is empty!";
     error( RtMidiError::WARNING, errorString_ );
@@ -2374,7 +2374,7 @@ void MidiOutWinMM :: sendMessage( const std::vector<unsigned char> *message )
 
   MMRESULT result;
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  if ( message->at(0) == 0xF0 ) { // Sysex message
+  if ( message.at(0) == 0xF0 ) { // Sysex message
 
     // Allocate buffer for sysex data.
     char *buffer = (char *) malloc( nBytes );
@@ -2385,7 +2385,7 @@ void MidiOutWinMM :: sendMessage( const std::vector<unsigned char> *message )
     }
 
     // Copy data to buffer.
-    for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message->at(i);
+    for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message.at(i);
 
     // Create and prepare MIDIHDR structure.
     MIDIHDR sysex;
@@ -2426,7 +2426,7 @@ void MidiOutWinMM :: sendMessage( const std::vector<unsigned char> *message )
     DWORD packet;
     unsigned char *ptr = (unsigned char *) &packet;
     for ( unsigned int i=0; i<nBytes; ++i ) {
-      *ptr = message->at(i);
+      *ptr = message.at(i);
       ++ptr;
     }
 
@@ -2845,14 +2845,14 @@ void MidiOutJack :: closePort()
   data->port = NULL;
 }
 
-void MidiOutJack :: sendMessage( const std::vector<unsigned char> *message )
+void MidiOutJack :: sendMessage( const RtMidiMessage &message )
 {
-  int nBytes = message->size();
+  int nBytes = message.size();
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   // Write full message to buffer
-  jack_ringbuffer_write( data->buffMessage, ( const char * ) &( *message )[0],
-                         message->size() );
+  jack_ringbuffer_write( data->buffMessage, ( const char * ) message.data(),
+                         message.size() );
   jack_ringbuffer_write( data->buffSize, ( char * ) &nBytes, sizeof( nBytes ) );
 }
 

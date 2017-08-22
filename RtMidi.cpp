@@ -1116,7 +1116,7 @@ struct AlsaMidiData {
   unsigned char *buffer;
   pthread_t thread;
   pthread_t dummy_thread_id;
-  unsigned long long lastTime;
+  snd_seq_real_time_t lastTime;
   int queue_id; // an input queue is needed to get timestamped events
   int trigger_fds[2];
 };
@@ -1134,7 +1134,7 @@ static void *alsaMidiHandler( void *ptr )
   AlsaMidiData *apiData = static_cast<AlsaMidiData *> (data->apiData);
 
   long nBytes;
-  unsigned long long time, lastTime;
+  double time;
   bool continueSysex = false;
   bool doDecode = false;
   MidiInApi::MidiMessage message;
@@ -1276,14 +1276,33 @@ static void *alsaMidiHandler( void *ptr )
 
           // Method 2: Use the ALSA sequencer event time data.
           // (thanks to Pedro Lopez-Cabanillas!).
-          time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
-          lastTime = time;
-          time -= apiData->lastTime;
-          apiData->lastTime = lastTime;
+
+          // Using method from:
+          // https://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
+
+          // Perform the carry for the later subtraction by updating y.
+          snd_seq_real_time_t &x(ev->time.time);
+          snd_seq_real_time_t &y(apiData->lastTime);
+          if (x.tv_nsec < y.tv_nsec) {
+              int nsec = (y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
+              y.tv_nsec -= 1000000000 * nsec;
+              y.tv_sec += nsec;
+          }
+          if (x.tv_nsec - y.tv_nsec > 1000000000) {
+              int nsec = (x.tv_nsec - y.tv_nsec) / 1000000000;
+              y.tv_nsec += 1000000000 * nsec;
+              y.tv_sec -= nsec;
+          }
+
+          // Compute the time difference.
+          time = x.tv_sec - y.tv_sec + (x.tv_nsec - y.tv_nsec)*1e-9;
+
+          apiData->lastTime = ev->time.time;
+
           if ( data->firstMessage == true )
             data->firstMessage = false;
           else
-            message.timeStamp = time * 0.000001;
+            message.timeStamp = time;
         }
         else {
 #if defined(__RTMIDI_DEBUG__)

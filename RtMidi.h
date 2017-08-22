@@ -479,6 +479,8 @@ class MidiInApi : public MidiApi
   // messages.  Each message represents one and only one MIDI message.
   struct MidiMessage { 
     std::vector<unsigned char> bytes; 
+
+    //! Time in seconds elapsed since the previous message
     double timeStamp;
 
     // Default constructor.

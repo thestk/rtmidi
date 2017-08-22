@@ -710,10 +710,12 @@ void MidiInCore :: closePort( void )
 
   if ( data->endpoint ) {
     MIDIEndpointDispose( data->endpoint );
+    data->endpoint = 0;
   }
 
   if ( data->port ) {
     MIDIPortDispose( data->port );
+    data->port = 0;
   }
 
   connected_ = false;
@@ -1009,10 +1011,12 @@ void MidiOutCore :: closePort( void )
 
   if ( data->endpoint ) {
     MIDIEndpointDispose( data->endpoint );
+    data->endpoint = 0;
   }
 
   if ( data->port ) {
     MIDIPortDispose( data->port );
+    data->port = 0;
   }
 
   connected_ = false;
@@ -1880,6 +1884,7 @@ void MidiOutAlsa :: closePort( void )
     AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
     snd_seq_unsubscribe_port( data->seq, data->subscription );
     snd_seq_port_subscribe_free( data->subscription );
+    data->subscription = 0;
     connected_ = false;
   }
 }
@@ -2163,6 +2168,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
     result = midiInPrepareHeader( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
+      data->inHandle = INVALID_HANDLE_VALUE;
       errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (PrepareHeader).";
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
@@ -2172,6 +2178,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
     result = midiInAddBuffer( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
+      data->inHandle = INVALID_HANDLE_VALUE;
       errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (AddBuffer).";
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
@@ -2181,6 +2188,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
   result = midiInStart( data->inHandle );
   if ( result != MMSYSERR_NOERROR ) {
     midiInClose( data->inHandle );
+    data->inHandle = INVALID_HANDLE_VALUE;
     errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
@@ -2210,6 +2218,7 @@ void MidiInWinMM :: closePort( void )
       delete [] data->sysexBuffer[i];
       if ( result != MMSYSERR_NOERROR ) {
         midiInClose( data->inHandle );
+        data->inHandle = INVALID_HANDLE_VALUE;
         errorString_ = "MidiInWinMM::openPort: error closing Windows MM MIDI input port (midiInUnprepareHeader).";
         error( RtMidiError::DRIVER_ERROR, errorString_ );
         return;
@@ -2217,6 +2226,7 @@ void MidiInWinMM :: closePort( void )
     }
 
     midiInClose( data->inHandle );
+    data->inHandle = INVALID_HANDLE_VALUE;
     connected_ = false;
     LeaveCriticalSection( &(data->_mutex) );
   }
@@ -2383,6 +2393,7 @@ void MidiOutWinMM :: closePort( void )
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
     midiOutReset( data->outHandle );
     midiOutClose( data->outHandle );
+    data->outHandle = INVALID_HANDLE_VALUE;
     connected_ = false;
   }
 }

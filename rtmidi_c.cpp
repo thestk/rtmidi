@@ -227,8 +227,6 @@ double rtmidi_in_get_message (RtMidiInPtr device,
         *size = v.size ();
 
         if (v.size () > 0) {
-            *message = (unsigned char *) 
-                        malloc (sizeof (unsigned char *) * (int) v.size ());
             memcpy (*message, v.data (), (int) v.size ());
         }
         return ret;

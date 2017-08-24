@@ -585,6 +585,8 @@ class MidiInApi : public MidiApi
   // messages.  Each message represents one and only one MIDI message.
   struct MidiMessage { 
     std::vector<unsigned char> bytes; 
+
+    //! Time in seconds elapsed since the previous message
     double timeStamp;
 
     // Default constructor.
@@ -602,6 +604,8 @@ class MidiInApi : public MidiApi
     // Default constructor.
   MidiQueue()
   :front(0), back(0), size(0), ringSize(0) {}
+    bool push(const MidiMessage&);
+    bool pop(std::vector<unsigned char>*, double*);
   };
 
   // The RtMidiInData structure is used to pass private class data to

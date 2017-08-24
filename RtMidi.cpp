@@ -349,16 +349,54 @@ double MidiInApi :: getMessage( std::vector<unsigned char> *message )
 
   if ( inputData_.queue.size == 0 ) return 0.0;
 
-  // Copy queued message to the vector pointer argument and then "pop" it.
-  std::vector<unsigned char> *bytes = &(inputData_.queue.ring[inputData_.queue.front].bytes);
-  message->assign( bytes->begin(), bytes->end() );
-  double deltaTime = inputData_.queue.ring[inputData_.queue.front].timeStamp;
-  inputData_.queue.size--;
-  inputData_.queue.front++;
-  if ( inputData_.queue.front == inputData_.queue.ringSize )
-    inputData_.queue.front = 0;
+  double timeStamp;
+  if (!inputData_.queue.pop(message, &timeStamp))
+    return 0.0;
 
-  return deltaTime;
+  return timeStamp;
+}
+
+bool MidiInApi::MidiQueue::push(const MidiInApi::MidiMessage& msg)
+{
+  // As long as we haven't reached our queue size limit, push the message.
+  unsigned int _back = back;
+  unsigned int _front = front;
+  unsigned int size;
+
+  if (_back >= _front)
+    size = _back - _front;
+  else
+    size = ringSize - _front + _back;
+
+  if ( size < ringSize-1 )
+  {
+    ring[_back] = msg;
+    back = (back+1)%ringSize;
+    return true;
+  }
+
+  return false;
+}
+
+bool MidiInApi::MidiQueue::pop(std::vector<unsigned char> *msg, double* timeStamp)
+{
+  unsigned int _back = back;
+  unsigned int _front = front;
+  unsigned int size;
+
+  if (_back >= _front)
+    size = _back - _front;
+  else
+    size = ringSize - _front + _back;
+
+  if (size == 0)
+    return false;
+
+  // Copy queued message to the vector pointer argument and then "pop" it.
+  msg->assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
+  *timeStamp = ring[_front].timeStamp;
+  front = (front+1)%ringSize;
+  return true;
 }
 
 //*********************************************************************//
@@ -474,13 +512,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
         }
         else {
           // As long as we haven't reached our queue size limit, push the message.
-          if ( data->queue.size < data->queue.ringSize ) {
-            data->queue.ring[data->queue.back++] = message;
-            if ( data->queue.back == data->queue.ringSize )
-              data->queue.back = 0;
-            data->queue.size++;
-          }
-          else
+          if (!data->queue.push(message))
             std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
         }
         message.bytes.clear();
@@ -538,13 +570,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
             }
             else {
               // As long as we haven't reached our queue size limit, push the message.
-              if ( data->queue.size < data->queue.ringSize ) {
-                data->queue.ring[data->queue.back++] = message;
-                if ( data->queue.back == data->queue.ringSize )
-                  data->queue.back = 0;
-                data->queue.size++;
-              }
-              else
+              if (!data->queue.push(message))
                 std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
             }
             message.bytes.clear();
@@ -684,10 +710,12 @@ void MidiInCore :: closePort( void )
 
   if ( data->endpoint ) {
     MIDIEndpointDispose( data->endpoint );
+    data->endpoint = 0;
   }
 
   if ( data->port ) {
     MIDIPortDispose( data->port );
+    data->port = 0;
   }
 
   connected_ = false;
@@ -983,10 +1011,12 @@ void MidiOutCore :: closePort( void )
 
   if ( data->endpoint ) {
     MIDIEndpointDispose( data->endpoint );
+    data->endpoint = 0;
   }
 
   if ( data->port ) {
     MIDIPortDispose( data->port );
+    data->port = 0;
   }
 
   connected_ = false;
@@ -1116,7 +1146,7 @@ struct AlsaMidiData {
   unsigned char *buffer;
   pthread_t thread;
   pthread_t dummy_thread_id;
-  unsigned long long lastTime;
+  snd_seq_real_time_t lastTime;
   int queue_id; // an input queue is needed to get timestamped events
   int trigger_fds[2];
 };
@@ -1134,7 +1164,7 @@ static void *alsaMidiHandler( void *ptr )
   AlsaMidiData *apiData = static_cast<AlsaMidiData *> (data->apiData);
 
   long nBytes;
-  unsigned long long time, lastTime;
+  double time;
   bool continueSysex = false;
   bool doDecode = false;
   MidiInApi::MidiMessage message;
@@ -1276,14 +1306,33 @@ static void *alsaMidiHandler( void *ptr )
 
           // Method 2: Use the ALSA sequencer event time data.
           // (thanks to Pedro Lopez-Cabanillas!).
-          time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
-          lastTime = time;
-          time -= apiData->lastTime;
-          apiData->lastTime = lastTime;
+
+          // Using method from:
+          // https://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
+
+          // Perform the carry for the later subtraction by updating y.
+          snd_seq_real_time_t &x(ev->time.time);
+          snd_seq_real_time_t &y(apiData->lastTime);
+          if (x.tv_nsec < y.tv_nsec) {
+              int nsec = (y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
+              y.tv_nsec -= 1000000000 * nsec;
+              y.tv_sec += nsec;
+          }
+          if (x.tv_nsec - y.tv_nsec > 1000000000) {
+              int nsec = (x.tv_nsec - y.tv_nsec) / 1000000000;
+              y.tv_nsec += 1000000000 * nsec;
+              y.tv_sec -= nsec;
+          }
+
+          // Compute the time difference.
+          time = x.tv_sec - y.tv_sec + (x.tv_nsec - y.tv_nsec)*1e-9;
+
+          apiData->lastTime = ev->time.time;
+
           if ( data->firstMessage == true )
             data->firstMessage = false;
           else
-            message.timeStamp = time * 0.000001;
+            message.timeStamp = time;
         }
         else {
 #if defined(__RTMIDI_DEBUG__)
@@ -1302,13 +1351,7 @@ static void *alsaMidiHandler( void *ptr )
     }
     else {
       // As long as we haven't reached our queue size limit, push the message.
-      if ( data->queue.size < data->queue.ringSize ) {
-        data->queue.ring[data->queue.back++] = message;
-        if ( data->queue.back == data->queue.ringSize )
-          data->queue.back = 0;
-        data->queue.size++;
-      }
-      else
+      if (!data->queue.push(message))
         std::cerr << "\nMidiInAlsa: message queue limit reached!!\n\n";
     }
   }
@@ -1841,6 +1884,7 @@ void MidiOutAlsa :: closePort( void )
     AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
     snd_seq_unsubscribe_port( data->seq, data->subscription );
     snd_seq_port_subscribe_free( data->subscription );
+    data->subscription = 0;
     connected_ = false;
   }
 }
@@ -2031,14 +2075,8 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
   }
   else {
     // As long as we haven't reached our queue size limit, push the message.
-    if ( data->queue.size < data->queue.ringSize ) {
-      data->queue.ring[data->queue.back++] = apiData->message;
-      if ( data->queue.back == data->queue.ringSize )
-        data->queue.back = 0;
-      data->queue.size++;
-    }
-    else
-      std::cerr << "\nRtMidiIn: message queue limit reached!!\n\n";
+    if (!data->queue.push(message))
+      std::cerr << "\nMidiInWinMM: message queue limit reached!!\n\n";
   }
 
   // Clear the vector for the next input message.
@@ -2130,6 +2168,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
     result = midiInPrepareHeader( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
+      data->inHandle = INVALID_HANDLE_VALUE;
       errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (PrepareHeader).";
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
@@ -2139,6 +2178,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
     result = midiInAddBuffer( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
+      data->inHandle = INVALID_HANDLE_VALUE;
       errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (AddBuffer).";
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
@@ -2148,6 +2188,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string /*portN
   result = midiInStart( data->inHandle );
   if ( result != MMSYSERR_NOERROR ) {
     midiInClose( data->inHandle );
+    data->inHandle = INVALID_HANDLE_VALUE;
     errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
@@ -2177,6 +2218,7 @@ void MidiInWinMM :: closePort( void )
       delete [] data->sysexBuffer[i];
       if ( result != MMSYSERR_NOERROR ) {
         midiInClose( data->inHandle );
+        data->inHandle = INVALID_HANDLE_VALUE;
         errorString_ = "MidiInWinMM::openPort: error closing Windows MM MIDI input port (midiInUnprepareHeader).";
         error( RtMidiError::DRIVER_ERROR, errorString_ );
         return;
@@ -2184,6 +2226,7 @@ void MidiInWinMM :: closePort( void )
     }
 
     midiInClose( data->inHandle );
+    data->inHandle = INVALID_HANDLE_VALUE;
     connected_ = false;
     LeaveCriticalSection( &(data->_mutex) );
   }
@@ -2350,6 +2393,7 @@ void MidiOutWinMM :: closePort( void )
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
     midiOutReset( data->outHandle );
     midiOutClose( data->outHandle );
+    data->outHandle = INVALID_HANDLE_VALUE;
     connected_ = false;
   }
 }
@@ -2511,13 +2555,7 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
       }
       else {
         // As long as we haven't reached our queue size limit, push the message.
-        if ( rtData->queue.size < rtData->queue.ringSize ) {
-          rtData->queue.ring[rtData->queue.back++] = message;
-          if ( rtData->queue.back == rtData->queue.ringSize )
-            rtData->queue.back = 0;
-          rtData->queue.size++;
-        }
-        else
+        if (!data->queue.push(message))
           std::cerr << "\nMidiInJack: message queue limit reached!!\n\n";
       }
     }

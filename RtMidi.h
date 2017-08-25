@@ -695,7 +695,7 @@ class MidiOutAlsa: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const std::vector<unsigned char> *message );
+  void sendMessage( const unsigned char *message, size_t size );
 
  protected:
   void initialize( const std::string& clientName );

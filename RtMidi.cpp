@@ -2555,7 +2555,7 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
       }
       else {
         // As long as we haven't reached our queue size limit, push the message.
-        if (!data->queue.push(message))
+        if (!rtData->queue.push(message))
           std::cerr << "\nMidiInJack: message queue limit reached!!\n\n";
       }
     }

@@ -104,13 +104,15 @@ AC_CANONICAL_HOST
 AC_SUBST( api, [""] )
 AC_SUBST( req, [""] )
 AC_MSG_CHECKING(for MIDI API)
+
+AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)])
+AS_IF([test "x$with_jack" == "xyes"], [
+api="$api -D__UNIX_JACK__"
+AC_MSG_RESULT(using JACK)
+AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))])
+
 case $host in
   *-*-linux*)
-  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
-  api="$api -D__UNIX_JACK__"
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
-
   # Look for ALSA flag
   AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)])
   AS_IF([test "x$with_alsa" == "xyes"], [
@@ -131,11 +133,6 @@ case $host in
   ;;
 
   *-apple*)
-  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
-  api="$api -D__UNIX_JACK__"
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
-
   # Look for Core flag
   AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)])
   AS_IF([test "x$with_core" == "xyes"], [

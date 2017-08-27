@@ -60,6 +60,13 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_HEADER_STDC
 #AC_CHECK_HEADERS(sys/ioctl.h unistd.h)
 
+# Check for POSIX semaphore support
+AC_CHECK_HEADER([semaphore.h], [
+  AC_CHECK_LIB(pthread, sem_init,
+    AC_DEFINE([HAVE_SEMAPHORE],[1],[Define to 1 if you have POSIX semaphore support on your system.]),
+    AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
+])
+
 # Check for debug
 AC_MSG_CHECKING(whether to compile debug version)
 AC_ARG_ENABLE(debug,

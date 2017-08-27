@@ -2500,6 +2500,9 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 #include <jack/jack.h>
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
+#ifdef HAVE_SEMAPHORE
+  #include <semaphore.h>
+#endif
 
 #define JACK_RINGBUFFER_SIZE 16384 // Default size for ringbuffer
 
@@ -2509,6 +2512,10 @@ struct JackMidiData {
   jack_ringbuffer_t *buffSize;
   jack_ringbuffer_t *buffMessage;
   jack_time_t lastTime;
+#ifdef HAVE_SEMAPHORE
+  sem_t sem_cleanup;
+  sem_t sem_needpost;
+#endif
   MidiInApi :: RtMidiInData *rtMidiIn;
   };
 
@@ -2730,6 +2737,11 @@ static int jackProcessOut( jack_nframes_t nframes, void *arg )
     jack_ringbuffer_read( data->buffMessage, (char *) midiData, (size_t) space );
   }
 
+#ifdef HAVE_SEMAPHORE
+  if (!sem_trywait(&data->sem_needpost))
+    sem_post(&data->sem_cleanup);
+#endif
+
   return 0;
 }
 
@@ -2745,6 +2757,10 @@ void MidiOutJack :: initialize( const std::string& clientName )
 
   data->port = NULL;
   data->client = NULL;
+#ifdef HAVE_SEMAPHORE
+  sem_init(&data->sem_cleanup, 0, 0);
+  sem_init(&data->sem_needpost, 0, 0);
+#endif
   this->clientName = clientName;
 
   connect();
@@ -2782,6 +2798,11 @@ MidiOutJack :: ~MidiOutJack()
   if ( data->client ) {
     jack_client_close( data->client );
   }
+
+#ifdef HAVE_SEMAPHORE
+  sem_destroy(&data->sem_cleanup);
+  sem_destroy(&data->sem_needpost);
+#endif
 
   delete data;
 }
@@ -2879,6 +2900,17 @@ void MidiOutJack :: closePort()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   if ( data->port == NULL ) return;
+
+#ifdef HAVE_SEMAPHORE
+  struct timespec ts;
+  if (clock_gettime(CLOCK_REALTIME, &ts) != -1)
+  {
+    ts.tv_sec += 1; // wait max one second
+    sem_post(&data->sem_needpost);
+    sem_timedwait(&data->sem_cleanup, &ts);
+  }
+#endif
+
   jack_port_unregister( data->client, data->port );
   data->port = NULL;
 }

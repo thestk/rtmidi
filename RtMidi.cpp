@@ -871,7 +871,7 @@ std::string MidiInCore :: getPortName( unsigned int portNumber )
 
   portRef = MIDIGetSource( portNumber );
   nameRef = ConnectedEndpointName(portRef);
-  CFStringGetCString( nameRef, name, sizeof(name), CFStringGetSystemEncoding());
+  CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8);
   CFRelease( nameRef );
 
   return stringName = name;

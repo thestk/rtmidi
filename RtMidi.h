@@ -398,7 +398,9 @@ class RtMidiOut : public RtMidi
 
   //! Return a string identifier for the specified MIDI port type and number.
   /*!
-      An empty string is returned if an invalid port specifier is provided.
+    \return The name of the port with the given Id is returned.
+    \retval An empty string is returned if an invalid port specifier
+            is provided. User code should assume a UTF-8 encoding.
   */
   std::string getPortName( unsigned int portNumber = 0 );
 

@@ -60,6 +60,13 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_HEADER_STDC
 #AC_CHECK_HEADERS(sys/ioctl.h unistd.h)
 
+# Check for POSIX semaphore support
+AC_CHECK_HEADER([semaphore.h], [
+  AC_CHECK_LIB(pthread, sem_init,
+    AC_DEFINE([HAVE_SEMAPHORE],[1],[Define to 1 if you have POSIX semaphore support on your system.]),
+    AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
+])
+
 # Check for debug
 AC_MSG_CHECKING(whether to compile debug version)
 AC_ARG_ENABLE(debug,
@@ -104,19 +111,22 @@ AC_CANONICAL_HOST
 AC_SUBST( api, [""] )
 AC_SUBST( req, [""] )
 AC_MSG_CHECKING(for MIDI API)
+
+AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)])
+AS_IF([test "x$with_jack" == "xyes"], [
+api="$api -D__UNIX_JACK__"
+AC_MSG_RESULT(using JACK)
+AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))])
+
 case $host in
   *-*-linux*)
-  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
-  api="$api -D__UNIX_JACK__"
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
-
   # Look for ALSA flag
-  AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)], [
+  AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)])
+  AS_IF([test "x$with_alsa" == "xyes"], [
     api="$api -D__LINUX_ALSA__"
     req="$req alsa"
     AC_MSG_RESULT(using ALSA)
-    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))], )
+    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))])
 
   if [test "$api" == "";] then
     AC_MSG_RESULT(using ALSA)
@@ -130,17 +140,13 @@ case $host in
   ;;
 
   *-apple*)
-  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
-  api="$api -D__UNIX_JACK__"
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
-
   # Look for Core flag
-  AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)], [
+  AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)])
+  AS_IF([test "x$with_core" == "xyes"], [
     api="$api -D__MACOSX_CORE__"
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    LIBS="$LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio" ], )
+    LIBS="$LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio" ])
 
   # If no api flags specified, use CoreMidi
   if [test "$api" == ""; ] then
@@ -155,15 +161,17 @@ case $host in
 
   *-mingw32*)
   # Look for WinMM flag
-  AC_ARG_WITH(winmm, [  --with-winmm = choose Windows MultiMedia (MM) API support (windoze only)], [
+  AC_ARG_WITH(winmm, [  --with-winmm = choose Windows MultiMedia (MM) API support (windoze only)])
+  AS_IF([test "x$with_winmm" == "xyes"], [
     api="$api -D__WINDOWS_MM__"
     AC_MSG_RESULT(using WinMM)
-    AC_SUBST( LIBS, [-lwinmm] )], )
+    AC_SUBST( LIBS, [-lwinmm] )])
 
-  AC_ARG_WITH(winks, [  --with-winks = choose kernel streaming support (windoze only)], [
+  AC_ARG_WITH(winks, [  --with-winks = choose kernel streaming support (windoze only)])
+  AS_IF([test "x$with_winks" == "xyes"], [
     api="$api -D__WINDOWS_KS__"
     AC_SUBST( LIBS, ["-lsetupapi -lksuser"] )
-    AC_MSG_RESULT(using kernel streaming) ], )
+    AC_MSG_RESULT(using kernel streaming) ])
 
   # I can't get the following check to work so just manually add the library
 	# or could try the following?  AC_LIB_WINMM([midiOutGetNumDevs])

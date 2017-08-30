@@ -43,111 +43,12 @@
 #ifndef RTMIDI_H
 #define RTMIDI_H
 
-#define RTMIDI_VERSION "2.2.0"
+#define RTMIDI_VERSION "2.1.1"
 
 #include <exception>
 #include <iostream>
 #include <string>
 #include <vector>
-
-/************************************************************************/
-/*! \class RtMidiSpan
-    \brief Simplified version of gsl::span to hold MIDI messages.
-
-    Non-owning read-only or read-write view into a contiguous block of T
-    objects, i.e. equivalent to a (beg,end) or (data,size) tuple.
-*/
-/************************************************************************/
-
-template <typename T>
-class RtMidiSpan
-{
- public:
-  typedef std::size_t size_type;
-
-  typedef T value_type;
-  typedef T & reference;
-  typedef T * pointer;
-  typedef const T * const_pointer;
-  typedef const T & const_reference;
-
-  typedef pointer iterator;
-  typedef const_pointer const_iterator;
-
-  typedef typename std::iterator_traits<iterator>::difference_type difference_type;
-
- public:
-  //! Construct an empty memory view.
-  RtMidiSpan() : begin_(NULL), end_(NULL) { }
-  //! Construct a memory view referencing the data in [beg, end[.
-  RtMidiSpan( pointer beg, pointer end ) : begin_(beg), end_(end) { }
-  //! Construct a memory view referencing the data in [data, data + size[.
-  RtMidiSpan( pointer data, size_type size ) : begin_(data), end_(data + size) { }
-  //! Construct a memory view from a C array.
-  template <typename U, std::size_t N> RtMidiSpan( U(&arr)[N] ) : begin_(arr), end_(arr + N) { }
-  //! Construct a memory view from a C++ container backed by contiguous memory. The container is required to provide empty(), size() and operator[].
-  template <typename Cont> RtMidiSpan( Cont &cont ) : begin_(cont.empty() ? NULL : &(cont[0])), end_(cont.empty() ? NULL : &(cont[0]) + cont.size()) { }
-  //! Construct a memory view from an existing RtMidiSpan.
-  RtMidiSpan( const RtMidiSpan &other ) : begin_(other.begin()), end_(other.end()) { }
-  //! Construct a memory view from an existing RtMidiSpan of different type, if the types are compatible.
-  template <typename U> RtMidiSpan( const RtMidiSpan<U> &other ) : begin_(other.begin()), end_(other.end()) { }
-
-  //! Assignment from an existing RtMidiSpan.
-  RtMidiSpan & operator = ( RtMidiSpan other ) { begin_ = other.begin(); end_ = other.end(); return *this; }
-
-  //! Returns an iterator pointing to the beginning of the memory view.
-  iterator begin() const { return iterator(begin_); }
-  //! Returns an iterator pointing to the end of the memory view.
-  iterator end() const { return iterator(end_); }
-
-  //! Returns a constant iterator pointing to the beginning of the memory view.
-  const_iterator cbegin() const { return const_iterator(begin()); }
-  //! Returns a constant iterator pointing to the end of the memory view.
-  const_iterator cend() const { return const_iterator(end()); }
-
-  //! Conversion to bool; Returns true if the memory view is not empty.
-  operator bool() const throw() { return begin_ != NULL; }
-
-  //! Access an element inside the memory view.
-  reference operator[]( size_type index ) { return at(index); }
-  //! Access an element inside the memory view.
-  const_reference operator[]( size_type index ) const { return at(index); }
-
-  bool operator==( RtMidiSpan const & other ) const throw() { return size() == other.size() && (begin_ == other.m_beg || std::equal(begin(), end(), other.begin())); }
-  bool operator!=( RtMidiSpan const & other ) const throw() { return !(*this == other); }
-
-  //! Access an element inside the memory view.
-  reference at( size_type index ) { return begin_[index]; }
-  //! Access an element inside the memory view.
-  const_reference at( size_type index ) const { return begin_[index]; }
-
-  //! Returns a pointer to the start of the memory view.
-  pointer data() const throw() { return begin_; }
-
-  //! Returns true if the memory view does not contain any elements.
-  bool empty() const throw() { return size() == 0; }
-
-  //! Returns the size of the memory view.
-  size_type size() const throw() { return std::distance(begin_, end_); }
-  //! Returns the size of the memory view.
-  size_type length() const throw() { return size(); }
-
- protected:
-  T *begin_;
-  T *end_;
-};
-
-
-/************************************************************************/
-/*! \class RtMidiMessage
-    \brief Class used for sending MIDI messages to RtMidi.
-
-    See the documentation on RtMidiSpan.
-*/
-/************************************************************************/
-
-typedef RtMidiSpan<const unsigned char> RtMidiMessage;
-
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -392,7 +293,8 @@ class RtMidiIn : public RtMidi
   //! Return a string identifier for the specified MIDI input port number.
   /*!
     \return The name of the port with the given Id is returned.
-    \retval An empty string is returned if an invalid port specifier is provided.
+    \retval An empty string is returned if an invalid port specifier
+            is provided. User code should assume a UTF-8 encoding.
   */
   std::string getPortName( unsigned int portNumber = 0 );
 
@@ -496,7 +398,9 @@ class RtMidiOut : public RtMidi
 
   //! Return a string identifier for the specified MIDI port type and number.
   /*!
-      An empty string is returned if an invalid port specifier is provided.
+    \return The name of the port with the given Id is returned.
+    \retval An empty string is returned if an invalid port specifier
+            is provided. User code should assume a UTF-8 encoding.
   */
   std::string getPortName( unsigned int portNumber = 0 );
 
@@ -509,10 +413,13 @@ class RtMidiOut : public RtMidi
 
   //! Immediately send a single message out an open MIDI output port.
   /*!
-  An exception is thrown if an error occurs during output or an
-  output connection was not previously established.
+      An exception is thrown if an error occurs during output or an
+      output connection was not previously established.
+
+      \param message A pointer to the MIDI message as raw bytes
+      \param size    Length of the MIDI message in bytes
   */
-  void sendMessage(const RtMidiMessage &message);
+  void sendMessage( const unsigned char *message, size_t size );
 
   //! Set an error callback function to be invoked when an error has occured.
   /*!
@@ -639,7 +546,7 @@ class MidiOutApi : public MidiApi
 
   MidiOutApi( void );
   virtual ~MidiOutApi( void );
-  virtual void sendMessage(const RtMidiMessage &message) = 0;
+  virtual void sendMessage( const unsigned char *message, size_t size ) = 0;
 };
 
 // **************************************************************** //
@@ -668,8 +575,8 @@ inline void RtMidiOut :: closePort( void ) { rtapi_->closePort(); }
 inline bool RtMidiOut :: isPortOpen() const { return rtapi_->isPortOpen(); }
 inline unsigned int RtMidiOut :: getPortCount( void ) { return rtapi_->getPortCount(); }
 inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return rtapi_->getPortName( portNumber ); }
-inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { ((MidiOutApi *)rtapi_)->sendMessage( RtMidiMessage( *message ) ); }
-inline void RtMidiOut :: sendMessage( const RtMidiMessage &message ) { ((MidiOutApi *)rtapi_)->sendMessage( message ); }
+inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { ((MidiOutApi *)rtapi_)->sendMessage( &message->at(0), message->size() ); }
+inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { ((MidiOutApi *)rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
 // **************************************************************** //
@@ -711,7 +618,7 @@ class MidiOutCore: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const RtMidiMessage &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
  protected:
   void initialize( const std::string& clientName );
@@ -751,7 +658,7 @@ class MidiOutJack: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const RtMidiMessage &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
  protected:
   std::string clientName;
@@ -791,7 +698,7 @@ class MidiOutAlsa: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const RtMidiMessage &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
  protected:
   void initialize( const std::string& clientName );
@@ -828,7 +735,7 @@ class MidiOutWinMM: public MidiOutApi
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const RtMidiMessage &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
  protected:
   void initialize( const std::string& clientName );
@@ -863,7 +770,7 @@ class MidiOutDummy: public MidiOutApi
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }
-  void sendMessage( const RtMidiMessage & /*message*/ ) {}
+  void sendMessage( const unsigned char * /*message*/, size_t /*size*/ ) {}
 
  protected:
   void initialize( const std::string& /*clientName*/ ) {}

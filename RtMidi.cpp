@@ -1971,6 +1971,34 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
 #include <windows.h>
 #include <mmsystem.h>
 
+// Convert a null-terminated wide string or ANSI-encoded string to UTF-8.
+static std::string ConvertToUTF8(const TCHAR *str)
+{
+  std::string u8str;
+  const WCHAR *wstr = L"";
+#if defined( UNICODE ) || defined( _UNICODE )
+  wstr = str;
+#else
+  // Convert from ANSI encoding to wide string
+  int wlength = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
+  std::wstring wstrtemp;
+  if ( wlength )
+  {
+    wstrtemp.assign( wlength - 1, 0 );
+    MultiByteToWideChar( CP_ACP, 0, str, -1, &wstrtemp[0], wlength );
+    wstr = &wstrtemp[0];
+  }
+#endif
+  // Convert from wide string to UTF-8
+  int length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL );
+  if ( length )
+  {
+    u8str.assign( length - 1, 0 );
+    length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, &u8str[0], length, NULL, NULL );
+  }
+  return u8str;
+}
+
 #define  RT_SYSEX_BUFFER_SIZE 1024
 #define  RT_SYSEX_BUFFER_COUNT 4
 
@@ -2251,14 +2279,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
 
   MIDIINCAPS deviceCaps;
   midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
-
-#if defined( UNICODE ) || defined( _UNICODE )
-  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
-  stringName.assign( length, 0 );
-  length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, static_cast<int>(wcslen(deviceCaps.szPname)), &stringName[0], length, NULL, NULL);
-#else
-  stringName = std::string( deviceCaps.szPname );
-#endif
+  stringName = ConvertToUTF8( deviceCaps.szPname );
 
   // Next lines added to add the portNumber to the name so that 
   // the device's names are sure to be listed with individual names
@@ -2327,14 +2348,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
 
   MIDIOUTCAPS deviceCaps;
   midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
-
-#if defined( UNICODE ) || defined( _UNICODE )
-  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
-  stringName.assign( length, 0 );
-  length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, static_cast<int>(wcslen(deviceCaps.szPname)), &stringName[0], length, NULL, NULL);
-#else
-  stringName = std::string( deviceCaps.szPname );
-#endif
+  stringName = ConvertToUTF8( deviceCaps.szPname );
 
   // Next lines added to add the portNumber to the name so that 
   // the device's names are sure to be listed with individual names

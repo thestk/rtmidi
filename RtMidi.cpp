@@ -2279,7 +2279,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
 
   MIDIINCAPS deviceCaps;
   midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
-  stringName = ConvertToUTF8(deviceCaps.szPname);
+  stringName = ConvertToUTF8( deviceCaps.szPname );
 
   // Next lines added to add the portNumber to the name so that 
   // the device's names are sure to be listed with individual names
@@ -2348,7 +2348,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
 
   MIDIOUTCAPS deviceCaps;
   midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
-  stringName = ConvertToUTF8(deviceCaps.szPname);
+  stringName = ConvertToUTF8( deviceCaps.szPname );
 
   // Next lines added to add the portNumber to the name so that 
   // the device's names are sure to be listed with individual names

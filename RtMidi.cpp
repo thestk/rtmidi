@@ -1974,29 +1974,29 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
 // Convert a null-terminated wide string or ANSI-encoded string to UTF-8.
 static std::string ConvertToUTF8(const TCHAR *str)
 {
-	std::string u8str;
-	const WCHAR *wstr = L"";
+  std::string u8str;
+  const WCHAR *wstr = L"";
 #if defined( UNICODE ) || defined( _UNICODE )
-	wstr = str;
+  wstr = str;
 #else
-	// Convert from ANSI encoding to wide string
-	int wlength = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-	std::wstring wstrtemp;
-	if(wlength)
-	{
-		wstrtemp.assign(wlength - 1, 0);
-		MultiByteToWideChar(CP_ACP, 0, str, -1, &wstrtemp[0], wlength);
-		wstr = &wstrtemp[0];
-	}
+  // Convert from ANSI encoding to wide string
+  int wlength = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
+  std::wstring wstrtemp;
+  if ( wlength )
+  {
+    wstrtemp.assign( wlength - 1, 0 );
+    MultiByteToWideChar( CP_ACP, 0, str, -1, &wstrtemp[0], wlength );
+    wstr = &wstrtemp[0];
+  }
 #endif
-	// Convert from wide string to UTF-8
-	int length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL );
-	if(length)
-	{
-		u8str.assign(length - 1, 0);
-		length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, &u8str[0], length, NULL, NULL );
-	}
-	return u8str;
+  // Convert from wide string to UTF-8
+  int length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL );
+  if ( length )
+  {
+    u8str.assign( length - 1, 0 );
+    length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, &u8str[0], length, NULL, NULL );
+  }
+  return u8str;
 }
 
 #define  RT_SYSEX_BUFFER_SIZE 1024

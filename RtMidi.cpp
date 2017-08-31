@@ -344,8 +344,6 @@ double MidiInApi :: getMessage( std::vector<unsigned char> *message )
     return 0.0;
   }
 
-  if ( inputData_.queue.size == 0 ) return 0.0;
-
   double timeStamp;
   if (!inputData_.queue.pop(message, &timeStamp))
     return 0.0;
@@ -353,19 +351,34 @@ double MidiInApi :: getMessage( std::vector<unsigned char> *message )
   return timeStamp;
 }
 
+unsigned int MidiInApi::MidiQueue::size(unsigned int *__back,
+					unsigned int *__front)
+{
+  // Access back/front members exactly once and make stack copies for
+  // size calculation
+  unsigned int _back = back, _front = front, _size;
+  if (_back >= _front)
+    _size = _back - _front;
+  else
+    _size = ringSize - _front + _back;
+
+  // Return copies of back/front so no new and unsynchronized accesses
+  // to member variables are needed.
+  if (__back) *__back = _back;
+  if (__front) *__front = _front;
+  return _size;
+}
+
+// As long as we haven't reached our queue size limit, push the message.
 bool MidiInApi::MidiQueue::push(const MidiInApi::MidiMessage& msg)
 {
-  // As long as we haven't reached our queue size limit, push the message.
-  unsigned int _back = back;
-  unsigned int _front = front;
-  unsigned int size;
+  // Local stack copies of front/back
+  unsigned int _back, _front, _size;
 
-  if (_back >= _front)
-    size = _back - _front;
-  else
-    size = ringSize - _front + _back;
+  // Get back/front indexes exactly once and calculate current size
+  _size = size(&_back, &_front);
 
-  if ( size < ringSize-1 )
+  if ( _size < ringSize-1 )
   {
     ring[_back] = msg;
     back = (back+1)%ringSize;
@@ -377,21 +390,20 @@ bool MidiInApi::MidiQueue::push(const MidiInApi::MidiMessage& msg)
 
 bool MidiInApi::MidiQueue::pop(std::vector<unsigned char> *msg, double* timeStamp)
 {
-  unsigned int _back = back;
-  unsigned int _front = front;
-  unsigned int size;
+  // Local stack copies of front/back
+  unsigned int _back, _front, _size;
 
-  if (_back >= _front)
-    size = _back - _front;
-  else
-    size = ringSize - _front + _back;
+  // Get back/front indexes exactly once and calculate current size
+  _size = size(&_back, &_front);
 
-  if (size == 0)
+  if (_size == 0)
     return false;
 
   // Copy queued message to the vector pointer argument and then "pop" it.
   msg->assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
   *timeStamp = ring[_front].timeStamp;
+
+  // Update front
   front = (front+1)%ringSize;
   return true;
 }

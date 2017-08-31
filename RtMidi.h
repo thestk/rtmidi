@@ -516,15 +516,16 @@ class MidiInApi : public MidiApi
   struct MidiQueue {
     unsigned int front;
     unsigned int back;
-    unsigned int size;
     unsigned int ringSize;
     MidiMessage *ring;
 
     // Default constructor.
   MidiQueue()
-  :front(0), back(0), size(0), ringSize(0), ring(0) {}
+  :front(0), back(0), ringSize(0), ring(0) {}
     bool push(const MidiMessage&);
     bool pop(std::vector<unsigned char>*, double*);
+    unsigned int size(unsigned int *back=0,
+		      unsigned int *front=0);
   };
 
   // The RtMidiInData structure is used to pass private class data to

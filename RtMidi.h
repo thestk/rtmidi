@@ -229,7 +229,7 @@ class RtMidiIn : public RtMidi
     \param queueSizeLimit An optional size of the MIDI input queue can be specified.
   */
   RtMidiIn( RtMidi::Api api=UNSPECIFIED,
-            const std::string clientName = std::string( "RtMidi Input Client"),
+            const std::string& clientName = "RtMidi Input Client",
             unsigned int queueSizeLimit = 100 );
 
   //! If a MIDI connection is still open, it will be closed by the destructor.
@@ -359,7 +359,7 @@ class RtMidiOut : public RtMidi
     JACK (OS-X).
   */
   RtMidiOut( RtMidi::Api api=UNSPECIFIED,
-             const std::string clientName = std::string( "RtMidi Output Client") );
+             const std::string& clientName = "RtMidi Output Client" );
 
   //! The destructor closes any open MIDI connections.
   ~RtMidiOut( void ) throw();
@@ -510,7 +510,7 @@ class MidiInApi : public MidiApi
 
     // Default constructor.
   MidiQueue()
-  :front(0), back(0), size(0), ringSize(0), ring(nullptr) {}
+  :front(0), back(0), size(0), ringSize(0), ring(0) {}
     bool push(const MidiMessage&);
     bool pop(std::vector<unsigned char>*, double*);
   };

@@ -4,7 +4,7 @@
 
 A set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK) and Windows (Multimedia).
 
-By Gary P. Scavone, 2003-2016.
+By Gary P. Scavone, 2003-2017.
 
 This distribution of RtMidi contains the following:
 
@@ -36,7 +36,7 @@ For complete documentation on RtMidi, see the doc directory of the distribution 
 The RtMidi license is similar to the MIT License, with the added *feature* that modifications be sent to the developer.
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2016 Gary P. Scavone
+    Copyright (c) 2003-2017 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

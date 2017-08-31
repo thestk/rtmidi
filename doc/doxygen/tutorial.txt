@@ -15,13 +15,19 @@ Where applicable, multiple API support can be compiled and a particular API spec
 
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
 
-\section whatsnew What's New (Version 2.1.1)
+\section whatsnew What's New (Version 3.0.0)
 
-There were no API changes made in the current release. The primary changes involved updates to the build system and some small bug fixes.  With respect to the previous release (2.1.0), a minor API change was made. The RtError class was renamed RtMidiError and embedded directly in RtMidi.h.  Thus, all references to RtError should be renamed to RtMidiError and the RtError.h file should be deleted.  The Windows Kernel Streaming code was moved to a separate branch because it was uncompilable and incomplete.
+The version number has been bumped to 3.0.0 because of the past API change concerning the renaming of the RtError class to RtMidiError.  Changes in this release include:
+
+- see git history for complete list of changes
+- new sendMessage() function that does not use std::vector
+- various std::string updates, including use of UTF8 for port names
+- fixes for the MIDI queue
+- various build system updates and code efficiencies
 
 \section download Download
 
-Latest Release (11 February 2016): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-2.1.1.tar.gz">Version 2.1.1</A>
+Latest Release (31 August 2017): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-3.0.0.tar.gz">Version 3.0.0</A>
 
 \section start Getting Started
 
@@ -124,7 +130,7 @@ int main()
 
 \section output MIDI Output
 
-The RtMidiOut class provides simple functionality to immediately send messages over a MIDI connection.  No timing functionality is provided.
+The RtMidiOut class provides simple functionality to immediately send messages over a MIDI connection.  No timing functionality is provided. Note that there is an overloaded RtMidiOut::sendMessage() function that does not use std::vectors.
 
 In the following example, we omit necessary error checking and details regarding OS-dependent sleep functions.  For a complete example, see the \c midiout.cpp program in the \c tests directory.
 
@@ -310,7 +316,7 @@ int main()
 
 \section virtual Virtual Ports
 
-The Linux ALSA, Macintosh CoreMIDI and JACK APIs allow for the establishment of virtual input and output MIDI ports to which other software clients can connect.  RtMidi incorporates this functionality with the RtMidiIn::openVirtualPort() and RtMidiOut::openVirtualPort() functions.  Any messages sent with the RtMidiOut::sendMessage() function will also be transmitted through an open virtual output port.  If a virtual input port is open and a user callback function is set, the callback function will be invoked when messages arrive via that port.  If a callback function is not set, the user must poll the input queue to check whether messages have arrived.  No notification is provided for the establishment of a client connection via a virtual port.
+The Linux ALSA, Macintosh CoreMIDI and JACK APIs allow for the establishment of virtual input and output MIDI ports to which other software clients can connect.  RtMidi incorporates this functionality with the RtMidiIn::openVirtualPort() and RtMidiOut::openVirtualPort() functions.  Any messages sent with the RtMidiOut::sendMessage() function will also be transmitted through an open virtual output port.  If a virtual input port is open and a user callback function is set, the callback function will be invoked when messages arrive via that port.  If a callback function is not set, the user must poll the input queue to check whether messages have arrived.  No notification is provided for the establishment of a client connection via a virtual port. The RtMidi::isPortOpen() function does not report the status of ports created with the RtMidi::openVirtualPort() function.
 
 \section compiling Compiling
 
@@ -396,7 +402,7 @@ RtMidi is on github (https://github.com/thestk/rtmidi).  Many thanks to the deve
 
 In years past, the following people provided bug fixes and improvements:
 
-- Stephen Sinclair (Git repo and build system)
+- Stephen Sinclair (Git repo, code and build system)
 - Atsushi Eno (C API)
 - Sebastien Alaiwan (JACK memory leaks, Windows kernel streaming)
 - Jean-Baptiste Berruchon (Windows sysex code)
@@ -419,7 +425,7 @@ In years past, the following people provided bug fixes and improvements:
 \section license License
 
     RtMidi: realtime MIDI i/o C++ classes<BR>
-    Copyright (c) 2003-2016 Gary P. Scavone
+    Copyright (c) 2003-2017 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

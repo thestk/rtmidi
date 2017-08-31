@@ -209,7 +209,7 @@ RtMidiOut :: RtMidiOut( RtMidi::Api api, const std::string &clientName)
   std::vector< RtMidi::Api > apis;
   getCompiledApi( apis );
   for ( unsigned int i=0; i<apis.size(); i++ ) {
-    openMidiApi( apis[i,, clientName);
+    openMidiApi( apis[i], clientName );
     if ( rtapi_ && rtapi_->getPortCount() ) break;
   }
 

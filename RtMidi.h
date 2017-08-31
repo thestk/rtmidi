@@ -154,6 +154,10 @@ class RtMidi
   virtual void closePort( void ) = 0;
 
   //! Returns true if a port is open and false if not.
+  /*!
+      Note that this only applies to connections made with the openPort()
+      function, not to virtual ports.
+  */
   virtual bool isPortOpen( void ) const = 0;
 
   //! Set an error callback function to be invoked when an error has occured.
@@ -282,6 +286,10 @@ class RtMidiIn : public RtMidi
   void closePort( void );
 
   //! Returns true if a port is open and false if not.
+  /*!
+      Note that this only applies to connections made with the openPort()
+      function, not to virtual ports.
+  */
   virtual bool isPortOpen() const;
 
   //! Return the number of available MIDI input ports.
@@ -380,6 +388,10 @@ class RtMidiOut : public RtMidi
   void closePort( void );
 
   //! Returns true if a port is open and false if not.
+  /*!
+      Note that this only applies to connections made with the openPort()
+      function, not to virtual ports.
+  */
   virtual bool isPortOpen() const;
 
   //! Create a virtual output port, with optional name, to allow software connections (OS X, JACK and ALSA only).

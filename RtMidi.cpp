@@ -47,8 +47,8 @@
 #endif
 
 // Default for Windows is to add an identifier to the port names; this
-// flag can be undefined to disable this behaviour.
-#define RTMIDI_ENSURE_UNIQUE_PORTNAMES
+// flag can be defined (e.g. in your project file) to disable this behaviour.
+//#define RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
 
 //*********************************************************************//
 //  RtMidi Definitions
@@ -2293,7 +2293,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
   // Next lines added to add the portNumber to the name so that 
   // the device's names are sure to be listed with individual names
   // even when they have the same brand name
-#ifdef RTMIDI_ENSURE_UNIQUE_PORTNAMES
+#ifndef RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
   std::ostringstream os;
   os << " ";
   os << portNumber;
@@ -2363,7 +2363,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
   // the device's names are sure to be listed with individual names
   // even when they have the same brand name
   std::ostringstream os;
-#ifdef RTMIDI_ENSURE_UNIQUE_PORTNAMES
+#ifndef RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
   os << " ";
   os << portNumber;
   stringName += os.str();

@@ -1,4 +1,3 @@
-
 #include <stdbool.h>
 #include <stddef.h>
 #ifndef RTMIDI_C_H
@@ -58,7 +57,7 @@ enum RtMidiErrorType {
  * \param message     The midi message.
  * \param userData    Additional user data for the callback.
  */
-typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message, void *userData);
+typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message, size_t messageSize, void *userData);
 
 //! Returns the size (with sizeof) of a RtMidiApi instance.
 RTMIDIAPI int rtmidi_sizeof_rtmidi_api ();

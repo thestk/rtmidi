@@ -1,3 +1,6 @@
+/**/*.o
+/**/*.lo
+/**/*.la
 /config
 /config.log
 /config.status
@@ -12,9 +15,20 @@
 /rtmidi-config
 /rtmidi.pc
 /.deps/
+/.libs/
 /doc/Makefile.in
 /doc/Makefile
+/doc/doxygen-build.stamp
 /doc/doxygen/Doxyfile
+/doc/html/
 /tests/Makefile.in
 /tests/Makefile
 /tests/.deps/
+/tests/.libs/
+/tests/cmidiin
+/tests/midiclock_in
+/tests/midiclock_out
+/tests/midiout
+/tests/midiprobe
+/tests/qmidiin
+/tests/sysextest

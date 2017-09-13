@@ -32,3 +32,7 @@
 /tests/midiprobe
 /tests/qmidiin
 /tests/sysextest
+/msw/.vs/
+/msw/Debug/
+/msw/Release/
+/msw/Export/

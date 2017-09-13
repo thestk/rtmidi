@@ -8,11 +8,14 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
+		Export|Win32 = Export|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Debug|Win32.ActiveCfg = Debug|Win32
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Debug|Win32.Build.0 = Debug|Win32
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Export|Win32.ActiveCfg = Export|Win32
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Export|Win32.Build.0 = Export|Win32
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Release|Win32.ActiveCfg = Release|Win32
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection

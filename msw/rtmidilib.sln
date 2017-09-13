@@ -8,16 +8,25 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
 		Export|Win32 = Export|Win32
+		Export|x64 = Export|x64
 		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Debug|Win32.ActiveCfg = Debug|Win32
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Debug|Win32.Build.0 = Debug|Win32
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Debug|x64.ActiveCfg = Debug|x64
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Debug|x64.Build.0 = Debug|x64
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Export|Win32.ActiveCfg = Export|Win32
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Export|Win32.Build.0 = Export|Win32
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Export|x64.ActiveCfg = Export|x64
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Export|x64.Build.0 = Export|x64
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Release|Win32.ActiveCfg = Release|Win32
 		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Release|Win32.Build.0 = Release|Win32
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Release|x64.ActiveCfg = Release|x64
+		{EBFE5EB3-182A-47A6-922B-52ECF777F6A3}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

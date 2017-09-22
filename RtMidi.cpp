@@ -482,7 +482,6 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
     if ( nBytes == 0 ) continue;
 
     // Calculate time stamp.
-
     if ( data->firstMessage ) {
       message.timeStamp = 0.0;
       data->firstMessage = false;
@@ -497,11 +496,10 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
       if ( !continueSysex )
         message.timeStamp = time * 0.000000001;
     }
-    apiData->lastTime = packet->timeStamp;
-    if ( apiData->lastTime == 0 ) { // this happens when receiving asynchronous sysex messages
-      apiData->lastTime = AudioGetCurrentHostTime();
-    }
-    //std::cout << "TimeStamp = " << packet->timeStamp << std::endl;
+
+    // Track whether any non-filtered messages were found in this
+    // packet for timestamp calculation
+    bool foundNonFiltered = false;
 
     iByte = 0;
     if ( continueSysex ) {
@@ -570,6 +568,7 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
 
         // Copy the MIDI data to our vector.
         if ( size ) {
+          foundNonFiltered = true;
           message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
           if ( !continueSysex ) {
             // If not a continuing sysex message, invoke the user callback function or queue the message.
@@ -588,6 +587,16 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
         }
       }
     }
+
+    // Save the time of the last non-filtered message
+    if (foundNonFiltered)
+    {
+      apiData->lastTime = packet->timeStamp;
+      if ( apiData->lastTime == 0 ) { // this happens when receiving asynchronous sysex messages
+        apiData->lastTime = AudioGetCurrentHostTime();
+      }
+    }
+
     packet = MIDIPacketNext(packet);
   }
 }
@@ -2045,7 +2054,6 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     data->firstMessage = false;
   }
   else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
-  apiData->lastTime = timestamp;
 
   if ( inputStatus == MIM_DATA ) { // Channel or system message
 
@@ -2105,6 +2113,9 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     }
     else return;
   }
+
+  // Save the time of the last non-filtered message
+  apiData->lastTime = timestamp;
 
   if ( data->usingCallback ) {
     RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) data->userCallback;

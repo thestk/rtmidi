@@ -309,9 +309,7 @@ enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length)
 {
     try {
-        // FIXME: use allocator to achieve efficient buffering
-        std::vector<unsigned char> v (message, message + length);
-        ((RtMidiOut*) device->ptr)->sendMessage (&v);
+        ((RtMidiOut*) device->ptr)->sendMessage (message, length);
         return 0;
     }
     catch (const RtMidiError & err) {

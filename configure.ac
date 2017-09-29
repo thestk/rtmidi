@@ -77,7 +77,6 @@ AC_ARG_ENABLE(debug,
 # Set paths if prefix is defined
 if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
   LIBS="$LIBS -L$prefix/lib"
-  CPPFLAGS="$CPPFLAGS -I$prefix/include/rtmidi"
 fi
 
 # For -I and -D flags

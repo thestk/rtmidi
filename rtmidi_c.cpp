@@ -123,11 +123,13 @@ RtMidiInPtr rtmidi_in_create_default ()
         RtMidiIn* rIn = new RtMidiIn ();
         
         wrp->ptr = (void*) rIn;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }

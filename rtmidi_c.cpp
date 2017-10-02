@@ -255,11 +255,13 @@ RtMidiOutPtr rtmidi_out_create_default ()
         RtMidiOut* rOut = new RtMidiOut ();
         
         wrp->ptr = (void*) rOut;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -276,11 +278,13 @@ RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
         RtMidiOut* rOut = new RtMidiOut ((RtMidi::Api) api, name);
         
         wrp->ptr = (void*) rOut;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }

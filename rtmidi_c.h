@@ -59,8 +59,6 @@ enum RtMidiErrorType {
  */
 typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message, void *userData);
 
-//! Returns the size (with sizeof) of a RtMidiApi instance.
-RTMIDIAPI int rtmidi_sizeof_rtmidi_api ();
 
 /* RtMidi API */
 

@@ -28,13 +28,13 @@ struct RtMidiWrapper {
 };
 
 //! Typedef for a generic RtMidi pointer.
-typedef RtMidiWrapper* RtMidiPtr;
+typedef struct RtMidiWrapper* RtMidiPtr;
 
 //! Typedef for a generic RtMidiIn pointer.
-typedef RtMidiWrapper* RtMidiInPtr;
+typedef struct RtMidiWrapper* RtMidiInPtr;
 
 //! Typedef for a generic RtMidiOut pointer.
-typedef RtMidiWrapper* RtMidiOutPtr;
+typedef struct RtMidiWrapper* RtMidiOutPtr;
 
 
 enum RtMidiApi {

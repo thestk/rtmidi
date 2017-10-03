@@ -15,9 +15,9 @@ class CallbackProxyUserData
 };
 
 /* RtMidi API */
-int rtmidi_get_compiled_api (enum RtMidiApi **apis) // return length for NULL argument.
+int rtmidi_get_compiled_api (enum RtMidiApi *apis) // return length for NULL argument.
 {
-	if (!apis || !(*apis)) {
+	if (!apis) {
 		std::vector<RtMidi::Api> *v = new std::vector<RtMidi::Api> ();
 		try {
 			RtMidi::getCompiledApi (*v);
@@ -32,7 +32,7 @@ int rtmidi_get_compiled_api (enum RtMidiApi **apis) // return length for NULL ar
 			std::vector<RtMidi::Api> *v = new std::vector<RtMidi::Api> ();
 			RtMidi::getCompiledApi (*v);
 			for (unsigned int i = 0; i < v->size (); i++)
-				(*apis) [i] = (RtMidiApi) v->at (i);
+				apis[i] = (RtMidiApi) v->at (i);
 			delete v;
 			return 0;
 		} catch (...) {

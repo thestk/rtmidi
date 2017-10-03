@@ -68,7 +68,7 @@ typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
  *
  * \param apis  An array or a null value.
 */
-RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi **apis); // return length for NULL argument.
+RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi *apis); // return length for NULL argument.
 
 //! Report an error.
 RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);

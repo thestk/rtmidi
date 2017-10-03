@@ -57,7 +57,8 @@ enum RtMidiErrorType {
  * \param message     The midi message.
  * \param userData    Additional user data for the callback.
  */
-typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message, void *userData);
+typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
+                                 size_t messageSize, void *userData);
 
 
 /* RtMidi API */

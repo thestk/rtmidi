@@ -179,7 +179,7 @@ static
 void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void *userData)
 {
 	CallbackProxyUserData* data = reinterpret_cast<CallbackProxyUserData*> (userData);
-	data->c_callback (timeStamp, message->data (), data->user_data);
+	data->c_callback (timeStamp, message->data (), message->size (), data->user_data);
 }
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)

@@ -139,7 +139,7 @@ RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool 
  *                  be sufficient. 
  * \param size      Is used to return the size of the message obtained. 
  */
-RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message, size_t * size);
+RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char *message, size_t *size);
 
 /* RtMidiOut API */
 

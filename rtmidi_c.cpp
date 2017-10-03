@@ -213,8 +213,8 @@ void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, 
 }
 
 double rtmidi_in_get_message (RtMidiInPtr device, 
-                              unsigned char **message, 
-                              size_t * size)
+                              unsigned char *message,
+                              size_t *size)
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
@@ -222,7 +222,7 @@ double rtmidi_in_get_message (RtMidiInPtr device,
         double ret = ((RtMidiIn*) device->ptr)->getMessage (&v);
 
         if (v.size () > 0 && v.size() <= *size) {
-            memcpy (*message, v.data (), (int) v.size ());
+            memcpy (message, v.data (), (int) v.size ());
         }
 
         *size = v.size();

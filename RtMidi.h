@@ -43,6 +43,16 @@
 #ifndef RTMIDI_H
 #define RTMIDI_H
 
+#if defined _WIN32 || defined __CYGWIN__
+  #define RTMIDI_DLL_PUBLIC
+#else
+  #if __GNUC__ >= 4
+    #define RTMIDI_DLL_PUBLIC __attribute__( (visibility( "default" )) )
+  #else
+    #define RTMIDI_DLL_PUBLIC
+  #endif
+#endif
+
 #define RTMIDI_VERSION "3.0.0"
 
 #include <exception>
@@ -207,7 +217,7 @@ class RtMidi
 //
 // **************************************************************** //
 
-class RtMidiIn : public RtMidi
+class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
 {
  public:
 
@@ -354,7 +364,7 @@ class RtMidiIn : public RtMidi
 */
 /**********************************************************************/
 
-class RtMidiOut : public RtMidi
+class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
 {
  public:
 

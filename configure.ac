@@ -30,7 +30,9 @@ AC_SUBST(SO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(api)
 AC_SUBST(req)
+AC_SUBST(visibility)
 
+visibility=""
 api=""
 req=""
 
@@ -110,6 +112,7 @@ AS_IF([test "x$debugflags" != x],
 # Check compiler and use -Wall if gnu.
 AS_IF([test "x$GXX" = "xyes"], [
   CXXFLAGS="-Wall -Wextra ${CXXFLAGS}"
+  AS_IF([test "x${enable_debug}" != "xyes" ], visibility="-fvisibility=hidden" )
 ])
 
 # Checks for doxygen

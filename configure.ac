@@ -77,16 +77,19 @@ AC_CHECK_HEADER([semaphore.h], [
 ])
 
 # Check for debug
-AC_MSG_CHECKING(whether to compile debug version)
 AC_ARG_ENABLE([debug],
-  [  --enable-debug = enable various debug output], [
+  [  --enable-debug = enable various debug output])
+
+AC_MSG_CHECKING(whether to compile debug version)
+AS_IF([test "x${enable_debug}" = "xyes" ],[
+    AC_MSG_RESULT([yes])
     CPPFLAGS="-D__RTMIDI_DEBUG ${CPPFLAGS}"
     cxxflags="${cxxflags} -g"
     object_path=Debug
-    AC_MSG_RESULT([yes])],[
+    ],[
+    AC_MSG_RESULT([no])
     cxxflags="${cxxflags} -O3"
     object_path=Release
-    AC_MSG_RESULT([no])
   ])
 
 # Check compiler and use -Wall if gnu.

@@ -30,11 +30,9 @@ AC_SUBST(SO_VERSION)
 
 # Check version number coherency between RtMidi.h and configure.ac
 AC_MSG_CHECKING([that version numbers are coherent])
-AC_RUN_IFELSE(
-   [AC_LANG_PROGRAM([#include <string.h>
-                     `grep "define RTMIDI_VERSION" $srcdir/RtMidi.h`],
-                    [return strcmp(RTMIDI_VERSION, PACKAGE_VERSION);])],
-   [AC_MSG_RESULT([yes])],
+RTMIDI_VERSION=`sed -n 's/#define RTMIDI_VERSION "\(.*\)"/\1/p' $srcdir/RtMidi.h`
+AS_IF(
+   [test "x$RTMIDI_VERSION" != "x$PACKAGE_VERSION"],
    [AC_MSG_FAILURE([testing RTMIDI_VERSION==PACKAGE_VERSION failed, check that RtMidi.h defines RTMIDI_VERSION as "$PACKAGE_VERSION" or that the first line of configure.ac has been updated.])])
 
 # Enable some nice automake features if they are available

@@ -31,8 +31,6 @@ AC_SUBST(LIBS)
 AC_SUBST(api)
 AC_SUBST(req)
 
-cppflags=""
-cxxflags=""
 api=""
 req=""
 
@@ -41,6 +39,7 @@ GXX="no"
 
 # if the user did not provide any CXXFLAGS, we can override them
 AS_IF([test "x$CXXFLAGS" = "x" ], [override_cxx=yes], [override_cxx=no])
+AS_IF([test "x$CFLAGS" = "x" ], [override_c=yes], [override_c=no])
 
 # Check version number coherency between RtMidi.h and configure.ac
 AC_MSG_CHECKING([that version numbers are coherent])
@@ -87,23 +86,31 @@ AC_CHECK_HEADER([semaphore.h], [
 
 # check for debug
 AC_MSG_CHECKING(whether to compile debug version)
-AS_IF([test "x${enable_debug}" = "xyes" ],[
+debugflags=""
+object_path=Release
+AS_CASE([${enable_debug}],
+  [ yes ], [
     AC_MSG_RESULT([yes])
     CPPFLAGS="-D__RTMIDI_DEBUG ${CPPFLAGS}"
-    cxxflags="${cxxflags} -g"
+    debugflags="${debugflags} -g"
     object_path=Debug
-    ],[
+  ],
+  [ no ], [
+    AC_MSG_RESULT([no!])
+    debugflags="${debugflags} -O3"
+  ], [
     AC_MSG_RESULT([no])
-    cxxflags="${cxxflags} -O3"
-    object_path=Release
   ])
+# For debugging and optimization ... overwrite default because it has both -g and -O2
+AS_IF([test "x$debugflags" != x],
+  AS_IF([test "x$override_cxx" = "xyes" ], CXXFLAGS="$CXXFLAGS $debugflags", CXXFLAGS="$debugflags $CXXFLAGS")
+  AS_IF([test "x$override_c" = "xyes" ], CFLAGS="$CFLAGS $debugflags", CFLAGS="$debugflags $CFLAGS")
+  )
 
 # Check compiler and use -Wall if gnu.
 AS_IF([test "x$GXX" = "xyes"], [
   CXXFLAGS="-Wall -Wextra ${CXXFLAGS}"
 ])
-# For debugging and optimization ... overwrite default because it has both -g and -O2
-AS_IF([test "x$override_cxx" = "xyes" ], CXXFLAGS="$CXXFLAGS $cxxflags", CXXFLAGS="$cxxflags $CXXFLAGS")
 
 # Checks for doxygen
 AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )

@@ -77,8 +77,7 @@ AC_CHECK_HEADER([semaphore.h], [
 ])
 
 # Check for debug
-AC_ARG_ENABLE([debug],
-  [  --enable-debug = enable various debug output])
+AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [enable various debugging output])])
 
 AC_MSG_CHECKING(whether to compile debug version)
 AS_IF([test "x${enable_debug}" = "xyes" ],[
@@ -115,7 +114,7 @@ AC_CANONICAL_HOST
 
 AC_MSG_CHECKING(for MIDI API)
 
-AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)])
+AC_ARG_WITH(jack, [AS_HELP_STRING([--with-jack], [choose JACK server support (mac and linux only)])])
 AS_IF([test "x$with_jack" = "xyes"], [
 api="$api -D__UNIX_JACK__"
 AC_MSG_RESULT(using JACK)
@@ -124,7 +123,7 @@ AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the ja
 case $host in
   *-*-linux*)
   # Look for ALSA flag
-  AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)])
+  AC_ARG_WITH(alsa, [AS_HELP_STRING([--with-alsa], [choose native ALSA sequencer API support (linux only)])])
   AS_IF([test "x$with_alsa" = "xyes"], [
     AC_MSG_RESULT(using ALSA)
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))
@@ -145,7 +144,7 @@ case $host in
 
   *-apple*)
   # Look for Core flag
-  AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)])
+  AC_ARG_WITH(core, [AS_HELP_STRING([--with-core], [ choose CoreMidi API support (mac only)])])
   AS_IF([test "x$with_core" = "xyes"], [
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
@@ -166,14 +165,14 @@ case $host in
 
   *-mingw32*)
   # Look for WinMM flag
-  AC_ARG_WITH(winmm, [  --with-winmm = choose Windows MultiMedia (MM) API support (windoze only)])
+  AC_ARG_WITH(winmm, [AS_HELP_STRING([--with-winmm], [ choose Windows MultiMedia (MM) API support (win32 only)])])
   AS_IF([test "x$with_winmm" = "xyes"], [
     AC_MSG_RESULT(using WinMM)
     LIBS="-lwinmm ${LIBS}"
     api="$api -D__WINDOWS_MM__"
   ])
 
-  AC_ARG_WITH(winks, [  --with-winks = choose kernel streaming support (windoze only)])
+  AC_ARG_WITH(winks, [AS_HELP_STRING([--with-winks], [  choose kernel streaming support (win32 only)])])
   AS_IF([test "x$with_winks" = "xyes"], [
     AC_MSG_RESULT(using kernel streaming)
     LIBS="-lsetupapi -lksuser ${LIBS}"

@@ -468,7 +468,7 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
 //
 // **************************************************************** //
 
-class  RTMIDI_DLL_PUBLIC MidiApi
+class RTMIDI_DLL_PUBLIC MidiApi
 {
  public:
 

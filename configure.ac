@@ -53,6 +53,14 @@ AS_IF(
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
+# configure flags
+AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [enable various debugging output])])
+AC_ARG_WITH(jack, [AS_HELP_STRING([--with-jack], [choose JACK server support (mac and linux only)])])
+AC_ARG_WITH(alsa, [AS_HELP_STRING([--with-alsa], [choose native ALSA sequencer API support (linux only)])])
+AC_ARG_WITH(core, [AS_HELP_STRING([--with-core], [ choose CoreMidi API support (mac only)])])
+AC_ARG_WITH(winmm, [AS_HELP_STRING([--with-winmm], [ choose Windows MultiMedia (MM) API support (win32 only)])])
+AC_ARG_WITH(winks, [AS_HELP_STRING([--with-winks], [  choose kernel streaming support (win32 only)])])
+
 
 # Checks for programs.
 AC_PROG_CXX(g++ CC c++ cxx)
@@ -76,9 +84,8 @@ AC_CHECK_HEADER([semaphore.h], [
     AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
 ])
 
-# Check for debug
-AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [enable various debugging output])])
 
+# check for debug
 AC_MSG_CHECKING(whether to compile debug version)
 AS_IF([test "x${enable_debug}" = "xyes" ],[
     AC_MSG_RESULT([yes])
@@ -112,9 +119,11 @@ AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
 # Checks for package options and external software
 AC_CANONICAL_HOST
 
+
+
+
 AC_MSG_CHECKING(for MIDI API)
 
-AC_ARG_WITH(jack, [AS_HELP_STRING([--with-jack], [choose JACK server support (mac and linux only)])])
 AS_IF([test "x$with_jack" = "xyes"], [
 api="$api -D__UNIX_JACK__"
 AC_MSG_RESULT(using JACK)
@@ -123,7 +132,6 @@ AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the ja
 case $host in
   *-*-linux*)
   # Look for ALSA flag
-  AC_ARG_WITH(alsa, [AS_HELP_STRING([--with-alsa], [choose native ALSA sequencer API support (linux only)])])
   AS_IF([test "x$with_alsa" = "xyes"], [
     AC_MSG_RESULT(using ALSA)
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))
@@ -144,7 +152,6 @@ case $host in
 
   *-apple*)
   # Look for Core flag
-  AC_ARG_WITH(core, [AS_HELP_STRING([--with-core], [ choose CoreMidi API support (mac only)])])
   AS_IF([test "x$with_core" = "xyes"], [
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
@@ -165,14 +172,12 @@ case $host in
 
   *-mingw32*)
   # Look for WinMM flag
-  AC_ARG_WITH(winmm, [AS_HELP_STRING([--with-winmm], [ choose Windows MultiMedia (MM) API support (win32 only)])])
   AS_IF([test "x$with_winmm" = "xyes"], [
     AC_MSG_RESULT(using WinMM)
     LIBS="-lwinmm ${LIBS}"
     api="$api -D__WINDOWS_MM__"
   ])
 
-  AC_ARG_WITH(winks, [AS_HELP_STRING([--with-winks], [  choose kernel streaming support (win32 only)])])
   AS_IF([test "x$with_winks" = "xyes"], [
     AC_MSG_RESULT(using kernel streaming)
     LIBS="-lsetupapi -lksuser ${LIBS}"

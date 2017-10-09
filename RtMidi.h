@@ -70,7 +70,7 @@
 */
 /************************************************************************/
 
-class RtMidiError : public std::exception
+class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
 {
  public:
   //! Defined RtMidiError types.
@@ -123,7 +123,7 @@ typedef void (*RtMidiErrorCallback)( RtMidiError::Type type, const std::string &
 
 class MidiApi;
 
-class RtMidi
+class RTMIDI_DLL_PUBLIC RtMidi
 {
  public:
 
@@ -468,7 +468,7 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
 //
 // **************************************************************** //
 
-class MidiApi
+class  RTMIDI_DLL_PUBLIC MidiApi
 {
  public:
 
@@ -499,7 +499,7 @@ protected:
   void *errorCallbackUserData_;
 };
 
-class MidiInApi : public MidiApi
+class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
 {
  public:
 
@@ -563,7 +563,7 @@ class MidiInApi : public MidiApi
   RtMidiInData inputData_;
 };
 
-class MidiOutApi : public MidiApi
+class RTMIDI_DLL_PUBLIC MidiOutApi : public MidiApi
 {
  public:
 

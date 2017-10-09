@@ -72,11 +72,6 @@ AC_ARG_ENABLE(debug,
   [AC_SUBST( cppflag, [-D__RTMIDI_DEBUG__] ) AC_SUBST( cxxflag, [-g] ) AC_SUBST( object_path, [Debug] ) AC_MSG_RESULT(yes)],
   [AC_SUBST( cppflag, [] ) AC_SUBST( cxxflag, [-O3] ) AC_SUBST( object_path, [Release] ) AC_MSG_RESULT(no)])
 
-# Set paths if prefix is defined
-if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
-  LIBS="$LIBS -L$prefix/lib"
-fi
-
 # For -I and -D flags
 CPPFLAGS="$CPPFLAGS $cppflag"
 

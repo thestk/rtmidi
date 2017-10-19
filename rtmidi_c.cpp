@@ -14,6 +14,12 @@ class CallbackProxyUserData
 	void *user_data;
 };
 
+/* misc */
+int rtmidi_sizeof_rtmidi_api ()
+{
+	return sizeof (RtMidiApi);
+}
+
 /* RtMidi API */
 int rtmidi_get_compiled_api (enum RtMidiApi *apis) // return length for NULL argument.
 {

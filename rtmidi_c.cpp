@@ -14,16 +14,10 @@ class CallbackProxyUserData
 	void *user_data;
 };
 
-/* misc */
-int rtmidi_sizeof_rtmidi_api ()
-{
-	return sizeof (RtMidiApi);
-}
-
 /* RtMidi API */
-int rtmidi_get_compiled_api (enum RtMidiApi **apis) // return length for NULL argument.
+int rtmidi_get_compiled_api (enum RtMidiApi *apis) // return length for NULL argument.
 {
-	if (!apis || !(*apis)) {
+	if (!apis) {
 		std::vector<RtMidi::Api> *v = new std::vector<RtMidi::Api> ();
 		try {
 			RtMidi::getCompiledApi (*v);
@@ -38,7 +32,7 @@ int rtmidi_get_compiled_api (enum RtMidiApi **apis) // return length for NULL ar
 			std::vector<RtMidi::Api> *v = new std::vector<RtMidi::Api> ();
 			RtMidi::getCompiledApi (*v);
 			for (unsigned int i = 0; i < v->size (); i++)
-				(*apis) [i] = (RtMidiApi) v->at (i);
+				apis[i] = (RtMidiApi) v->at (i);
 			delete v;
 			return 0;
 		} catch (...) {
@@ -123,11 +117,13 @@ RtMidiInPtr rtmidi_in_create_default ()
         RtMidiIn* rIn = new RtMidiIn ();
         
         wrp->ptr = (void*) rIn;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -217,8 +213,8 @@ void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, 
 }
 
 double rtmidi_in_get_message (RtMidiInPtr device, 
-                              unsigned char **message, 
-                              size_t * size)
+                              unsigned char *message,
+                              size_t *size)
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
@@ -226,7 +222,7 @@ double rtmidi_in_get_message (RtMidiInPtr device,
         double ret = ((RtMidiIn*) device->ptr)->getMessage (&v);
 
         if (v.size () > 0 && v.size() <= *size) {
-            memcpy (*message, v.data (), (int) v.size ());
+            memcpy (message, v.data (), (int) v.size ());
         }
 
         *size = v.size();
@@ -253,11 +249,13 @@ RtMidiOutPtr rtmidi_out_create_default ()
         RtMidiOut* rOut = new RtMidiOut ();
         
         wrp->ptr = (void*) rOut;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -274,11 +272,13 @@ RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
         RtMidiOut* rOut = new RtMidiOut ((RtMidi::Api) api, name);
         
         wrp->ptr = (void*) rOut;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }

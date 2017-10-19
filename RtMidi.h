@@ -43,6 +43,16 @@
 #ifndef RTMIDI_H
 #define RTMIDI_H
 
+#if defined _WIN32 || defined __CYGWIN__
+  #define RTMIDI_DLL_PUBLIC
+#else
+  #if __GNUC__ >= 4
+    #define RTMIDI_DLL_PUBLIC __attribute__( (visibility( "default" )) )
+  #else
+    #define RTMIDI_DLL_PUBLIC
+  #endif
+#endif
+
 #define RTMIDI_VERSION "3.0.0"
 
 #include <exception>
@@ -60,7 +70,7 @@
 */
 /************************************************************************/
 
-class RtMidiError : public std::exception
+class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
 {
  public:
   //! Defined RtMidiError types.
@@ -113,7 +123,7 @@ typedef void (*RtMidiErrorCallback)( RtMidiError::Type type, const std::string &
 
 class MidiApi;
 
-class RtMidi
+class RTMIDI_DLL_PUBLIC RtMidi
 {
  public:
 
@@ -207,7 +217,7 @@ class RtMidi
 //
 // **************************************************************** //
 
-class RtMidiIn : public RtMidi
+class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
 {
  public:
 
@@ -354,7 +364,7 @@ class RtMidiIn : public RtMidi
 */
 /**********************************************************************/
 
-class RtMidiOut : public RtMidi
+class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
 {
  public:
 
@@ -458,7 +468,7 @@ class RtMidiOut : public RtMidi
 //
 // **************************************************************** //
 
-class MidiApi
+class RTMIDI_DLL_PUBLIC MidiApi
 {
  public:
 
@@ -489,7 +499,7 @@ protected:
   void *errorCallbackUserData_;
 };
 
-class MidiInApi : public MidiApi
+class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
 {
  public:
 
@@ -553,7 +563,7 @@ class MidiInApi : public MidiApi
   RtMidiInData inputData_;
 };
 
-class MidiOutApi : public MidiApi
+class RTMIDI_DLL_PUBLIC MidiOutApi : public MidiApi
 {
  public:
 

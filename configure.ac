@@ -27,31 +27,49 @@ m4_define([lt_current_minus_age], [m4_eval(lt_current - lt_age)])
 
 SO_VERSION=lt_version_info
 AC_SUBST(SO_VERSION)
+AC_SUBST(LIBS)
+AC_SUBST(api)
+AC_SUBST(req)
+AC_SUBST(visibility)
+
+visibility=""
+api=""
+req=""
+
+# Fill GXX with something before test.
+GXX="no"
+
+# if the user did not provide any CXXFLAGS, we can override them
+AS_IF([test "x$CXXFLAGS" = "x" ], [override_cxx=yes], [override_cxx=no])
+AS_IF([test "x$CFLAGS" = "x" ], [override_c=yes], [override_c=no])
 
 # Check version number coherency between RtMidi.h and configure.ac
 AC_MSG_CHECKING([that version numbers are coherent])
-AC_RUN_IFELSE(
-   [AC_LANG_PROGRAM([#include <string.h>
-                     `grep "define RTMIDI_VERSION" $srcdir/RtMidi.h`],
-                    [return strcmp(RTMIDI_VERSION, PACKAGE_VERSION);])],
-   [AC_MSG_RESULT([yes])],
+RTMIDI_VERSION=`sed -n 's/#define RTMIDI_VERSION "\(.*\)"/\1/p' $srcdir/RtMidi.h`
+AS_IF(
+   [test "x$RTMIDI_VERSION" != "x$PACKAGE_VERSION"],
    [AC_MSG_FAILURE([testing RTMIDI_VERSION==PACKAGE_VERSION failed, check that RtMidi.h defines RTMIDI_VERSION as "$PACKAGE_VERSION" or that the first line of configure.ac has been updated.])])
 
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-# Fill GXX with something before test.
-AC_SUBST( GXX, ["no"] )
-AC_SUBST(noinst_LIBRARIES)
+# configure flags
+AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [enable various debugging output])])
+AC_ARG_WITH(jack, [AS_HELP_STRING([--with-jack], [choose JACK server support (mac and linux only)])])
+AC_ARG_WITH(alsa, [AS_HELP_STRING([--with-alsa], [choose native ALSA sequencer API support (linux only)])])
+AC_ARG_WITH(core, [AS_HELP_STRING([--with-core], [ choose CoreMidi API support (mac only)])])
+AC_ARG_WITH(winmm, [AS_HELP_STRING([--with-winmm], [ choose Windows MultiMedia (MM) API support (win32 only)])])
+AC_ARG_WITH(winks, [AS_HELP_STRING([--with-winks], [  choose kernel streaming support (win32 only)])])
+
 
 # Checks for programs.
 AC_PROG_CXX(g++ CC c++ cxx)
 AM_PROG_AR
 AC_PATH_PROG(AR, ar, no)
-if [[ $AR = "no" ]] ; then
-    AC_MSG_ERROR("Could not find ar - needed to create a library");
-fi
+AS_IF([test "x$AR" = "xno"], [
+    AC_MSG_ERROR([Could not find ar - needed to create a library])
+])
 
 LT_INIT([win32-dll])
 AC_CONFIG_MACRO_DIR([m4])
@@ -67,32 +85,35 @@ AC_CHECK_HEADER([semaphore.h], [
     AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
 ])
 
-# Check for debug
+
+# check for debug
 AC_MSG_CHECKING(whether to compile debug version)
-AC_ARG_ENABLE(debug,
-  [  --enable-debug = enable various debug output],
-  [AC_SUBST( cppflag, [-D__RTMIDI_DEBUG__] ) AC_SUBST( cxxflag, [-g] ) AC_SUBST( object_path, [Debug] ) AC_MSG_RESULT(yes)],
-  [AC_SUBST( cppflag, [] ) AC_SUBST( cxxflag, [-O3] ) AC_SUBST( object_path, [Release] ) AC_MSG_RESULT(no)])
-
-# Set paths if prefix is defined
-if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
-  LIBS="$LIBS -L$prefix/lib"
-  CPPFLAGS="$CPPFLAGS -I$prefix/include/rtmidi"
-fi
-
-# For -I and -D flags
-CPPFLAGS="$CPPFLAGS $cppflag"
-
+debugflags=""
+object_path=Release
+AS_CASE([${enable_debug}],
+  [ yes ], [
+    AC_MSG_RESULT([yes])
+    CPPFLAGS="-D__RTMIDI_DEBUG ${CPPFLAGS}"
+    debugflags="${debugflags} -g"
+    object_path=Debug
+  ],
+  [ no ], [
+    AC_MSG_RESULT([no!])
+    debugflags="${debugflags} -O3"
+  ], [
+    AC_MSG_RESULT([no])
+  ])
 # For debugging and optimization ... overwrite default because it has both -g and -O2
-#CXXFLAGS="$CXXFLAGS $cxxflag"
-CXXFLAGS="$cxxflag"
+AS_IF([test "x$debugflags" != x],
+  AS_IF([test "x$override_cxx" = "xyes" ], CXXFLAGS="$CXXFLAGS $debugflags", CXXFLAGS="$debugflags $CXXFLAGS")
+  AS_IF([test "x$override_c" = "xyes" ], CFLAGS="$CFLAGS $debugflags", CFLAGS="$debugflags $CFLAGS")
+  )
 
 # Check compiler and use -Wall if gnu.
-if [test $GXX = "yes" ;] then
-  AC_SUBST( cxxflag, ["-Wall -Wextra"] )
-fi
-
-CXXFLAGS="$CXXFLAGS $cxxflag"
+AS_IF([test "x$GXX" = "xyes"], [
+  CXXFLAGS="-Wall -Wextra ${CXXFLAGS}"
+  AS_IF([test "x${enable_debug}" != "xyes" ], visibility="-fvisibility=hidden" )
+])
 
 # Checks for doxygen
 AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
@@ -108,12 +129,12 @@ AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
 # Checks for package options and external software
 AC_CANONICAL_HOST
 
-AC_SUBST( api, [""] )
-AC_SUBST( req, [""] )
+
+
+
 AC_MSG_CHECKING(for MIDI API)
 
-AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)])
-AS_IF([test "x$with_jack" == "xyes"], [
+AS_IF([test "x$with_jack" = "xyes"], [
 api="$api -D__UNIX_JACK__"
 AC_MSG_RESULT(using JACK)
 AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))])
@@ -121,19 +142,19 @@ AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the ja
 case $host in
   *-*-linux*)
   # Look for ALSA flag
-  AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)])
-  AS_IF([test "x$with_alsa" == "xyes"], [
+  AS_IF([test "x$with_alsa" = "xyes"], [
+    AC_MSG_RESULT(using ALSA)
+    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))
     api="$api -D__LINUX_ALSA__"
     req="$req alsa"
-    AC_MSG_RESULT(using ALSA)
-    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))])
+  ])
 
-  if [test "$api" == "";] then
+  AS_IF([test "x${api}" = "x"],
     AC_MSG_RESULT(using ALSA)
-    AC_SUBST( api, [-D__LINUX_ALSA__] )
-    req="$req alsa"
     AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA sequencer support requires the asound library!))
-  fi
+    api="-D__LINUX_ALSA__ ${api}"
+    req="$req alsa"
+  )
 
   # Checks for pthread library.
   AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
@@ -141,48 +162,48 @@ case $host in
 
   *-apple*)
   # Look for Core flag
-  AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)])
-  AS_IF([test "x$with_core" == "xyes"], [
-    api="$api -D__MACOSX_CORE__"
+  AS_IF([test "x$with_core" = "xyes"], [
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    LIBS="$LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio" ])
+    LIBS="-framework CoreMIDI -framework CoreFoundation -framework CoreAudio ${LIBS}"
+    api="$api -D__MACOSX_CORE__"
+  ])
 
   # If no api flags specified, use CoreMidi
-  if [test "$api" == ""; ] then
-    AC_SUBST( api, [-D__MACOSX_CORE__] )
+  AS_IF([test "x${api}" = "x"],
     AC_MSG_RESULT(using CoreMidi)
     AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
       [],
       [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    AC_SUBST( LIBS, ["-framework CoreMIDI -framework CoreFoundation -framework CoreAudio"] )
-  fi
+    LIBS="-framework CoreMIDI -framework CoreFoundation -framework CoreAudio ${LIBS}"
+    api="$api -D__MACOSX_CORE__"
+  )
   ;;
 
   *-mingw32*)
   # Look for WinMM flag
-  AC_ARG_WITH(winmm, [  --with-winmm = choose Windows MultiMedia (MM) API support (windoze only)])
-  AS_IF([test "x$with_winmm" == "xyes"], [
-    api="$api -D__WINDOWS_MM__"
+  AS_IF([test "x$with_winmm" = "xyes"], [
     AC_MSG_RESULT(using WinMM)
-    AC_SUBST( LIBS, [-lwinmm] )])
+    LIBS="-lwinmm ${LIBS}"
+    api="$api -D__WINDOWS_MM__"
+  ])
 
-  AC_ARG_WITH(winks, [  --with-winks = choose kernel streaming support (windoze only)])
-  AS_IF([test "x$with_winks" == "xyes"], [
+  AS_IF([test "x$with_winks" = "xyes"], [
+    AC_MSG_RESULT(using kernel streaming)
+    LIBS="-lsetupapi -lksuser ${LIBS}"
     api="$api -D__WINDOWS_KS__"
-    AC_SUBST( LIBS, ["-lsetupapi -lksuser"] )
-    AC_MSG_RESULT(using kernel streaming) ])
+  ])
 
   # I can't get the following check to work so just manually add the library
 	# or could try the following?  AC_LIB_WINMM([midiOutGetNumDevs])
   # AC_CHECK_LIB(winmm, midiInGetNumDevs, , AC_MSG_ERROR(Windows MIDI support requires the winmm library!) )],)
 
   # If no api flags specified, use WinMM
-  if [test "$api" == "";] then
-    AC_SUBST( api, [-D__WINDOWS_MM__] )
+  AS_IF([test "x${api}" = "x"], [
     AC_MSG_RESULT(using WinMM)
-    AC_SUBST( LIBS, [-lwinmm] )
-  fi
+    LIBS="-lwinmm ${LIBS}"
+    api="${api} -D__WINDOWS_MM__"
+  ])
   ;;
 
   *)

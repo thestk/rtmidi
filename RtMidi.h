@@ -175,7 +175,7 @@ class RTMIDI_DLL_PUBLIC RtMidi
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 ) = 0;
+  virtual void setErrorCallback( RtMidiErrorCallback errorCallback = nullptr, void *userData = nullptr ) = 0;
 
  protected:
 
@@ -283,7 +283,7 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     \param userData Optionally, a pointer to additional data can be
                     passed to the callback function whenever it is called.
   */
-  void setCallback( RtMidiCallback callback, void *userData = 0 );
+  void setCallback( RtMidiCallback callback, void *userData = nullptr );
 
   //! Cancel use of the current callback function (if one exists).
   /*!
@@ -341,7 +341,7 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 );
+  virtual void setErrorCallback( RtMidiErrorCallback errorCallback = nullptr, void *userData = nullptr );
 
  protected:
   void openMidiApi( RtMidi::Api api, const std::string &clientName, unsigned int queueSizeLimit );
@@ -448,7 +448,7 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 );
+  virtual void setErrorCallback( RtMidiErrorCallback errorCallback = nullptr, void *userData = nullptr );
 
  protected:
   void openMidiApi( RtMidi::Api api, const std::string &clientName );
@@ -531,11 +531,11 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
 
     // Default constructor.
   MidiQueue()
-  :front(0), back(0), ringSize(0), ring(0) {}
+  :front(0), back(0), ringSize(0), ring(nullptr) {}
     bool push(const MidiMessage&);
     bool pop(std::vector<unsigned char>*, double*);
-    unsigned int size(unsigned int *back=0,
-		      unsigned int *front=0);
+    unsigned int size(unsigned int *back=nullptr,
+		      unsigned int *front=nullptr);
   };
 
   // The RtMidiInData structure is used to pass private class data to
@@ -555,7 +555,7 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     // Default constructor.
   RtMidiInData()
   : ignoreFlags(7), doInput(false), firstMessage(true),
-      apiData(0), usingCallback(false), userCallback(0), userData(0),
+      apiData(nullptr), usingCallback(false), userCallback(nullptr), userData(nullptr),
       continueSysex(false) {}
   };
 

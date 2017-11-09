@@ -667,9 +667,12 @@ void MidiInCore :: openPort( unsigned int portNumber, const std::string &portNam
 
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
   OSStatus result = MIDIInputPortCreate( data->client, 
-                                         CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
-                                         midiInputCallback, (void *)&inputData_, &port );
+                                         portNameRef,
+                                         midiInputCallback, (void *)&inputData_, &port );                 
+  CFRelease( portNameRef );
+  
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
     errorString_ = "MidiInCore::openPort: error creating OS-X MIDI input port.";
@@ -709,9 +712,12 @@ void MidiInCore :: openVirtualPort( const std::string &portName )
 
   // Create a virtual MIDI input destination.
   MIDIEndpointRef endpoint;
+  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
   OSStatus result = MIDIDestinationCreate( data->client,
-                                           CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+                                           portNameRef,
                                            midiInputCallback, (void *)&inputData_, &endpoint );
+  CFRelease( portNameRef );
+                                           
   if ( result != noErr ) {
     errorString_ = "MidiInCore::openVirtualPort: error creating virtual OS-X MIDI destination.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
@@ -1052,9 +1058,12 @@ void MidiOutCore :: openVirtualPort( const std::string &portName )
 
   // Create a virtual MIDI output source.
   MIDIEndpointRef endpoint;
+  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
   OSStatus result = MIDISourceCreate( data->client,
-                                      CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII ),
+                                      portNameRef,
                                       &endpoint );
+  CFRelease( portNameRef );
+  
   if ( result != noErr ) {
     errorString_ = "MidiOutCore::initialize: error creating OS-X virtual MIDI source.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );

@@ -13,7 +13,7 @@ This distribution of RtMidi contains the following:
 
 On Unix systems, type `./configure` in the top level directory, then `make` in the tests/ directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the tests/ directory.
 
-If you checked out the code from git, please run `autoconf` before `./configure`.
+If you checked out the code from git, please run `./autogen.sh` before `./configure`.
 
 ## Overview
 

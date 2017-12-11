@@ -1,4 +1,3 @@
-
 #include <stdbool.h>
 #include <stddef.h>
 #ifndef RTMIDI_C_H
@@ -60,6 +59,8 @@ enum RtMidiErrorType {
 typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
                                  size_t messageSize, void *userData);
 
+//! Returns the size (with sizeof) of a RtMidiApi instance.
+RTMIDIAPI int rtmidi_sizeof_rtmidi_api ();
 
 /* RtMidi API */
 

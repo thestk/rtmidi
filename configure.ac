@@ -157,6 +157,11 @@ case $host in
   AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
   ;;
 
+  *-*-freebsd*)
+  # Checks for pthread library.
+  AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
+  ;;
+
   *-apple*)
   # Look for Core flag
   AS_IF([test "x$with_core" = "xyes"], [

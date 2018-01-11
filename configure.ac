@@ -177,7 +177,7 @@ case $host in
   )
   ;;
 
-  *-mingw32*)
+  *-mingw32*|*-mingw64*)
   # Look for WinMM flag
   AS_IF([test "x$with_winmm" = "xyes"], [
     AC_MSG_RESULT(using WinMM)

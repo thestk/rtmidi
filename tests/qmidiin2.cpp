@@ -17,8 +17,8 @@
 // Platform-dependent sleep routines.
 #if defined(__WINDOWS_MM__)
 #include <windows.h>
-#define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
-#undef UNIQUE_NAME
+#define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds )
+#undef UNIQUE_PORT_NAME
 #else // Unix variants
 #include <unistd.h>
 #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )
@@ -35,13 +35,13 @@ void usage( rtmidi::PortList list ) {
 
   std::cout << "Available ports:" << std::endl;
   int flags = rtmidi::PortDescriptor::SESSION_PATH |
-    rtmidi::PortDescriptor::UNIQUE_NAME |
+    rtmidi::PortDescriptor::UNIQUE_PORT_NAME |
     rtmidi::PortDescriptor::INCLUDE_API;
   for (rtmidi::PortList::iterator i = list.begin();
        i != list.end(); i++) {
     std::cout << "\""
 	      << (*i)->getName(rtmidi::PortDescriptor::SESSION_PATH |
-			       rtmidi::PortDescriptor::UNIQUE_NAME |
+			       rtmidi::PortDescriptor::UNIQUE_PORT_NAME |
 			       rtmidi::PortDescriptor::INCLUDE_API)
 	      << "\"";
     std::cout << "\t";
@@ -74,7 +74,7 @@ int main( int argc, char *argv[] )
       for (rtmidi::PortList::iterator i = list.begin();
 	   i != list.end(); i++) {
 	if (argv[1] == (*i)->getName(rtmidi::PortDescriptor::SESSION_PATH |
-				     rtmidi::PortDescriptor::UNIQUE_NAME |
+				     rtmidi::PortDescriptor::UNIQUE_PORT_NAME |
 				     rtmidi::PortDescriptor::INCLUDE_API)) {
 	  port = *i;
 	  break;

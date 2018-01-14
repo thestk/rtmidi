@@ -151,7 +151,7 @@ void Midi :: getCompiledApi( std::vector<ApiType> &apis, bool preferSystem ) thr
   // DUMMY is a no-backend class so we add it at
   // the very end.
 #if defined(__RTMIDI_DUMMY__)
-  apis.push_back( rtmidi::RTMIDI_DUMMY );
+  apis.push_back( rtmidi::DUMMY );
 #endif
 }
 
@@ -250,8 +250,8 @@ MidiIn :: MidiIn( ApiType api,
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       openMidiApi( apis[i] );
       if ( rtapi_ ) {
-	queryApis.push_back(MidiApiPtr(rtapi_));
-	rtapi_=NULL;
+        queryApis.push_back(MidiApiPtr(rtapi_));
+        rtapi_=NULL;
       }
     }
     return;
@@ -353,8 +353,8 @@ MidiOut :: MidiOut( ApiType api, const std::string & clientName, bool pfsystem )
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       openMidiApi( apis[i] );
       if ( rtapi_ ) {
-	queryApis.push_back(MidiApiPtr(rtapi_));
-	rtapi_ = NULL;
+        queryApis.push_back(MidiApiPtr(rtapi_));
+        rtapi_ = NULL;
       }
     }
     return;
@@ -1088,7 +1088,7 @@ public:
       //        os << ":" << externaldevicename;
       os << ":" << connections;
       //        os << ":" << recommendedname;
-      if (flags & PortDescriptor::UNIQUE_NAME)
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME)
         os << ";" << port;
       break;
     case PortDescriptor::LONG_NAME:
@@ -1117,15 +1117,15 @@ public:
       }
       if (flags &
           (PortDescriptor::INCLUDE_API
-           | PortDescriptor::UNIQUE_NAME)) {
+           | PortDescriptor::UNIQUE_PORT_NAME)) {
         os << " (";
         if (flags &
             PortDescriptor::INCLUDE_API) {
           os << "CORE";
-          if (flags & PortDescriptor::UNIQUE_NAME)
+          if (flags & PortDescriptor::UNIQUE_PORT_NAME)
             os << ":";
         }
-        if (flags & PortDescriptor::UNIQUE_NAME) {
+        if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
           os << port;
         }
         os << ")";
@@ -1155,15 +1155,15 @@ public:
 	}
       if (flags &
           (PortDescriptor::INCLUDE_API
-           | PortDescriptor::UNIQUE_NAME)) {
+           | PortDescriptor::UNIQUE_PORT_NAME)) {
         os << " (";
         if (flags &
             PortDescriptor::INCLUDE_API) {
           os << "CORE";
-          if (flags & PortDescriptor::UNIQUE_NAME)
+          if (flags & PortDescriptor::UNIQUE_PORT_NAME)
             os << ":";
         }
-        if (flags & PortDescriptor::UNIQUE_NAME) {
+        if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
           os << port;
         }
         os << ")";
@@ -1431,7 +1431,7 @@ struct CorePortDescriptor:public PortDescriptor  {
     return endpoint;
   }
 
-  std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+  std::string getName(int flags = SHORT_NAME | UNIQUE_PORT_NAME) {
     return seq.getPortName(endpoint,flags);
   }
 
@@ -2337,16 +2337,16 @@ public:
       os << snd_seq_client_info_get_name(cinfo);
       os << ":";
       os << snd_seq_port_info_get_name(pinfo);
-      if (flags & PortDescriptor::UNIQUE_NAME)
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME)
         os << ";" << client << ":" << port;
       break;
     case PortDescriptor::LONG_NAME:
       os << snd_seq_client_info_get_name( cinfo );
-      if (flags & PortDescriptor::UNIQUE_NAME) {
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
         os << " " << client;
       }
       os << ":";
-      if (flags & PortDescriptor::UNIQUE_NAME) {
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
         os << port;
       }
 
@@ -2357,7 +2357,7 @@ public:
     case PortDescriptor::SHORT_NAME:
     default:
       os << snd_seq_client_info_get_name( cinfo );
-      if (flags & PortDescriptor::UNIQUE_NAME) {
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
         os << " ";
         os << client;
       }
@@ -2548,7 +2548,7 @@ struct AlsaPortDescriptor:public PortDescriptor,
     else
       return 0;
   }
-  std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+  std::string getName(int flags = SHORT_NAME | UNIQUE_PORT_NAME) {
     return seq.GetPortName(client,port,flags);
   }
 
@@ -2589,7 +2589,9 @@ PortList AlsaPortDescriptor :: getPortList(int capabilities, const std::string &
       unsigned int atyp = snd_seq_port_info_get_type( pinfo );
       // otherwise we get ports without any
       if ( !(capabilities & UNLIMITED) &&
-           !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC ) ) continue;
+           !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC )  &&
+           !( atyp & SND_SEQ_PORT_TYPE_SYNTH )
+           ) continue;
       unsigned int caps = snd_seq_port_info_get_capability( pinfo );
       if (capabilities & INPUT) {
         /* we need both READ and SUBS_READ */
@@ -2959,7 +2961,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
             // don't bother ALSA with an unhandled exception
           }
 #endif
-	}
+        }
       }
     }
 
@@ -2972,18 +2974,18 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     else {
       // As long as we haven't reached our queue size limit, push the message.
       if ( data->queue.size < data->queue.ringSize ) {
-	data->queue.ring[data->queue.back++] = message;
-	if ( data->queue.back == data->queue.ringSize )
-	  data->queue.back = 0;
-	data->queue.size++;
+        data->queue.ring[data->queue.back++] = message;
+        if ( data->queue.back == data->queue.ringSize )
+          data->queue.back = 0;
+        data->queue.size++;
       }
       else {
-	try {
-	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+        try {
+          data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-	} catch (Error e) {
-	  // don't bother ALSA with an unhandled exception
-	}
+        } catch (Error e) {
+          // don't bother ALSA with an unhandled exception
+        }
       }
     }
   }
@@ -3740,9 +3742,9 @@ NAMESPACE_RTMIDI_END
 #define  RT_SYSEX_BUFFER_COUNT 4
 NAMESPACE_RTMIDI_START
 
-/* some header defines UNIQUE_NAME as a macro */
-#ifdef UNIQUE_NAME
-#undef UNIQUE_NAME
+/* some header defines UNIQUE_PORT_NAME as a macro */
+#ifdef UNIQUE_PORT_NAME
+#undef UNIQUE_PORT_NAME
 #endif
 /*! An abstraction layer for the ALSA sequencer layer. It provides
   the following functionality:
@@ -3865,14 +3867,14 @@ public:
       if (flags & PortDescriptor::INCLUDE_API)
         os << "WinMM:";
       os << name.c_str();
-      if (flags & PortDescriptor::UNIQUE_NAME)
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME)
         os << ";" << port;
       break;
     case PortDescriptor::LONG_NAME:
     case PortDescriptor::SHORT_NAME:
     default:
       os << name.c_str();
-      if (flags & PortDescriptor::UNIQUE_NAME) {
+      if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
         os << " ";
         os << port;
       }
@@ -3943,7 +3945,7 @@ struct WinMMPortDescriptor:public PortDescriptor
     else
       return 0;
   }
-  std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+  std::string getName(int flags = SHORT_NAME | UNIQUE_PORT_NAME) {
     return seq.getPortName(port,is_input,flags);
   }
 
@@ -4091,18 +4093,18 @@ struct WinMMCallbacks {
       else if ( status < 0xE0 ) nBytes = 2;
       else if ( status < 0xF0 ) nBytes = 3;
       else if ( status == 0xF1 ) {
-	if ( data->ignoreFlags & 0x02 ) return;
-	else nBytes = 2;
+        if ( data->ignoreFlags & 0x02 ) return;
+        else nBytes = 2;
       }
       else if ( status == 0xF2 ) nBytes = 3;
       else if ( status == 0xF3 ) nBytes = 2;
       else if ( status == 0xF8 && (data->ignoreFlags & 0x02) ) {
-	// A MIDI timing tick message and we're ignoring it.
-	return;
+        // A MIDI timing tick message and we're ignoring it.
+        return;
       }
       else if ( status == 0xFE && (data->ignoreFlags & 0x04) ) {
-	// A MIDI active sensing message and we're ignoring it.
-	return;
+        // A MIDI active sensing message and we're ignoring it.
+        return;
       }
 
       // Copy bytes to our MIDI message.
@@ -4112,9 +4114,9 @@ struct WinMMCallbacks {
     else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
       MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
       if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
-	// Sysex message and we're not ignoring it
-	for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-	  apiData->message.bytes.push_back( sysex->lpData[i] );
+        // Sysex message and we're not ignoring it
+        for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
+          apiData->message.bytes.push_back( sysex->lpData[i] );
       }
 
       // The WinMM API requires that the sysex buffer be requeued after
@@ -4126,20 +4128,20 @@ struct WinMMCallbacks {
       // avoid requeueing it, else the computer suddenly reboots after
       // one or two minutes.
       if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-	//if ( sysex->dwBytesRecorded > 0 ) {
-	EnterCriticalSection( &(apiData->_mutex) );
-	MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-	LeaveCriticalSection( &(apiData->_mutex) );
-	if ( result != MMSYSERR_NOERROR ){
-	  try {
-	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
+        //if ( sysex->dwBytesRecorded > 0 ) {
+        EnterCriticalSection( &(apiData->_mutex) );
+        MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
+        LeaveCriticalSection( &(apiData->_mutex) );
+        if ( result != MMSYSERR_NOERROR ){
+          try {
+            data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
 				     Error::WARNING));
-	  } catch (Error e) {
-	    // don't bother WinMM with an unhandled exception
-	  }
-	}
+          } catch (Error e) {
+            // don't bother WinMM with an unhandled exception
+          }
+        }
 
-	if ( data->ignoreFlags & 0x01 ) return;
+        if ( data->ignoreFlags & 0x01 ) return;
       }
       else return;
     }
@@ -4150,18 +4152,18 @@ struct WinMMCallbacks {
     else {
       // As long as we haven't reached our queue size limit, push the message.
       if ( data->queue.size < data->queue.ringSize ) {
-	data->queue.ring[data->queue.back++] = apiData->message;
-	if ( data->queue.back == data->queue.ringSize )
-	  data->queue.back = 0;
-	data->queue.size++;
+        data->queue.ring[data->queue.back++] = apiData->message;
+        if ( data->queue.back == data->queue.ringSize )
+          data->queue.back = 0;
+        data->queue.size++;
       }
       else {
-	try {
-	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+        try {
+          data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-	} catch (Error e) {
-	  // don't bother WinMM with an unhandled exception
-	}
+        } catch (Error e) {
+          // don't bother WinMM with an unhandled exception
+        }
       }
     }
 
@@ -4172,7 +4174,8 @@ struct WinMMCallbacks {
 #undef RTMIDI_CLASSNAME
 
 #define RTMIDI_CLASSNAME "MidiInWinMM"
-MidiInWinMM :: MidiInWinMM( const std::string clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
+MidiInWinMM :: MidiInWinMM( const std::string & clientName,
+			    unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
   initialize( clientName );
 }
@@ -4283,7 +4286,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
   connected_ = true;
 }
 
-void MidiInWinMM :: openVirtualPort( std::string /*portName*/ )
+void MidiInWinMM :: openVirtualPort(const std::string & /*portName*/ )
 {
   // This function cannot be implemented for the Windows MM MIDI API.
   error(RTMIDI_ERROR(gettext_noopt("Virtual ports are not available Windows Multimedia MIDI API."),
@@ -4443,7 +4446,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
 //*********************************************************************//
 
 #define RTMIDI_CLASSNAME "MidiOutWinMM"
-MidiOutWinMM :: MidiOutWinMM( const std::string clientName ) : MidiOutApi()
+MidiOutWinMM :: MidiOutWinMM( const std::string & clientName ) : MidiOutApi()
 {
   initialize( clientName );
 }
@@ -4559,7 +4562,7 @@ void MidiOutWinMM :: closePort( void )
   }
 }
 
-void MidiOutWinMM :: openVirtualPort( std::string /*portName*/ )
+void MidiOutWinMM :: openVirtualPort(const std::string & /*portName*/ )
 {
   // This function cannot be implemented for the Windows MM MIDI API.
   error(RTMIDI_ERROR(gettext_noopt("Virtual ports are not available Windows Multimedia MIDI API."),
@@ -5004,7 +5007,7 @@ struct JackPortDescriptor:public PortDescriptor
   }
 
 
-  std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) {
+  std::string getName(int flags = SHORT_NAME | UNIQUE_PORT_NAME) {
     return seq.getPortName(port,flags);
   }
 
@@ -5219,24 +5222,24 @@ int JackBackendCallbacks::jackProcessIn( jack_nframes_t nframes, void *arg )
 
     if ( !rtData->continueSysex ) {
       if ( rtData->userCallback ) {
-	rtData->userCallback->rtmidi_midi_in( message.timeStamp, message.bytes);
+        rtData->userCallback->rtmidi_midi_in( message.timeStamp, message.bytes);
       }
       else {
-	// As long as we haven't reached our queue size limit, push the message.
-	if ( rtData->queue.size < rtData->queue.ringSize ) {
-	  rtData->queue.ring[rtData->queue.back++] = message;
-	  if ( rtData->queue.back == rtData->queue.ringSize )
-	    rtData->queue.back = 0;
-	  rtData->queue.size++;
-	}
-	else {
-	  try {
-	    rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+        // As long as we haven't reached our queue size limit, push the message.
+        if ( rtData->queue.size < rtData->queue.ringSize ) {
+          rtData->queue.ring[rtData->queue.back++] = message;
+          if ( rtData->queue.back == rtData->queue.ringSize )
+            rtData->queue.back = 0;
+          rtData->queue.size++;
+        }
+        else {
+          try {
+            rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				       Error::WARNING));
-	  } catch (Error e) {
-	    // don't bother WinMM with an unhandled exception
-	  }
-	}
+          } catch (Error e) {
+            // don't bother WinMM with an unhandled exception
+          }
+        }
       }
     }
   }

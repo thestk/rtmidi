@@ -94,7 +94,7 @@ bool chooseMidiPort( rtmidi::MidiIn &midi )
 		std::copy(list.begin(),list.end(),pointers.begin());
 		for (nr = 0 ; nr < (int)pointers.size(); nr++) {
 			portName = pointers[nr]->getName(rtmidi::PortDescriptor::LONG_NAME
-							 | rtmidi::PortDescriptor::UNIQUE_NAME
+							 | rtmidi::PortDescriptor::UNIQUE_PORT_NAME
 							 | rtmidi::PortDescriptor::INCLUDE_API);
 			std::cout << "  Input port #" << nr << ": " << portName << '\n';
 		}

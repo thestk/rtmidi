@@ -48,9 +48,9 @@ int main()
 	    std::cout << " Input Port: " << (*i)->getName() << std::endl;
 	    for (int j = 0 ; j < 4 ; j++ ) {
 		    std::cout << j << ":f:f: " << (*i)->getName (j) << std::endl;
-		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME) << std::endl;
+		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME) << std::endl;
 		    std::cout << j << ":f:t: " << (*i)->getName (j | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
-		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME
+		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME
 								 | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
 		    std::cout << std::endl;
 	    }
@@ -75,9 +75,9 @@ int main()
 	    std::cout << " Output Port: " << (*i)->getName() << std::endl;
 	    for (int j = 0 ; j < 4 ; j++ ) {
 		    std::cout << j << ":f:f: " << (*i)->getName (j) << std::endl;
-		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME) << std::endl;
+		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME) << std::endl;
 		    std::cout << j << ":f:t: " << (*i)->getName (j | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
-		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME
+		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME
 							   | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
 		    std::cout << std::endl;
 	    }
@@ -97,9 +97,9 @@ int main()
 	    std::cout << " Input Port: " << (*i)->getName() << std::endl;
 	    for (int j = 0 ; j < 4 ; j++ ) {
 		    std::cout << j << ":f:f: " << (*i)->getName (j) << std::endl;
-		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME) << std::endl;
+		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME) << std::endl;
 		    std::cout << j << ":f:t: " << (*i)->getName (j | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
-		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME
+		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME
 								 | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
 		    std::cout << std::endl;
 	    }
@@ -118,9 +118,9 @@ int main()
 	    std::cout << " Output Port: " << (*i)->getName() << std::endl;
 	    for (int j = 0 ; j < 4 ; j++ ) {
 		    std::cout << j << ":f:f: " << (*i)->getName (j) << std::endl;
-		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME) << std::endl;
+		    std::cout << j << ":t:f: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME) << std::endl;
 		    std::cout << j << ":f:t: " << (*i)->getName (j | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
-		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_NAME
+		    std::cout << j << ":t:t: " << (*i)->getName (j | rtmidi::PortDescriptor::UNIQUE_PORT_NAME
 							   | rtmidi::PortDescriptor::INCLUDE_API) << std::endl;
 		    std::cout << std::endl;
 	    }

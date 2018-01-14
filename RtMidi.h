@@ -357,11 +357,11 @@ public:
 			  that is concerned with
 			  naming.
 			*/
-    UNIQUE_NAME = 0x10, /*!< Make all names uniqe. This
-			  is usually done by adding
-			  numbers to the end of the
-			  string \note: use #undef UNIQUE_NAME
-			  on windows in case of any errors */
+    UNIQUE_PORT_NAME = 0x10, /*!< Make all names uniqe. This
+			       is usually done by adding
+			       numbers to the end of the
+			       string \note: use #undef UNIQUE_PORT_NAME
+			       on windows in case of any errors */
     INCLUDE_API = 0x20 /*!< Add a string describing the
 			 API at the beginning of the
 			 string. */
@@ -417,7 +417,7 @@ public:
    * \return A name that is formatted according to \ref flags.
    * \sa NamingTypes
    */
-  virtual std::string getName(int flags = SHORT_NAME | UNIQUE_NAME) = 0;
+  virtual std::string getName(int flags = SHORT_NAME | UNIQUE_PORT_NAME) = 0;
 
   //! Get capabilities
   /*! \return a capabilities flag describing the capabilities of the port.
@@ -1590,7 +1590,8 @@ protected:
 class MidiInWinMM: public MidiInApi
 {
 public:
-  MidiInWinMM( const std::string & clientName, unsigned int queueSizeLimit );
+  MidiInWinMM( const std::string & clientName,
+	       unsigned int queueSizeLimit );
   ~MidiInWinMM( void );
   ApiType getCurrentApi( void ) throw() { return WINDOWS_MM; };
   bool hasVirtualPorts() const { return false; }

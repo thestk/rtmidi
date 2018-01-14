@@ -18,7 +18,7 @@
 #if defined(__WINDOWS_MM__)
 #include <windows.h>
 #define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
-#undef UNIQUE_NAME
+#undef UNIQUE_PORT_NAME
 #else // Unix variants
 #include <unistd.h>
 #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )
@@ -151,7 +151,7 @@ bool chooseMidiPort( rtmidi::MidiOut &midi )
     std::copy(list.begin(),list.end(),pointers.begin());
     for (nr = 0 ; nr < (int)pointers.size(); nr++) {
       portName = pointers[nr]->getName(rtmidi::PortDescriptor::LONG_NAME
-				       | rtmidi::PortDescriptor::UNIQUE_NAME
+				       | rtmidi::PortDescriptor::UNIQUE_PORT_NAME
 				       | rtmidi::PortDescriptor::INCLUDE_API);
       std::cout << "  Output port #" << nr << ": " << portName << '\n';
     }

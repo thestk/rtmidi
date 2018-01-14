@@ -1728,7 +1728,7 @@ public:
 protected:
   void initialize( const std::string& /*clientName*/ ) {}
 };
->>>>>>> 5aa160b... fix warnings about unused arguments
+#undef RTMIDI_CLASSNAME
 
 #endif
 

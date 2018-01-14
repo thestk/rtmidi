@@ -1141,13 +1141,30 @@ public:
     }
   }
 
+  //! Return a list of all available ports of the current API.
+  /*!
+    \param capabilities an optional parameter that
+    describes which capabilities the returned devices
+    must support. The returned devices may have
+    additional capabilities to those which have been
+    requested, but not less.
 
-  //! Pure virtual function to return a port descirptor if the port is open
-  Pointer<PortDescriptor> getDescriptor(bool local=false)
-  {
-    if (rtapi_) return rtapi_->getDescriptor(local);
-    return 0;
+    \return This function returns a list of port descriptors.
+
+    \note Each API will request additonal
+    capabilites. An output API will set always add \ref
+    PortDescriptor::OUTPUT to the mask while an input
+    device will always add \ref PortDescriptor::OUTPUT.
+
+    \note An input API may but need not necessarily
+    report output devices which cannot be used as input
+    if \ref PortDescriptor::OUTPUT is passed as \ref
+    capabilities parameter.
+  */
+  PortList getPortList(int capabilities = PortDescriptor::INPUT) {
+    return Midi::getPortList(capabilities);
   }
+
 
 
   //! Set a callback function to be invoked for incoming MIDI messages.
@@ -1379,7 +1396,29 @@ public:
     }
   }
 
+  //! Return a list of all available ports of the current API.
+  /*!
+    \param capabilities an optional parameter that
+    describes which capabilities the returned devices
+    must support. The returned devices may have
+    additional capabilities to those which have been
+    requested, but not less.
 
+    \return This function returns a list of port descriptors.
+
+    \note Each API will request additonal
+    capabilites. An output API will set always add \ref
+    PortDescriptor::OUTPUT to the mask while an input
+    device will always add \ref PortDescriptor::OUTPUT.
+
+    \note An input API may but need not necessarily
+    report output devices which cannot be used as input
+    if \ref PortDescriptor::OUTPUT is passed as \ref
+    capabilities parameter.
+  */
+  PortList getPortList(int capabilities = PortDescriptor::OUTPUT) {
+    return Midi::getPortList(capabilities);
+  }
 
   //! Immediately send a single message out an open MIDI output port.
   /*!

@@ -89,9 +89,9 @@ int main( int /* argc */, char * /*argv*/[] )
 
 		{ // avoid problems with wrong destruction order
 			/* use smart pointers to handle deletion */
-			rtmidi::Pointer<rtmidi::MidiInApi> midiin = outdescriptor->getInputApi();
+			rtmidi::Pointer<rtmidi::MidiInApi> midiin(outdescriptor->getInputApi());
 			if (!midiin) abort();
-			rtmidi::Pointer<rtmidi::MidiOutApi> midiout = indescriptor->getOutputApi();
+			rtmidi::Pointer<rtmidi::MidiOutApi> midiout(indescriptor->getOutputApi());
 			if (!midiout) abort();
 
 

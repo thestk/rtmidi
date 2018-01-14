@@ -33,7 +33,7 @@ int main( int /* argc */, char * /*argv*/[] )
 	
 	std::vector<ApiType> types = Midi::getCompiledApi();
 	if (types.size() > 1) {
-		for (int i = 0 ; i < types.size() ; i++) {
+		for (size_t i = 0 ; i < types.size() ; i++) {
 			try {
 				MidiIn in (types[i]);
 				PortList ports = in.getPortList(PortDescriptor::INPUT);

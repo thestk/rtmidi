@@ -1,63 +1,83 @@
 ### RtMidi tests Makefile - for various flavors of unix
-AM_CPPFLAGS = -I$(top_srcdir)
-LDADD = -L$(top_builddir) -lrtmidi @LIBS@
+#RTMIDITESTCXXFLAGS += -I$(top_srcdir)/%D%
+#RTMIDITESTLDFLAGS  += -L$(top_builddir)/%D% -lrtmidi-ts @LIBS@
 
-noinst_PROGRAMS = \
-	midiprobe \
-	midiout \
-	qmidiin \
-	cmidiin \
-	sysextest \
-	midiprobe2 \
-	midiprobe-all \
-	cmidiin2 \
-	qmidiin2 \
-	midiout2 \
-	loopback \
-	errors
+noinst_PROGRAMS += \
+	%D%/midiprobe \
+	%D%/midiout \
+	%D%/qmidiin \
+	%D%/cmidiin \
+	%D%/sysextest \
+	%D%/midiprobe2 \
+	%D%/midiprobe-all \
+	%D%/cmidiin2 \
+	%D%/qmidiin2 \
+	%D%/midiout2 \
+	%D%/loopback \
+	%D%/errors
 
-TESTS = \
-	midiprobe \
-	midiprobe2 \
-	midiprobe-all \
-	errors
+TESTS += \
+	%D%/midiprobe \
+	%D%/midiprobe2 \
+	%D%/midiprobe-all \
+	%D%/errors
 
 if HAVE_VIRTUAL_DEVICES
-TESTS += loopback
+TESTS += %D%/loopback
 endif
 
 
 
-midiprobe_SOURCES     = midiprobe.cpp
-midiout_SOURCES       = midiout.cpp
-qmidiin_SOURCES       = qmidiin.cpp
-cmidiin_SOURCES       = cmidiin.cpp
-sysextest_SOURCES     = sysextest.cpp
-midiprobe2_SOURCES    = midiprobe2.cpp
-midiprobe_all_SOURCES = midiprobe-all.cpp
-cmidiin2_SOURCES      = cmidiin2.cpp
-qmidiin2_SOURCES      = qmidiin2.cpp
-midiout2_SOURCES      = midiout2.cpp
-loopback_SOURCES      = loopback.cpp
-errors_SOURCES        = errors.cpp
+%C%_midiprobe_SOURCES      = %D%/midiprobe.cpp
+%C%_midiout_SOURCES        = %D%/midiout.cpp
+%C%_qmidiin_SOURCES        = %D%/qmidiin.cpp
+%C%_cmidiin_SOURCES        = %D%/cmidiin.cpp
+%C%_sysextest_SOURCES      = %D%/sysextest.cpp
+%C%_midiprobe2_SOURCES     = %D%/midiprobe2.cpp
+%C%_midiprobe_all_SOURCES  = %D%/midiprobe-all.cpp
+%C%_cmidiin2_SOURCES       = %D%/cmidiin2.cpp
+%C%_qmidiin2_SOURCES       = %D%/qmidiin2.cpp
+%C%_midiout2_SOURCES       = %D%/midiout2.cpp
+%C%_loopback_SOURCES       = %D%/loopback.cpp
+%C%_errors_SOURCES         = %D%/errors.cpp
 
-if COPYDLLS
-check-am: check-dll
+# When a nonstandard gettext library or wrapper is used,
+# we need extra flags.
+%C%_midiprobe_CXXFLAGS     = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_midiout_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_qmidiin_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_cmidiin_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_sysextest_CXXFLAGS     = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_midiprobe2_CXXFLAGS    = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_midiprobe_all_CXXFLAGS = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_cmidiin2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_qmidiin2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_midiout2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_loopback_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_errors_CXXFLAGS        = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
 
-check-dll: all-am
-	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
-	$(MAKE) $(AM_MAKEFLAGS)	linkchecks
+%C%_midiprobe_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_midiout_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_qmidiin_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_cmidiin_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_sysextest_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_midiprobe2_LDFLAGS     = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_midiprobe_all_LDFLAGS  = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_cmidiin2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_qmidiin2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_midiout2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_loopback_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_errors_LDFLAGS         = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
 
-linkchecks:
-	for d in `echo $(TESTS)| tr ' ' '\n' | grep -i -e '$(EXEEXT)$$'` ; \
-	do \
-		ls -l "$$d" ; \
-		$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$d" DLLEXEDIR="." installdll ; \
-		test -f ".libs/$$d" && \
-			$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE=".libs/$$d" DLLEXEDIR="." installdll ; \
-	done
 
-installdll:
+if RTMIDICOPYDLLS
+
+#-------------------------------------------------------------------------------------
+# Installing DLLs
+#-------------------------------------------------------------------------------------
+
+
+rtmidi_installdll:
 	@echo 'solving references for $(DLLLINKFILE)... '
 	DLLSEARCHPATH="$(DLLSEARCHPATH)" ; \
 	for d in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '` ; \
@@ -74,7 +94,7 @@ installdll:
 				case "$$f" in \
 				*.gz)  GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$$f"` >$(DLLEXEDIR)/"$$d" ;; \
 				esac ; \
-				$(MAKE) DLLLINKFILE="$$d" DLLEXEDIR="$(DLLEXEDIR)" installdll ; \
+				$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$d" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
 			else \
 				echo "not found." ; \
 			fi ; \
@@ -82,5 +102,24 @@ installdll:
 		echo "done." ;\
 	done ;
 
-endif
+#-------------------------------------------------------------------------------------
+# Certain fixed files
+#-------------------------------------------------------------------------------------
 
+
+
+check-am: check-dll
+
+check-dll: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
+	$(MAKE) $(AM_MAKEFLAGS)	linkchecks
+
+linkchecks:
+	for d in `echo $(TESTS)| tr ' ' '\n' | grep -i -e '$(EXEEXT)$$'` ; \
+	do \
+		ls -l "$$d" ; \
+		$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$d" DLLEXEDIR="." rtmidi_installdll ; \
+		test -f ".libs/$$d" && \
+			$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE=".libs/$$d" DLLEXEDIR="." rtmidi_installdll ; \
+	done
+endif

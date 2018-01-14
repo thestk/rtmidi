@@ -1680,7 +1680,7 @@ class MidiInDummy: public MidiInApi
 public:
   MidiInDummy( const std::string & /*clientName*/, unsigned int queueSizeLimit )
     : MidiInApi( queueSizeLimit ) {
-    error( RTMIDI_ERROR(_("MidiInDummy: This class provides no functionality."),
+    error( RTMIDI_ERROR(rtmidi_gettext("MidiInDummy: This class provides no functionality."),
 			Error::WARNING) );
   }
   ApiType getCurrentApi( void ) throw() { return DUMMY; }
@@ -1704,7 +1704,7 @@ class MidiOutDummy: public MidiOutApi
 {
 public:
   MidiOutDummy( const std::string & /*clientName*/ ) {
-    error( RTMIDI_ERROR(_("MidiInDummy: This class provides no functionality."),
+    error( RTMIDI_ERROR(rtmidi_gettext("MidiInDummy: This class provides no functionality."),
 			Error::WARNING) );
   }
   ApiType getCurrentApi( void ) { return DUMMY; }

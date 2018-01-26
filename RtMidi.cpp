@@ -225,8 +225,9 @@ void MidiIn :: openMidiApi( ApiType api )
     default:
       break;
     }
-  } catch (Error e) {
-    error(e);
+  } catch (const Error & e) {
+    rtapi_ = 0;
+    throw;
   }
 }
 
@@ -248,10 +249,15 @@ MidiIn :: MidiIn( ApiType api,
     std::vector< ApiType > apis;
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
-      openMidiApi( apis[i] );
-      if ( rtapi_ ) {
-        queryApis.push_back(MidiApiPtr(rtapi_));
-        rtapi_=NULL;
+      try {
+	openMidiApi( apis[i] );
+	if ( rtapi_ ) {
+	  queryApis.push_back(MidiApiPtr(rtapi_));
+	  rtapi_=NULL;
+	}
+      } catch (const Error & e) {
+	if (e.getType() != Error::NO_DEVICES_FOUND)
+	  throw;
       }
     }
     return;
@@ -303,37 +309,43 @@ void MidiOut :: openMidiApi( ApiType api )
     delete rtapi_;
   rtapi_ = 0;
 
-  switch (api) {
-  case rtmidi::UNIX_JACK:
+  try {
+    switch (api) {
+    case rtmidi::UNIX_JACK:
 #if defined(__UNIX_JACK__)
-    rtapi_ = new MidiOutJack( clientName );
+      rtapi_ = new MidiOutJack( clientName );
 #endif
-    break;
-  case rtmidi::LINUX_ALSA:
+      break;
+    case rtmidi::LINUX_ALSA:
 #if defined(__LINUX_ALSA__)
-    rtapi_ = new MidiOutAlsa( clientName );
+      rtapi_ = new MidiOutAlsa( clientName );
 #endif
-    break;
-  case rtmidi::WINDOWS_MM:
+      break;
+    case rtmidi::WINDOWS_MM:
 #if defined(__WINDOWS_MM__)
-    rtapi_ = new MidiOutWinMM( clientName );
+      rtapi_ = new MidiOutWinMM( clientName );
 #endif
-    break;
-  case rtmidi::MACOSX_CORE:
+      break;
+    case rtmidi::MACOSX_CORE:
 #if defined(__MACOSX_CORE__)
-    rtapi_ = new MidiOutCore( clientName );
+      rtapi_ = new MidiOutCore( clientName );
 #endif
-    break;
-  case rtmidi::DUMMY:
+      break;
+    case rtmidi::DUMMY:
 #if defined(__RTMIDI_DUMMY__)
-    rtapi_ = new MidiOutDummy( clientName );
+      rtapi_ = new MidiOutDummy( clientName );
 #endif
-    break;
-  case rtmidi::UNSPECIFIED:
-  case rtmidi::ALL_API:
-  default:
-    break;
+      break;
+    case rtmidi::UNSPECIFIED:
+    case rtmidi::ALL_API:
+    default:
+      break;
+    }
+  } catch (const Error & e) {
+    rtapi_ = 0;
+    throw;
   }
+
 }
 
 
@@ -351,10 +363,15 @@ MidiOut :: MidiOut( ApiType api, const std::string & clientName, bool pfsystem )
     std::vector< ApiType > apis;
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
-      openMidiApi( apis[i] );
-      if ( rtapi_ ) {
-        queryApis.push_back(MidiApiPtr(rtapi_));
-        rtapi_ = NULL;
+      try {
+	openMidiApi( apis[i] );
+	if ( rtapi_ ) {
+	  queryApis.push_back(MidiApiPtr(rtapi_));
+	  rtapi_ = NULL;
+	}
+      } catch (const Error & e) {
+	if (e.getType() != Error::NO_DEVICES_FOUND)
+	  throw;
       }
     }
     return;
@@ -5324,8 +5341,10 @@ void MidiInJack :: initialize( const std::string& clientName )
   this->clientName = clientName;
   try {
     data->init(true);
-  } catch (Error e) {
-    error(e);
+  } catch (const Error & e) {
+    delete data;
+    apiData_ = 0;
+    throw;
   }
 }
 
@@ -5530,6 +5549,7 @@ std::string MidiInJack :: getPortName( unsigned int portNumber )
 void MidiInJack :: closePort()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
+  if (!data) return;
 
   if ( data->local == NULL ) return;
   jack_port_unregister( *(data->seq), data->local );
@@ -5555,7 +5575,13 @@ void MidiOutJack :: initialize( const std::string& clientName )
   apiData_ = (void *) data;
   this->clientName = clientName;
   // init is the last as it may throw an exception
-  data->init(false);
+  try {
+    data->init(false);
+  } catch (const Error & e) {
+    delete data;
+    apiData_ = 0;
+    throw;
+  }
 }
 
 void MidiOutJack :: connect()

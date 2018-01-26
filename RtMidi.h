@@ -259,14 +259,13 @@ public:
     if (ptr)
       ptr->count++;
   }
+  Pointer(const Pointer<datatype> && other):
+    ptr(other.ptr) {
+  }
 
   ~Pointer() {
     if (!ptr) return;
-    if (!ptr->descriptor) {
-      delete ptr;
-      return;
-    }
-    if (!(--ptr->count)) {
+    if (!(--(ptr->count))) {
       delete ptr->descriptor;
       delete ptr;
     }
@@ -308,13 +307,23 @@ public:
 	delete ptr;
       }
     }
-    ptr = other.ptr;
-    ptr->count++;
+    if ((ptr = other.ptr))
+      ptr->count++;
     return *this;
   }
 protected:
   countPointer * ptr;
 };
+
+template <class T, class U>
+bool operator==(const Pointer<T>& lhs, const Pointer<U>& rhs) {
+  return (&(*lhs)) == (&(*rhs));
+}
+
+template <class T, class U>
+bool operator!=(const Pointer<T>& lhs, const Pointer<U>& rhs) {
+  return (&(*lhs)) != (&(*rhs));
+}
 
 template <class T, class U>
 bool operator==(const Pointer<T>& lhs, const Pointer<U>& rhs) {

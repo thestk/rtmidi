@@ -1,6 +1,6 @@
 ### RtMidi tests Makefile - for various flavors of unix
 #RTMIDITESTCXXFLAGS += -I$(top_srcdir)/%D%
-#RTMIDITESTLDFLAGS  += -L$(top_builddir)/%D% -lrtmidi-ts @LIBS@
+#RTMIDITESTLDFLAGS  += -L$(top_builddir)/%D% -lrtmidi@rtmidi_suffix@ @LIBS@
 
 noinst_PROGRAMS += \
 	%D%/midiprobe \
@@ -27,7 +27,6 @@ TESTS += %D%/loopback
 endif
 
 
-
 %C%_midiprobe_SOURCES      = %D%/midiprobe.cpp
 %C%_midiout_SOURCES        = %D%/midiout.cpp
 %C%_qmidiin_SOURCES        = %D%/qmidiin.cpp
@@ -43,31 +42,46 @@ endif
 
 # When a nonstandard gettext library or wrapper is used,
 # we need extra flags.
-%C%_midiprobe_CXXFLAGS     = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
-%C%_midiout_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
-%C%_qmidiin_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
-%C%_cmidiin_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
-%C%_sysextest_CXXFLAGS     = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_midiprobe_CXXFLAGS     = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
+%C%_midiout_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
+%C%_qmidiin_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
+%C%_cmidiin_CXXFLAGS       = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
+%C%_sysextest_CXXFLAGS     = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
 %C%_midiprobe2_CXXFLAGS    = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
 %C%_midiprobe_all_CXXFLAGS = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
 %C%_cmidiin2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
 %C%_qmidiin2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
 %C%_midiout2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
 %C%_loopback_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
-%C%_errors_CXXFLAGS        = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS)
+%C%_errors_CXXFLAGS        = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
 
-%C%_midiprobe_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_midiout_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_qmidiin_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_cmidiin_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_sysextest_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_midiprobe2_LDFLAGS     = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_midiprobe_all_LDFLAGS  = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_cmidiin2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_qmidiin2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_midiout2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_loopback_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
-%C%_errors_LDFLAGS         = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#
+#%C%_midiprobe_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_midiout_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_qmidiin_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_cmidiin_LDFLAGS        = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_sysextest_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_midiprobe2_LDFLAGS     = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_midiprobe_all_LDFLAGS  = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_cmidiin2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_qmidiin2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_midiout2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_loopback_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#%C%_errors_LDFLAGS         = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+#
+
+%C%_midiprobe_LDADD      = $(RTMIDILIBRARYNAME)
+%C%_midiout_LDADD        = $(RTMIDILIBRARYNAME)
+%C%_qmidiin_LDADD        = $(RTMIDILIBRARYNAME)
+%C%_cmidiin_LDADD        = $(RTMIDILIBRARYNAME)
+%C%_sysextest_LDADD      = $(RTMIDILIBRARYNAME)
+%C%_midiprobe2_LDADD     = $(RTMIDILIBRARYNAME)
+%C%_midiprobe_all_LDADD  = $(RTMIDILIBRARYNAME)
+%C%_cmidiin2_LDADD       = $(RTMIDILIBRARYNAME)
+%C%_qmidiin2_LDADD       = $(RTMIDILIBRARYNAME)
+%C%_midiout2_LDADD       = $(RTMIDILIBRARYNAME)
+%C%_loopback_LDADD       = $(RTMIDILIBRARYNAME)
+%C%_errors_LDADD         = $(RTMIDILIBRARYNAME)
 
 
 if RTMIDICOPYDLLS

@@ -25,6 +25,13 @@ LT_INIT([win32-dll])
 AC_HEADER_STDC
 #AC_CHECK_HEADERS(sys/ioctl.h unistd.h)
 
+AC_ARG_ENABLE(suffix,
+AS_HELP_STRING([--with-suffix],[add a suffix to the library. Default is $rtmidi_suffix]),
+[AS_IF(test "x$enableval" = "xno",
+	    [ rtmidi_suffix=""],
+	    [ rtmidi_suffix="$enableval"])])
+AC_SUBST(rtmidi_suffix)
+
 # Check for debug
 AC_MSG_CHECKING(whether to compile debug version)
 AC_ARG_ENABLE(debug,
@@ -63,6 +70,8 @@ do
         		   AC_MSG_RESULT([no])])
 	AC_LANG_POP(C)
 done
+
+
 dnl mudflap is not possible with g++ 4.7.1 and wxWidgets 2.8
 dnl	       tmpcxxflags="$CXXFLAGS"
 dnl	       tmplibs="$LIBS"

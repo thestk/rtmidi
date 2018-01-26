@@ -51,3 +51,7 @@ USE_MSGCTXT = no
 #   --previous            to keep previous msgids of translated messages,
 #   --quiet               to reduce the verbosity.
 MSGMERGE_OPTIONS =
+
+all:
+
+tags:

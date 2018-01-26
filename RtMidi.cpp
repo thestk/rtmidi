@@ -2915,21 +2915,21 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     case SND_SEQ_EVENT_SYSEX:
       if ( (data->ignoreFlags & 0x01) ) break;
       if ( ev->data.ext.len > apiData->bufferSize ) {
-        apiData->bufferSize = ev->data.ext.len;
-        free( buffer );
-        buffer = (unsigned char *) malloc( apiData->bufferSize );
-        if ( buffer == NULL ) {
-          data->doInput = false;
-          try {
-            data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
+	apiData->bufferSize = ev->data.ext.len;
+	free( buffer );
+	buffer = (unsigned char *) malloc( apiData->bufferSize );
+	if ( buffer == NULL ) {
+	  data->doInput = false;
+	  try {
+	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
 				     Error::WARNING));
-          } catch (Error e) {
-            // don't bother ALSA with an unhandled exception
-          }
-          break;
-        }
+	  } catch (Error e) {
+	    // don't bother ALSA with an unhandled exception
+	  }
+	  break;
+	}
       }
-
+      FALLTHROUGH;
     default:
       doDecode = true;
     }
@@ -2938,38 +2938,38 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 
       nBytes = snd_midi_event_decode( apiData->coder, buffer, apiData->bufferSize, ev );
       if ( nBytes > 0 ) {
-        // The ALSA sequencer has a maximum buffer size for MIDI sysex
-        // events of 256 bytes.  If a device sends sysex messages larger
-        // than this, they are segmented into 256 byte chunks.  So,
-        // we'll watch for this and concatenate sysex chunks into a
-        // single sysex message if necessary.
-        if ( !continueSysex )
-          message.bytes.assign( buffer, &buffer[nBytes] );
-        else
-          message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
+	// The ALSA sequencer has a maximum buffer size for MIDI sysex
+	// events of 256 bytes.  If a device sends sysex messages larger
+	// than this, they are segmented into 256 byte chunks.  So,
+	// we'll watch for this and concatenate sysex chunks into a
+	// single sysex message if necessary.
+	if ( !continueSysex )
+	  message.bytes.assign( buffer, &buffer[nBytes] );
+	else
+	  message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
 
-        continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
-        if ( !continueSysex ) {
+	continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
+	if ( !continueSysex ) {
 
-          // Calculate the time stamp:
-          message.timeStamp = 0.0;
+	  // Calculate the time stamp:
+	  message.timeStamp = 0.0;
 
-          // Method 1: Use the system time.
-          //(void)gettimeofday(&tv, (struct timezone *)NULL);
-          //time = (tv.tv_sec * 1000000) + tv.tv_usec;
+	  // Method 1: Use the system time.
+	  //(void)gettimeofday(&tv, (struct timezone *)NULL);
+	  //time = (tv.tv_sec * 1000000) + tv.tv_usec;
 
-          // Method 2: Use the ALSA sequencer event time data.
-          // (thanks to Pedro Lopez-Cabanillas!).
-          time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
-          lastTime = time;
-          time -= apiData->lastTime;
-          apiData->lastTime = lastTime;
-          if ( data->firstMessage == true )
-            data->firstMessage = false;
-          else
-            message.timeStamp = time * 0.000001;
-        }
-        else {
+	  // Method 2: Use the ALSA sequencer event time data.
+	  // (thanks to Pedro Lopez-Cabanillas!).
+	  time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
+	  lastTime = time;
+	  time -= apiData->lastTime;
+	  apiData->lastTime = lastTime;
+	  if ( data->firstMessage == true )
+	    data->firstMessage = false;
+	  else
+	    message.timeStamp = time * 0.000001;
+	}
+	else {
 #if defined(__RTMIDI_DEBUG__)
           try {
             data->error(RTMIDI_ERROR(rtmidi_gettext("Event parsing error or not a MIDI event."),

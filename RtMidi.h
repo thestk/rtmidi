@@ -45,6 +45,9 @@
 
 #define RTMIDI_VERSION "3.0.0alpha"
 
+#ifdef RTMIDI_NO_WARN_DEPRECATED
+#define RTMIDI_DEPRECATED(func,message) func
+#else
 #ifdef __GNUC__
 #define RTMIDI_DEPRECATED(func,message) func __attribute__ ((deprecated(message)))
 #elif defined(_MSC_VER)
@@ -53,6 +56,9 @@
 #pragma message("WARNING: You need to implement the macro RTMIDI_DEPRECATED for this compiler if this code doesn't compile")
 #define RTMIDI_DEPRECATED(func,message) func [[deprecated(message)]]
 #endif
+#endif
+
+#define rtmidiUnused(x) do { (void)x; } while (0)
 
 // Check for C++11 support
 #if defined(_MSC_VER) && _MSC_VER >= 1800
@@ -1693,13 +1699,15 @@ public:
   Pointer<PortDescriptor> getDescriptor(bool /* local=false */) {
     return 0;
   }
-  PortList getPortList(int capabilities) { return PortList(); }
+  PortList getPortList(int /* capabilities */) {
+    return PortList();
+  }
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
-  std::string getPortName( unsigned int portNumber ) { return ""; }
+  std::string getPortName( unsigned int /* portNumber */ ) { return ""; }
 
 protected:
-  void initialize( const std::string& /*clientName*/ ) {}
+  void initialize( const std::string& /* clientName */ ) {}
 };
 #undef RTMIDI_CLASSNAME
 
@@ -1715,7 +1723,7 @@ public:
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int /*portNumber*/, const std::string & /*portName*/ ) {}
   void openVirtualPort( const std::string & /*portName*/ ) {}
-  void openPort( const PortDescriptor & port, const std::string & portName) {}
+  void openPort( const PortDescriptor & /* port */, const std::string & /* portName */) {}
   Pointer<PortDescriptor> getDescriptor(bool /* local=false */) { return 0; }
   PortList getPortList(int /*capabilities*/) {
     return PortList();

@@ -132,9 +132,11 @@ AC_CANONICAL_HOST
 AC_MSG_CHECKING(for MIDI API)
 
 AS_IF([test "x$with_jack" = "xyes"], [
-api="$api -D__UNIX_JACK__"
-AC_MSG_RESULT(using JACK)
-AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))])
+  AC_MSG_RESULT(using JACK)
+  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))
+  api="$api -D__UNIX_JACK__"
+  req="$req jack"
+])
 
 case $host in
   *-*-linux*)

@@ -13,6 +13,7 @@ AC_SUBST(RTMIDI_TS_SUFFIX,[ts])
 AM_CONDITIONAL(RTMIDI_STANDALONE,test "$rtmidi_standalone" = "yes")
 # Checks for programs.
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX(11)
 AM_PROG_AR
 dnl AC_PATH_PROG(AR, ar, no)
 dnl if [[ $AR = "no" ]] ; then
@@ -332,4 +333,4 @@ AC_COMPILE_IFELSE([
 	]);
 ]);
 ])
-AC_DEFINE_UNQUOTED(FALLTHROUGH,[$ac_cv_cxx_fallthrough],[syntax for switch case fallthrough attributes in C++])
+AC_DEFINE_UNQUOTED(RTMIDI_FALLTHROUGH,[$ac_cv_cxx_fallthrough],[syntax for switch case fallthrough attributes in C++])

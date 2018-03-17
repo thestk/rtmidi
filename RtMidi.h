@@ -325,15 +325,6 @@ bool operator!=(const Pointer<T>& lhs, const Pointer<U>& rhs) {
   return (&(*lhs)) != (&(*rhs));
 }
 
-template <class T, class U>
-bool operator==(const Pointer<T>& lhs, const Pointer<U>& rhs) {
-  return (&(*lhs)) == (&(*rhs));
-}
-
-template <class T, class U>
-bool operator!=(const Pointer<T>& lhs, const Pointer<U>& rhs) {
-  return (&(*lhs)) != (&(*rhs));
-}
 #else
 template<class T>
 using Pointer = std::shared_ptr<T>;

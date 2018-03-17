@@ -9,9 +9,10 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
 rtmidi_suffix="-ts"
+rtmidi_standalone="yes"
+SUBDIRS="$SUBDIRS %D%/po"
 m4_include(configure.library)
 
-SUBDIRS="$SUBDIRS %D%/po"
 
 
 AC_OUTPUT

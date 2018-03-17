@@ -299,7 +299,7 @@ return jack_port_uuid(NULL);
 esac
 AM_CONDITIONAL(HAVE_VIRTUAL_DEVICES,test "$have_virtual_devices" == yes)
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.19.8])
+AM_GNU_GETTEXT_VERSION([0.18.3])
 
 if test "x$rtmidicopydlls" = "x"
 then

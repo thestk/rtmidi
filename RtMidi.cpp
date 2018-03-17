@@ -42,6 +42,9 @@
 #include <cctype>
 #include <algorithm>
 #include <functional>
+#ifndef FALLTHROUGH
+#define FALLTHROUGH
+#endif
 
 NAMESPACE_RTMIDI_START
 #ifdef RTMIDI_GETTEXT

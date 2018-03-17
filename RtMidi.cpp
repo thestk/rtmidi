@@ -42,8 +42,8 @@
 #include <cctype>
 #include <algorithm>
 #include <functional>
-#ifndef FALLTHROUGH
-#define FALLTHROUGH
+#ifdef RTMIDI_FALLTHROUGH
+#define RTMIDI_FALLTHROUGH
 #endif
 
 NAMESPACE_RTMIDI_START
@@ -2938,7 +2938,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 	  break;
 	}
       }
-      FALLTHROUGH;
+      RTMIDI_FALLTHROUGH;
     default:
       doDecode = true;
     }

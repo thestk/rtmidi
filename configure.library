@@ -332,4 +332,4 @@ AC_COMPILE_IFELSE([
 	]);
 ]);
 ])
-AC_DEFINE_UNQUOTED(mutfallthrough,[$ac_cv_cxx_fallthrough],[syntax for swtich case fallthrough attributes in C++])
+AC_DEFINE_UNQUOTED(FALLTHROUGH,[$ac_cv_cxx_fallthrough],[syntax for switch case fallthrough attributes in C++])

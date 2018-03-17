@@ -1,0 +1,43 @@
+git:
+  depth: 3
+language: c++
+group: travis_latest
+compiler:
+  - gcc
+  - clang
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode9.2
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++ && EXTRA_BREW= "
+
+    - os: osx
+      osx_image: xcode9.2
+      env:
+        - MATRIX_EVAL="CC=gcc && CXX=g++ && EXTRA_BREW=gcc "
+
+
+addons:
+  apt:
+    packages:
+    - autoconf
+    - libtool
+    - autopoint
+    - automake
+    - libasound-dev
+    - libjack-dev
+    - libcppunit-dev
+    - doxygen
+
+
+before_install:
+    - eval "${MATRIX_EVAL}"
+    - if test "$TRAVIS_OS_NAME" = osx ; then  brew update ; fi
+    - if test "$TRAVIS_OS_NAME" = osx ; then brew upgrade boost ; fi
+    - if test "$TRAVIS_OS_NAME" = osx ; then rm -rf /usr/local/include/c++ ; fi # fix broken gcc installation
+    - if test "$TRAVIS_OS_NAME" = osx ; then brew install $EXTRA_BREW  gettext flex bison libtool autoconf jack  ; fi
+    - if test "$TRAVIS_OS_NAME" = osx ; then brew link --force $EXTRA_BREW gettext flex bison libtool autoconf jack ; fi
+
+script:
+  autoreconf -i -f && ./configure && make -j4 && $TEST_RUNNER make check

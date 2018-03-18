@@ -23,6 +23,10 @@
 #define SLEEP( milliseconds ) usleep( (unsigned long) (milliseconds * 1000.0) )
 #endif
 
+#define rtmidi_abort								\
+	std::cerr << __FILE__ << ":" << __LINE__ << ": rtmidi_aborting" << std::endl; \
+	abort
+
 using namespace rtmidi;
 
 bool ok = false;
@@ -44,8 +48,9 @@ int main( int /* argc */, char * /*argv*/[] )
 					} catch (Error e) {
 						std::string msg = e.getMessage();
 						e.printMessage();
-						if (e.getType() != Error::INVALID_DEVICE)
-							abort();
+						if (e.getType() != Error::INVALID_DEVICE) {
+							rtmidi_abort();
+						}
 					}
 				}
 			} catch (Error e) {
@@ -53,8 +58,9 @@ int main( int /* argc */, char * /*argv*/[] )
 				e.printMessage();
 				if (msg != rtmidi_gettext("")) {
 					if (e.getType() != Error::WARNING &&
-					    e.getType() != Error::NO_DEVICES_FOUND)
-						abort();
+					    e.getType() != Error::NO_DEVICES_FOUND) {
+						rtmidi_abort();
+					}
 				}
 			}
 		}

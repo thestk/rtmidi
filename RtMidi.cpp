@@ -2529,6 +2529,8 @@ protected:
       if ( result < 0 ) {
 	switch (result) {
 	case ENOENT: // /dev/snd/seq does not exist
+	  std::cerr << __FILE__ << ":" << __LINE__
+		    << "Got error number " << result << std::endl;
 	  throw RTMIDI_ERROR(snd_strerror(result),
 			     Error::NO_DEVICES_FOUND);
 	  return;

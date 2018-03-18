@@ -3,7 +3,7 @@
 AC_INIT(RtMidi-ts, 3.0, keinstein_junior@gmx.net, rtmidi-ts)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile tests/Makefile po/Makefile.in])
+AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile po/Makefile.in])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 AC_CONFIG_MACRO_DIR([m4])

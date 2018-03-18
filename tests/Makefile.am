@@ -25,7 +25,6 @@ TESTS += \
 
 if RTMIDI_HAVE_VIRTUAL_DEVICES
 TESTS += %D%/loopback
-DLLPROGRAMS += %D%/loopback
 endif
 
 

@@ -2,7 +2,7 @@
 #RTMIDITESTCXXFLAGS += -I$(top_srcdir)/%D%
 #RTMIDITESTLDFLAGS  += -L$(top_builddir)/%D% -lrtmidi@rtmidi_suffix@ @LIBS@
 
-noinst_PROGRAMS += \
+check_PROGRAMS += \
 	%D%/midiprobe \
 	%D%/midiout \
 	%D%/qmidiin \
@@ -22,8 +22,10 @@ TESTS += \
 	%D%/midiprobe-all \
 	%D%/errors
 
-if HAVE_VIRTUAL_DEVICES
+
+if RTMIDI_HAVE_VIRTUAL_DEVICES
 TESTS += %D%/loopback
+DLLPROGRAMS += %D%/loopback
 endif
 
 
@@ -91,27 +93,39 @@ if RTMIDICOPYDLLS
 #-------------------------------------------------------------------------------------
 
 
+
 rtmidi_installdll:
 	@echo 'solving references for $(DLLLINKFILE)... '
 	DLLSEARCHPATH="$(DLLSEARCHPATH)" ; \
-	for d in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '` ; \
+	for f in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '` ; \
 	do \
-		echo -n checking "$$d ... " ; \
-		if [ ! -f $(DLLEXEDIR)/$$d ] ; then \
+		echo -n checking "$$f ... " ; \
+		if [ ! -f $(DLLEXEDIR)/$$f ] ; then \
 			echo -n "searching... " ; \
-			f=`( find $$DLLSEARCHPATH -name "$$d" || \
-			find $$DLLSEARCHPATH -name "$$d.*")|head -n 1` ; \
-			if test -f "$$f" ; \
-			then \
-				echo "installing $$f " ; \
-				$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$f" "`pwd`/$(DLLEXEDIR)" ; \
-				case "$$f" in \
-				*.gz)  GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$$f"` >$(DLLEXEDIR)/"$$d" ;; \
-				esac ; \
-				$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$d" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
-			else \
-				echo "not found." ; \
-			fi ; \
+			IFS=: ; \
+			for d in $$DLLSEARCHPATH ; do \
+				echo "looking in $$d" ; \
+				echo -n "found " ; \
+				(test -f "$$d/$$f" && \
+					echo "$$d/$$f" || \
+					ls -1 "$$d/$$f.*" 2>/dev/null) ; \
+				echo ; \
+				IFS= ; \
+				fullname=`(test -f "$$d/$$f" && \
+					echo "$$d/$$f" || \
+					ls -1 "$$d/$$f.*" 2>/dev/null) | \
+					head -n1` ; \
+				echo "testing $$fullname" ; \
+				if test -f "$$fullname" ; \
+				then \
+					echo "installing $$fullname " ; \
+					$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$fullname" "`pwd`/$(DLLEXEDIR)" ; \
+					case "$$f" in \
+					*.gz)  GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$$fullname"` >$(DLLEXEDIR)/"$$f" ;; \
+					esac ; \
+					$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$f" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
+				fi ; \
+			done ; \
 		fi ; \
 		echo "done." ;\
 	done ;
@@ -122,18 +136,20 @@ rtmidi_installdll:
 
 
 
-check-am: check-dll
+check-am: check-dll-rtmidi
 
-check-dll: all-am
+check-dll-rtmidi: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
-	$(MAKE) $(AM_MAKEFLAGS)	linkchecks
+	$(MAKE) $(AM_MAKEFLAGS)	linkchecks-rtmidi
 
-linkchecks:
-	for d in `echo $(TESTS)| tr ' ' '\n' | grep -i -e '$(EXEEXT)$$'` ; \
+linkchecks-rtmidi:
+	for d in `echo $(DLLPROGRAMS)| tr ' ' '\n' | grep -i -e '$(EXEEXT)$$\|.dll$$'` ; \
 	do \
 		ls -l "$$d" ; \
-		$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$d" DLLEXEDIR="." rtmidi_installdll ; \
-		test -f ".libs/$$d" && \
-			$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE=".libs/$$d" DLLEXEDIR="." rtmidi_installdll ; \
+		file=`basename "$$d"` ; \
+		dir=`dirname "$$d"` ; \
+		$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$file" DLLEXEDIR="$$dir" rtmidi_installdll ; \
+		test -f "$$dir/.libs/$$file" && \
+			$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$file" DLLEXEDIR="$$dir/.libs" rtmidi_installdll ; \
 	done
 endif

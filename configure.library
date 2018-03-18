@@ -29,21 +29,21 @@ AC_HEADER_STDC
 AC_ARG_ENABLE(suffix,
 AS_HELP_STRING([--with-suffix],[add a suffix to the library. Default is $rtmidi_suffix]),
 [AS_IF(test "x$enableval" = "xno",
-	    [ rtmidi_suffix=""],
-	    [ rtmidi_suffix="$enableval"])])
+		[ rtmidi_suffix=""],
+		[ rtmidi_suffix="$enableval"])])
 AC_SUBST(rtmidi_suffix)
 
 # Check for debug
 AC_MSG_CHECKING(whether to compile debug version)
 AC_ARG_ENABLE(debug,
-  [  --enable-debug = enable various debug output],
-  [
-  AC_SUBST( RTMIDI_CPPFLAGS, [-D__RTMIDI_DEBUG__] )
-  AC_SUBST( RTMIDI_CXXFLAGS, [-g] )
-  AC_MSG_RESULT(yes)],
-  [AC_SUBST( RTMIDI_CPPFLAGS, [] )
-  AC_SUBST( RTMIDI_CXXFLAGS, [-O3] )
-  AC_MSG_RESULT(no)])
+	[  --enable-debug = enable various debug output],
+	[
+	AC_SUBST( RTMIDI_CPPFLAGS, [-D__RTMIDI_DEBUG__] )
+	AC_SUBST( RTMIDI_CXXFLAGS, [-g] )
+	AC_MSG_RESULT(yes)],
+	[AC_SUBST( RTMIDI_CPPFLAGS, [] )
+	AC_SUBST( RTMIDI_CXXFLAGS, [-O3] )
+	AC_MSG_RESULT(no)])
 
 dnl # Set paths if prefix is defined
 dnl if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
@@ -57,99 +57,99 @@ do
 	tmpcxxflags="$CXXFLAGS"
 	CXXFLAGS="$CXXFLAGS $flag"
 	AC_MSG_CHECKING([whether $CXX supports $flag])
-      	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-	    	          [AC_MSG_RESULT([yes])],
-			  [CXXFLAGS="$tmpcxxflags"
-              		   AC_MSG_RESULT([no])])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+				[AC_MSG_RESULT([yes])],
+				[CXXFLAGS="$tmpcxxflags"
+					AC_MSG_RESULT([no])])
 	AC_LANG_PUSH(C)
 	tmpcflags="$CFLAGS"
 	CFLAGS="$CFLAGS $flag"
 	AC_MSG_CHECKING([whether $CC supports $flag])
-      	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-	                  [AC_MSG_RESULT([yes])],
-			  [CFLAGS="$tmpcflags"
-        		   AC_MSG_RESULT([no])])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+				[AC_MSG_RESULT([yes])],
+				[CFLAGS="$tmpcflags"
+				AC_MSG_RESULT([no])])
 	AC_LANG_POP(C)
 done
 
 
 dnl mudflap is not possible with g++ 4.7.1 and wxWidgets 2.8
-dnl	       tmpcxxflags="$CXXFLAGS"
-dnl	       tmplibs="$LIBS"
-dnl	       CXXFLAGS="$CXXFLAGS -fmudflapth"
-dnl	       LIBS="-lmudflapth"
-dnl	       AC_MSG_CHECKING([whether $CXX supports  -fmudflapth -lmudflapth])
-dnl      	       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-dnl	       			[AC_MSG_RESULT([yes])],
+dnl		tmpcxxflags="$CXXFLAGS"
+dnl		tmplibs="$LIBS"
+dnl		CXXFLAGS="$CXXFLAGS -fmudflapth"
+dnl		LIBS="-lmudflapth"
+dnl		AC_MSG_CHECKING([whether $CXX supports  -fmudflapth -lmudflapth])
+dnl		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+dnl					[AC_MSG_RESULT([yes])],
 dnl				[CXXFLAGS="$tmpcxxflags"
 dnl				LIBS="$tmplibs"]
-dnl	       			[AC_MSG_RESULT([no])])
+dnl					[AC_MSG_RESULT([no])])
 dnl
 
 AC_ARG_ENABLE(address-sanitizer,
 	AS_HELP_STRING([--enable-address-sanitizer],[Enable gcc/clang address santizer]),
 	[AS_IF(test "$enableval" = yes,
 
-	       AC_LANG_PUSH(C++)
-	       for flag in  -fsanitize=address  -fno-omit-frame-pointer  -fno-common
-	       do
-		       tmpcxxflags="$CXXFLAGS"
-		       CXXFLAGS="$CXXFLAGS $flag"
-		       AC_MSG_CHECKING([whether $CXX supports $flag])
-		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-		                         [AC_MSG_RESULT([yes])],
-					 [CXXFLAGS="$tmpcxxflags"
-			         AC_MSG_RESULT([no])])
+		AC_LANG_PUSH(C++)
+		for flag in  -fsanitize=address  -fno-omit-frame-pointer  -fno-common
+		do
+			tmpcxxflags="$CXXFLAGS"
+			CXXFLAGS="$CXXFLAGS $flag"
+			AC_MSG_CHECKING([whether $CXX supports $flag])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+						[AC_MSG_RESULT([yes])],
+						[CXXFLAGS="$tmpcxxflags"
+					AC_MSG_RESULT([no])])
 			AC_LANG_PUSH(C)
 			tmpcflags="$CFLAGS"
 			CFLAGS="$CFLAGS $flag"
 			AC_MSG_CHECKING([whether $CC supports $flag])
 			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-		                          [AC_MSG_RESULT([yes])],
-					  [CFLAGS="$tmpcflags"
-			          AC_MSG_RESULT([no])])
+						[AC_MSG_RESULT([yes])],
+						[CFLAGS="$tmpcflags"
+					AC_MSG_RESULT([no])])
 			AC_LANG_POP(C)
-	       done
-	       AC_LANG_POP(C++)
-	       )
+		done
+		AC_LANG_POP(C++)
+		)
 	]
 )
 
 AC_ARG_ENABLE(thread-sanitizer,
 	AS_HELP_STRING([--enable-thread-sanitizer],[Enable gcc/clang thread santizer]),
 	[AS_IF(test "$enableval" = yes,
-	       AC_LANG_PUSH(C++)
-	       for flag in  -fsanitize=thread  -fno-omit-frame-pointer  -fno-common -fPIC
-	       do
-		       tmpcxxflags="$CXXFLAGS"
-		       CXXFLAGS="$CXXFLAGS $flag"
-		       AC_MSG_CHECKING([whether $CXX supports $flag])
-		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-		                         [AC_MSG_RESULT([yes])],
-					 [CXXFLAGS="$tmpcxxflags"
-			         AC_MSG_RESULT([no])])
-		       AC_LANG_PUSH(C)
-		       tmpcflags="$CFLAGS"
-		       CFLAGS="$CFLAGS $flag"
-		       AC_MSG_CHECKING([whether $CC supports $flag])
-		       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-		                         [AC_MSG_RESULT([yes])],
-					 [CFLAGS="$tmpcflags"
-			         AC_MSG_RESULT([no])])
-		       AC_LANG_POP(C)
-	       done
-	       for flag in  -pie
-	       do
-		       tmpldflags="$LDFLAGS"
-		       LDFLAGS="$LDFLAGS $flag"
-		       AC_MSG_CHECKING([whether $LD supports $flag])
-		       AC_LINK_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
-		                         [AC_MSG_RESULT([yes])],
-					 [LDFLAGS="$tmpldflags"
-			         AC_MSG_RESULT([no])])
-	       done
-	       AC_LANG_POP(C++)
-	       )
+		AC_LANG_PUSH(C++)
+		for flag in  -fsanitize=thread  -fno-omit-frame-pointer  -fno-common -fPIC
+		do
+			tmpcxxflags="$CXXFLAGS"
+			CXXFLAGS="$CXXFLAGS $flag"
+			AC_MSG_CHECKING([whether $CXX supports $flag])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+						[AC_MSG_RESULT([yes])],
+						[CXXFLAGS="$tmpcxxflags"
+					AC_MSG_RESULT([no])])
+			AC_LANG_PUSH(C)
+			tmpcflags="$CFLAGS"
+			CFLAGS="$CFLAGS $flag"
+			AC_MSG_CHECKING([whether $CC supports $flag])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+						[AC_MSG_RESULT([yes])],
+						[CFLAGS="$tmpcflags"
+					AC_MSG_RESULT([no])])
+			AC_LANG_POP(C)
+		done
+		for flag in  -pie
+		do
+			tmpldflags="$LDFLAGS"
+			LDFLAGS="$LDFLAGS $flag"
+			AC_MSG_CHECKING([whether $LD supports $flag])
+			AC_LINK_IFELSE([AC_LANG_PROGRAM([[]],[[]])],
+						[AC_MSG_RESULT([yes])],
+						[LDFLAGS="$tmpldflags"
+					AC_MSG_RESULT([no])])
+		done
+		AC_LANG_POP(C++)
+		)
 	]
 )
 
@@ -163,142 +163,155 @@ dnl  AC_SUBST( sharedname, ["librtmidi.\$(RELEASE).dylib"] )
 dnl  AC_SUBST( libflags, ["-dynamiclib -o librtmidi.\$(RELEASE).dylib"] )
 dnl esac
 
-AC_SUBST( RTMIDI_TS_API, [""] )
-AC_SUBST( req, [""] )
+
+
+
+AC_SUBST( RTMIDI_API, [""] )
+AC_SUBST( RTMIDI_LIBS, [""] )
 AC_MSG_CHECKING(for MIDI API)
-have_virtual_devices=no
+RTMIDI_HAVE_VIRTUAL_DEVICES=no
+rtmidi_check_jack=auto
 case $host in
-  *-*-linux*)
-  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
-  have_virtual_devices=yes
-  RTMIDI_TS_API="$RTMIDI_TS_API -D__UNIX_JACK__"
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
-  AC_LANG_PUSH(C++)
-  AC_TRY_COMPILE([
-#include <jack/jack.h>
-	 ],[
-return jack_port_uuid(NULL);
-       ],RTMIDI_TS_API="$RTMIDI_TS_API -D__UNIX_JACK_HAS_UUID__")
-  AC_LANG_POP(C++)
+*linux*)
+	PLATFORM=linux
+dnl	with_winmm=no
+dnl	with_winks=no
+dnl	with_coremidi=no
 
-  # Look for ALSA flag
-  AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support (linux only)], [
-    have_virtual_devices=yes
-    RTMIDI_TS_API="$RTMIDI_TS_API -D__LINUX_ALSA__"
-    req="$req alsa"
-    AC_MSG_RESULT(using ALSA)
-    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))], )
+	# Checks for pthread library.
+	;;
 
-  if [test "$RTMIDI_TS_API" == "";] then
-    AC_MSG_RESULT(using ALSA)
-    AC_SUBST( RTMIDI_TS_API, [-D__LINUX_ALSA__] )
-    req="$req alsa"
-    have_virtual_devices=yes
-    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA sequencer support requires the asound library!))
-  fi
+darwin*|*apple*)
+	PLATFORM=macosx
+	# Check for CoreAudio framework
+	with_winmm=no
+	with_winks=no
+	with_alsa=no
 
-  # Checks for pthread library.
-  AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
-  ;;
+	;;
 
-  *-apple*)
-  AC_ARG_WITH(jack, [  --with-jack = choose JACK server support (mac and linux only)], [
-  have_virtual_devices=yes
-  RTMIDI_TS_API="$RTMIDI_TS_API -D__UNIX_JACK__"
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))], )
-  AC_LANG_PUSH(C++)
-  AC_TRY_COMPILE([
-#include <jack/jack.h>
-	 ],[
-return jack_port_uuid(NULL);
-       ],RTMIDI_TS_API="$RTMIDI_TS_API -D__UNIX_JACK_HAS_UUID__")
-  AC_LANG_POP(C++)
+*winnt*|*interix*|cygwin*|*mingw*|uwin*)
+	PLATFORM=windows
+	with_alsa=no
+	with_coremidi=no
 
-  # Look for Core flag
-  AC_ARG_WITH(core, [  --with-core = choose CoreMidi API support (mac only)], [
-    have_virtual_devices=yes
-    RTMIDI_TS_API="$RTMIDI_TS_API -D__MACOSX_CORE__"
-    AC_MSG_RESULT(using CoreMidi)
-    AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    RTMIDI_TS_LIBS="$RTMIDI_TS_LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio" ], )
-
-  # If no api flags specified, use CoreMidi
-  if [test "$RTMIDI_TS_API" == ""; ] then
-    have_virtual_devices=yes
-    AC_SUBST( RTMIDI_TS_API, [-D__MACOSX_CORE__] )
-    AC_MSG_RESULT(using CoreMidi)
-    AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
-      [],
-      [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    AC_SUBST( RTMIDI_TS_LIBS, ["-framework CoreMIDI -framework CoreFoundation -framework CoreAudio"] )
-  fi
-  ;;
-
-  *-mingw32*)
-  
-  # Look for WinMM flag
-  AC_ARG_WITH(winmm, [  --with-winmm = choose Windows MultiMedia (MM) API support (windoze only)], [
-    RTMIDI_TS_API="$RTMIDI_TS_API -D__WINDOWS_MM__"
-    AC_MSG_RESULT(using WinMM)
-    AC_SUBST( RTMIDI_TS_LIBS, [-lwinmm] )], )
-
-  AC_ARG_WITH(winks, [  --with-winks = choose kernel streaming support (windoze only)], [
-    api="$RTMIDI_TS_API -D__WINDOWS_KS__"
-    AC_SUBST( RTMIDI_TS_LIBS, ["-lsetupapi -lksuser"] )
-    AC_MSG_RESULT(using kernel streaming) ], )
-
-  # I can't get the following check to work so just manually add the library
+	# I can't get the following check to work so just manually add the library
 	# or could try the following?  AC_LIB_WINMM([midiOutGetNumDevs])
-  # AC_CHECK_LIB(winmm, midiInGetNumDevs, , AC_MSG_ERROR(Windows MIDI support requires the winmm library!) )],)
+	# AC_CHECK_LIB(winmm, midiInGetNumDevs, , AC_MSG_ERROR(Windows MIDI support requires the winmm library!) )],)
+	AC_CACHE_CHECK([where to find support dlls], [ac_cv_rtmidi_ts_mingw_dll_dirs],
+	[
+		gccsearchdirs=`$CXX $CXXFLAGS -print-search-dirs|\
+			sed -e '/^libraries:/ { s/^libraries: *=\?//; p } ; d'`
+		gccsearchdirs="$WINEDLLPATH:$gccsearchdirs:\
+/usr/share/doc/mingw32-runtime:\
+/usr/$host/bin:\
+/usr/$host/lib:\
+/usr/bin/$host/:\
+/usr/lib/$host/:\
+/usr/lib/$host/lib:\
+/usr/lib/$host/bin:\
+/usr/bin/$host/lib:\
+/usr/bin/$host/bin:\
+/mingw/lib:\
+/mingw/bin:\
+/usr/lib:\
+/lib:\
+/usr/bin:\
+/bin"
+		SEARCHDIRS="$PWD:$PWD/.libs"
+		old_FS="$IFS"
+		IFS=:
+		for d in $gccsearchdirs ;
+		do
+			echo "testing $d"
+			AS_IF(test -d $d,
+					[ SEARCHDIRS="$SEARCHDIRS:$d" ])
+		done
+		IFS="$old_FS"
+		ac_cv_rtmidi_ts_mingw_dll_dirs="$SEARCHDIRS"
+	])
 
-  # If no RTMIDI_TS_API flags specified, use WinMM
-  if [test "$RTMIDI_TS_API" == "";] then
-    AC_SUBST( RTMIDI_TS_API, [-D__WINDOWS_MM__] )
-    AC_MSG_RESULT(using WinMM)
-    AC_SUBST( RTMIDI_TS_LIBS, [-lwinmm] )
-  fi
+	AC_SUBST(DLLSEARCHPATH,"$ac_cv_rtmidi_ts_mingw_dll_dirs")
+	rtmidicopydlls=true
+	echo
+	echo "DLL path=  $DLLSEARCHPATH"
 
-  AC_CACHE_CHECK([where to find support dlls], [ac_cv_rtmidi_ts_mingw_dll_dirs],
-  [
-       gccsearchdirs=`$CXX $CXXFLAGS -print-search-dirs|\
-			sed -e '/^libraries:/ { s/^libraries: *=\?//;s/:/ /g; p } ; d'`
-       SEARCHDIRS="$DLLSEARCHPATH"
-       for d in \
-           $gccsearchdirs \
-       	   /usr/share/doc/mingw32-runtime \
-	   /usr/$host/bin \
-	   /usr/$host/lib \
-	   /usr/bin/$host/ \
-	   /usr/lib/$host/ \
-	   /usr/lib/$host/lib \
-	   /usr/lib/$host/bin \
-	   /usr/bin/$host/lib \
-	   /usr/bin/$host/bin \
-	   /mingw/lib \
-	   /mingw/bin \
-	   /usr/lib \
-	   /lib \
-	   /usr/bin \
-	   /bin
-       do
-	  AS_IF(test -d $d,
-	  [ SEARCHDIRS="$SEARCHDIRS $d" ])
-       done
-       ac_cv_rtmidi_ts_mingw_dll_dirs="$SEARCHDIRS"
-  ])
+	;;
 
-  AC_SUBST(DLLSEARCHPATH,"$ac_cv_rtmidi_ts_mingw_dll_dirs")
+*)
+	# Default case for unknown realtime systems.
+	AC_MSG_WARN([
+		Your target system could not be recognized. $PACKAGE depends on
+		a working MIDI configuration for your System. We are trying all
+		supported APIs. The result may be varying.
 
-  ;;
+		Please contact the development team at
 
-  *)
-  # Default case for unknown realtime systems.
-  AC_MSG_ERROR(Unknown system type for MIDI support!)
-  ;;
+			$PACKAGE_BUGREPORT
+
+		and provide the following information:
+
+		* The output of configure
+		* The description of your System.
+
+	])
+	;;
 esac
-AM_CONDITIONAL(HAVE_VIRTUAL_DEVICES,test "$have_virtual_devices" == yes)
+echo "with-jack: $with_jack"
+echo "nochmal withjack"
+AC_ARG_WITH(jack,
+	[  --with-jack = choose JACK server support (needs libjack to be installed)],[
+		echo running jack:
+		AS_IF([test "x$with_jack" = "no"],,[RTMIDI_LIB_JACK ])
+	],[ echo runnning jack 2 ; RTMIDI_LIB_JACK(,[true]) ])
+
+echo
+echo "RTMIDI_API = $RTMIDI_API"
+echo "RTMIDI_LIBS = $RTMIDI_LIBS"
+echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
+echo
+echo "with_alsa: $with_alsa"
+echo
+AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support],[
+		AS_IF([test "x$with_alsa" = "no"],,[ RTMIDI_LIB_ALSA ])
+		],[ RTMIDI_LIB_ALSA(,[true]) ])
+
+echo
+echo "RTMIDI_API = $RTMIDI_API"
+echo "RTMIDI_LIBS = $RTMIDI_LIBS"
+echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
+echo
+AC_ARG_WITH(winmm, [  --with-winmm = choose native Windows Multimedia API support],[
+		AS_IF([test "x$with_winmm" = "no"],,[RTMIDI_LIB_WINMM ])
+	],[ RTMIDI_LIB_WINMM(,[true]) ])
+echo
+echo "RTMIDI_API = $RTMIDI_API"
+echo "RTMIDI_LIBS = $RTMIDI_LIBS"
+echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
+echo
+AC_ARG_WITH(winks, [  --with-winks = choose native Windows kernel streaming API support],[
+		AS_IF([test "x$with_winks" = "no"],,[ RTMIDI_LIB_WINKS ])
+	],[ RTMIDI_LIB_WINKS(,[true]) ])
+
+echo
+echo "RTMIDI_API = $RTMIDI_API"
+echo "RTMIDI_LIBS = $RTMIDI_LIBS"
+echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
+echo
+AC_ARG_WITH(coremidi, [--with-coremidi = choose native CoreAudio API support],[
+		AS_IF([test "x$with_core" = "no"],,[RTMIDI_LIB_CORE ])
+	],[ RTMIDI_LIB_COREMIDI(,[true]) ])
+echo
+echo "RTMIDI_API = $RTMIDI_API"
+echo "RTMIDI_LIBS = $RTMIDI_LIBS"
+echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
+echo
+AS_IF([test "x$RTMIDI_API" = "x"],[
+		AC_MSG_WARN("No suitable MIDI interface found. Using dummy driver")
+		RTMIDI_API="-D__RTMIDI_DUMMY__"
+])
+
+AM_CONDITIONAL(RTMIDI_HAVE_VIRTUAL_DEVICES,test "$RTMIDI_HAVE_VIRTUAL_DEVICES" == yes)
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.18.3])
 

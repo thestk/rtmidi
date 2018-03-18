@@ -1580,7 +1580,7 @@ INCLUDE_FILE_PATTERNS  =
 # undefined via #undef or recursively expanded use the := operator 
 # instead of the = operator.
 
-PREDEFINED             = __MACOSX_CORE__ \
+PREDEFINED             = __MACOSX_COREMIDI__ \
                          __WINDOWS_MM__ \
                          __UNIX_JACK__ \
                          __LINUX_ALSA__ \

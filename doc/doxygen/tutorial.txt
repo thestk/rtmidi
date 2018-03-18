@@ -433,9 +433,9 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 <TR>
   <TD>Macintosh OS X</TD>
   <TD>CoreMIDI</TD>
-  <TD>__MACOSX_CORE__</TD>
+  <TD>__MACOSX_COREMIDI__</TD>
   <TD><TT>CoreMIDI, CoreAudio, CoreFoundation</TT></TD>
-  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe2.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation</TT></TD>
+  <TD><TT>g++ -Wall -D__MACOSX_COREMIDI__ -o midiprobe midiprobe2.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
   <TD>Windows</TD>

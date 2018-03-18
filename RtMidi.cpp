@@ -133,7 +133,7 @@ void Midi :: getCompiledApi( std::vector<ApiType> &apis, bool preferSystem ) thr
   }
 
   // check OS provided backends
-#if defined(__MACOSX_CORE__)
+#if defined(__MACOSX_COREMIDI__)
   apis.push_back( rtmidi::MACOSX_CORE );
 #endif
 #if defined(__LINUX_ALSA__)
@@ -214,7 +214,7 @@ void MidiIn :: openMidiApi( ApiType api )
 #endif
       break;
     case rtmidi::MACOSX_CORE:
-#if defined(__MACOSX_CORE__)
+#if defined(__MACOSX_COREMIDI__)
       rtapi_ = new MidiInCore( clientName, queueSizeLimit );
 #endif
       break;
@@ -253,14 +253,14 @@ MidiIn :: MidiIn( ApiType api,
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       try {
-	openMidiApi( apis[i] );
-	if ( rtapi_ ) {
-	  queryApis.push_back(MidiApiPtr(rtapi_));
-	  rtapi_=NULL;
-	}
+        openMidiApi( apis[i] );
+        if ( rtapi_ ) {
+          queryApis.push_back(MidiApiPtr(rtapi_));
+          rtapi_=NULL;
+        }
       } catch (const Error & e) {
-	if (e.getType() != Error::NO_DEVICES_FOUND)
-	  throw;
+        if (e.getType() != Error::NO_DEVICES_FOUND)
+          throw;
       }
     }
     return;
@@ -330,7 +330,7 @@ void MidiOut :: openMidiApi( ApiType api )
 #endif
       break;
     case rtmidi::MACOSX_CORE:
-#if defined(__MACOSX_CORE__)
+#if defined(__MACOSX_COREMIDI__)
       rtapi_ = new MidiOutCore( clientName );
 #endif
       break;
@@ -367,14 +367,14 @@ MidiOut :: MidiOut( ApiType api, const std::string & clientName, bool pfsystem )
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       try {
-	openMidiApi( apis[i] );
-	if ( rtapi_ ) {
-	  queryApis.push_back(MidiApiPtr(rtapi_));
-	  rtapi_ = NULL;
-	}
+        openMidiApi( apis[i] );
+        if ( rtapi_ ) {
+          queryApis.push_back(MidiApiPtr(rtapi_));
+          rtapi_ = NULL;
+        }
       } catch (const Error & e) {
-	if (e.getType() != Error::NO_DEVICES_FOUND)
-	  throw;
+        if (e.getType() != Error::NO_DEVICES_FOUND)
+          throw;
       }
     }
     return;
@@ -597,7 +597,7 @@ static inline std::string &ltrim(std::string &s) {
 // trim from end
 static inline std::string &rtrim(std::string &s) {
   s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-	return ! std::isspace(ch);
+        return ! std::isspace(ch);
       }).base(), s.end());
   return s;
 }
@@ -614,7 +614,7 @@ NAMESPACE_RTMIDI_END
 //
 // *************************************************** //
 
-#if defined(__MACOSX_CORE__)
+#if defined(__MACOSX_COREMIDI__)
 
 // The CoreMIDI API is based on the use of a callback function for
 // MIDI input.  We convert the system specific time stamps to delta
@@ -1613,12 +1613,12 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
     else {
       time = packet->timeStamp;
       if ( time == 0 ) { // this happens when receiving asynchronous sysex messages
-	time = AudioGetCurrentHostTime();
+        time = AudioGetCurrentHostTime();
       }
       time -= apiData->lastTime;
       time = AudioConvertHostTimeToNanos( time );
       if ( !continueSysex )
-	message.timeStamp = time * 0.000000001;
+        message.timeStamp = time * 0.000000001;
     }
     apiData->lastTime = packet->timeStamp;
     if ( apiData->lastTime == 0 ) { // this happens when receiving asynchronous sysex messages
@@ -1630,111 +1630,111 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
     if ( continueSysex ) {
       // We have a continuing, segmented sysex message.
       if ( !( data->ignoreFlags & 0x01 ) ) {
-	// If we're not ignoring sysex messages, copy the entire packet.
-	for ( unsigned int j=0; j<nBytes; ++j )
-	  message.bytes.push_back( packet->data[j] );
+        // If we're not ignoring sysex messages, copy the entire packet.
+        for ( unsigned int j=0; j<nBytes; ++j )
+          message.bytes.push_back( packet->data[j] );
       }
       continueSysex = packet->data[nBytes-1] != 0xF7;
 
       if ( !( data->ignoreFlags & 0x01 ) ) {
-	if ( !continueSysex ) {
-	  // If not a continuing sysex message, invoke the user callback function or queue the message.
-	  if ( data->userCallback ) {
-	    data->userCallback->rtmidi_midi_in( message.timeStamp,
+        if ( !continueSysex ) {
+          // If not a continuing sysex message, invoke the user callback function or queue the message.
+          if ( data->userCallback ) {
+            data->userCallback->rtmidi_midi_in( message.timeStamp,
 						message.bytes);
-	  }
-	  else {
-	    // As long as we haven't reached our queue size limit, push the message.
-	    if ( data->queue.size < data->queue.ringSize ) {
-	      data->queue.ring[data->queue.back++] = message;
-	      if ( data->queue.back == data->queue.ringSize )
-		data->queue.back = 0;
-	      data->queue.size++;
-	    }
-	    else {
-	      try {
-		data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+          }
+          else {
+            // As long as we haven't reached our queue size limit, push the message.
+            if ( data->queue.size < data->queue.ringSize ) {
+              data->queue.ring[data->queue.back++] = message;
+              if ( data->queue.back == data->queue.ringSize )
+                data->queue.back = 0;
+              data->queue.size++;
+            }
+            else {
+              try {
+                data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					 Error::WARNING));
-	      } catch (Error e) {
-		// don't bother ALSA with an unhandled exception
-	      }
-	    }
-	  }
-	  message.bytes.clear();
-	}
+              } catch (Error e) {
+                // don't bother ALSA with an unhandled exception
+              }
+            }
+          }
+          message.bytes.clear();
+        }
       }
     }
     else {
       while ( iByte < nBytes ) {
-	size = 0;
-	// We are expecting that the next byte in the packet is a status byte.
-	status = packet->data[iByte];
-	if ( !(status & 0x80) ) break;
-	// Determine the number of bytes in the MIDI message.
-	if ( status < 0xC0 ) size = 3;
-	else if ( status < 0xE0 ) size = 2;
-	else if ( status < 0xF0 ) size = 3;
-	else if ( status == 0xF0 ) {
-	  // A MIDI sysex
-	  if ( data->ignoreFlags & 0x01 ) {
-	    size = 0;
-	    iByte = nBytes;
-	  }
-	  else size = nBytes - iByte;
-	  continueSysex = packet->data[nBytes-1] != 0xF7;
-	}
-	else if ( status == 0xF1 ) {
-	  // A MIDI time code message
-	  if ( data->ignoreFlags & 0x02 ) {
-	    size = 0;
-	    iByte += 2;
-	  }
-	  else size = 2;
-	}
-	else if ( status == 0xF2 ) size = 3;
-	else if ( status == 0xF3 ) size = 2;
-	else if ( status == 0xF8 && ( data->ignoreFlags & 0x02 ) ) {
-	  // A MIDI timing tick message and we're ignoring it.
-	  size = 0;
-	  iByte += 1;
-	}
-	else if ( status == 0xFE && ( data->ignoreFlags & 0x04 ) ) {
-	  // A MIDI active sensing message and we're ignoring it.
-	  size = 0;
-	  iByte += 1;
-	}
-	else size = 1;
+        size = 0;
+        // We are expecting that the next byte in the packet is a status byte.
+        status = packet->data[iByte];
+        if ( !(status & 0x80) ) break;
+        // Determine the number of bytes in the MIDI message.
+        if ( status < 0xC0 ) size = 3;
+        else if ( status < 0xE0 ) size = 2;
+        else if ( status < 0xF0 ) size = 3;
+        else if ( status == 0xF0 ) {
+          // A MIDI sysex
+          if ( data->ignoreFlags & 0x01 ) {
+            size = 0;
+            iByte = nBytes;
+          }
+          else size = nBytes - iByte;
+          continueSysex = packet->data[nBytes-1] != 0xF7;
+        }
+        else if ( status == 0xF1 ) {
+          // A MIDI time code message
+          if ( data->ignoreFlags & 0x02 ) {
+            size = 0;
+            iByte += 2;
+          }
+          else size = 2;
+        }
+        else if ( status == 0xF2 ) size = 3;
+        else if ( status == 0xF3 ) size = 2;
+        else if ( status == 0xF8 && ( data->ignoreFlags & 0x02 ) ) {
+          // A MIDI timing tick message and we're ignoring it.
+          size = 0;
+          iByte += 1;
+        }
+        else if ( status == 0xFE && ( data->ignoreFlags & 0x04 ) ) {
+          // A MIDI active sensing message and we're ignoring it.
+          size = 0;
+          iByte += 1;
+        }
+        else size = 1;
 
-	// Copy the MIDI data to our vector.
-	if ( size ) {
-	  message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
-	  if ( !continueSysex ) {
-	    // If not a continuing sysex message, invoke the user callback function or queue the message.
-	    if ( data->userCallback ) {
-	      data->userCallback->rtmidi_midi_in( message.timeStamp,
+        // Copy the MIDI data to our vector.
+        if ( size ) {
+          message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
+          if ( !continueSysex ) {
+            // If not a continuing sysex message, invoke the user callback function or queue the message.
+            if ( data->userCallback ) {
+              data->userCallback->rtmidi_midi_in( message.timeStamp,
 						  message.bytes);
-	    }
-	    else {
-	      // As long as we haven't reached our queue size limit, push the message.
-	      if ( data->queue.size < data->queue.ringSize ) {
-		data->queue.ring[data->queue.back++] = message;
-		if ( data->queue.back == data->queue.ringSize )
-		  data->queue.back = 0;
-		data->queue.size++;
-	      }
-	      else {
-		try {
-		  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+            }
+            else {
+              // As long as we haven't reached our queue size limit, push the message.
+              if ( data->queue.size < data->queue.ringSize ) {
+                data->queue.ring[data->queue.back++] = message;
+                if ( data->queue.back == data->queue.ringSize )
+                  data->queue.back = 0;
+                data->queue.size++;
+              }
+              else {
+                try {
+                  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					   Error::WARNING));
-		} catch (Error e) {
-		  // don't bother WinMM with an unhandled exception
-		}
-	      }
-	    }
-	    message.bytes.clear();
-	  }
-	  iByte += size;
-	}
+                } catch (Error e) {
+                  // don't bother WinMM with an unhandled exception
+                }
+              }
+            }
+            message.bytes.clear();
+          }
+          iByte += size;
+        }
       }
     }
     packet = MIDIPacketNext(packet);
@@ -2924,19 +2924,19 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     case SND_SEQ_EVENT_SYSEX:
       if ( (data->ignoreFlags & 0x01) ) break;
       if ( ev->data.ext.len > apiData->bufferSize ) {
-	apiData->bufferSize = ev->data.ext.len;
-	free( buffer );
-	buffer = (unsigned char *) malloc( apiData->bufferSize );
-	if ( buffer == NULL ) {
-	  data->doInput = false;
-	  try {
-	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
+        apiData->bufferSize = ev->data.ext.len;
+        free( buffer );
+        buffer = (unsigned char *) malloc( apiData->bufferSize );
+        if ( buffer == NULL ) {
+          data->doInput = false;
+          try {
+            data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
 				     Error::WARNING));
-	  } catch (Error e) {
-	    // don't bother ALSA with an unhandled exception
-	  }
-	  break;
-	}
+          } catch (Error e) {
+            // don't bother ALSA with an unhandled exception
+          }
+          break;
+        }
       }
       RTMIDI_FALLTHROUGH;
     default:
@@ -2947,38 +2947,38 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 
       nBytes = snd_midi_event_decode( apiData->coder, buffer, apiData->bufferSize, ev );
       if ( nBytes > 0 ) {
-	// The ALSA sequencer has a maximum buffer size for MIDI sysex
-	// events of 256 bytes.  If a device sends sysex messages larger
-	// than this, they are segmented into 256 byte chunks.  So,
-	// we'll watch for this and concatenate sysex chunks into a
-	// single sysex message if necessary.
-	if ( !continueSysex )
-	  message.bytes.assign( buffer, &buffer[nBytes] );
-	else
-	  message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
+        // The ALSA sequencer has a maximum buffer size for MIDI sysex
+        // events of 256 bytes.  If a device sends sysex messages larger
+        // than this, they are segmented into 256 byte chunks.  So,
+        // we'll watch for this and concatenate sysex chunks into a
+        // single sysex message if necessary.
+        if ( !continueSysex )
+          message.bytes.assign( buffer, &buffer[nBytes] );
+        else
+          message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
 
-	continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
-	if ( !continueSysex ) {
+        continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
+        if ( !continueSysex ) {
 
-	  // Calculate the time stamp:
-	  message.timeStamp = 0.0;
+          // Calculate the time stamp:
+          message.timeStamp = 0.0;
 
-	  // Method 1: Use the system time.
-	  //(void)gettimeofday(&tv, (struct timezone *)NULL);
-	  //time = (tv.tv_sec * 1000000) + tv.tv_usec;
+          // Method 1: Use the system time.
+          //(void)gettimeofday(&tv, (struct timezone *)NULL);
+          //time = (tv.tv_sec * 1000000) + tv.tv_usec;
 
-	  // Method 2: Use the ALSA sequencer event time data.
-	  // (thanks to Pedro Lopez-Cabanillas!).
-	  time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
-	  lastTime = time;
-	  time -= apiData->lastTime;
-	  apiData->lastTime = lastTime;
-	  if ( data->firstMessage == true )
-	    data->firstMessage = false;
-	  else
-	    message.timeStamp = time * 0.000001;
-	}
-	else {
+          // Method 2: Use the ALSA sequencer event time data.
+          // (thanks to Pedro Lopez-Cabanillas!).
+          time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
+          lastTime = time;
+          time -= apiData->lastTime;
+          apiData->lastTime = lastTime;
+          if ( data->firstMessage == true )
+            data->firstMessage = false;
+          else
+            message.timeStamp = time * 0.000001;
+        }
+        else {
 #if defined(__RTMIDI_DEBUG__)
           try {
             data->error(RTMIDI_ERROR(rtmidi_gettext("Event parsing error or not a MIDI event."),

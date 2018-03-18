@@ -262,7 +262,7 @@ echo "nochmal withjack"
 AC_ARG_WITH(jack,
 	[  --with-jack = choose JACK server support (needs libjack to be installed)],[
 		echo running jack:
-		AS_IF([test "x$with_jack" = "no"],,[RTMIDI_LIB_JACK ])
+		AS_IF([test "x$with_jack" = "xno"],,[RTMIDI_LIB_JACK ])
 	],[ echo runnning jack 2 ; RTMIDI_LIB_JACK(,[true]) ])
 
 echo
@@ -273,7 +273,7 @@ echo
 echo "with_alsa: $with_alsa"
 echo
 AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support],[
-		AS_IF([test "x$with_alsa" = "no"],,[ RTMIDI_LIB_ALSA ])
+		AS_IF([test "x$with_alsa" = "xno"],,[ RTMIDI_LIB_ALSA ])
 		],[ RTMIDI_LIB_ALSA(,[true]) ])
 
 echo
@@ -282,7 +282,7 @@ echo "RTMIDI_LIBS = $RTMIDI_LIBS"
 echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
 echo
 AC_ARG_WITH(winmm, [  --with-winmm = choose native Windows Multimedia API support],[
-		AS_IF([test "x$with_winmm" = "no"],,[RTMIDI_LIB_WINMM ])
+		AS_IF([test "x$with_winmm" = "xno"],,[RTMIDI_LIB_WINMM ])
 	],[ RTMIDI_LIB_WINMM(,[true]) ])
 echo
 echo "RTMIDI_API = $RTMIDI_API"
@@ -290,7 +290,7 @@ echo "RTMIDI_LIBS = $RTMIDI_LIBS"
 echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
 echo
 AC_ARG_WITH(winks, [  --with-winks = choose native Windows kernel streaming API support],[
-		AS_IF([test "x$with_winks" = "no"],,[ RTMIDI_LIB_WINKS ])
+		AS_IF([test "x$with_winks" = "xno"],,[ RTMIDI_LIB_WINKS ])
 	],[ RTMIDI_LIB_WINKS(,[true]) ])
 
 echo
@@ -299,7 +299,7 @@ echo "RTMIDI_LIBS = $RTMIDI_LIBS"
 echo "virtual devices: $RTMIDI_HAVE_VIRTUAL_DEVICES"
 echo
 AC_ARG_WITH(coremidi, [--with-coremidi = choose native CoreAudio API support],[
-		AS_IF([test "x$with_core" = "no"],,[RTMIDI_LIB_CORE ])
+		AS_IF([test "x$with_core" = "xno"],,[RTMIDI_LIB_CORE ])
 	],[ RTMIDI_LIB_COREMIDI(,[true]) ])
 echo
 echo "RTMIDI_API = $RTMIDI_API"

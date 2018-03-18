@@ -1,5 +1,6 @@
 git:
   depth: 3
+sudo: false
 language: c++
 group: travis_latest
 compiler:

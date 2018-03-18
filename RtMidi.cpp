@@ -2354,42 +2354,42 @@ public:
     switch (naming) {
     case PortDescriptor::SESSION_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "ALSA:";
+	os << "ALSA:";
       os << client << ":" << port;
       break;
     case PortDescriptor::STORAGE_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "ALSA:";
+	os << "ALSA:";
       os << snd_seq_client_info_get_name(cinfo);
       os << ":";
       os << snd_seq_port_info_get_name(pinfo);
       if (flags & PortDescriptor::UNIQUE_PORT_NAME)
-        os << ";" << client << ":" << port;
+	os << ";" << client << ":" << port;
       break;
     case PortDescriptor::LONG_NAME:
       os << snd_seq_client_info_get_name( cinfo );
       if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
-        os << " " << client;
+	os << " " << client;
       }
       os << ":";
       if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
-        os << port;
+	os << port;
       }
 
       os << " " << snd_seq_port_info_get_name(pinfo);
       if (flags & PortDescriptor::INCLUDE_API)
-        os << " (ALSA)";
+	os << " (ALSA)";
       break;
     case PortDescriptor::SHORT_NAME:
     default:
       os << snd_seq_client_info_get_name( cinfo );
       if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
-        os << " ";
-        os << client;
+	os << " ";
+	os << client;
       }
       os << ":" << port;
       if (flags & PortDescriptor::INCLUDE_API)
-        os << " (ALSA)";
+	os << " (ALSA)";
 
       break;
     }
@@ -2455,11 +2455,11 @@ public:
     {
       scoped_lock lock (mutex);
       if ( snd_seq_subscribe_port(seq, subscription) ) {
-        snd_seq_port_subscribe_free( subscription );
-        subscription = 0;
-        throw RTMIDI_ERROR(gettext_noopt("Error making ALSA port connection."),
+	snd_seq_port_subscribe_free( subscription );
+	subscription = 0;
+	throw RTMIDI_ERROR(gettext_noopt("Error making ALSA port connection."),
 			   Error::DRIVER_ERROR);
-        return 0;
+	return 0;
       }
     }
     return subscription;
@@ -2494,12 +2494,12 @@ protected:
     scoped_lock(pthread_mutex_t & m): mutex(&m)
     {
       if (locking)
-        pthread_mutex_lock(mutex);
+	pthread_mutex_lock(mutex);
     }
     ~scoped_lock()
     {
       if (locking)
-        pthread_mutex_unlock(mutex);
+	pthread_mutex_unlock(mutex);
     }
   };
   pthread_mutex_t mutex;
@@ -2527,9 +2527,9 @@ protected:
       scoped_lock lock(mutex);
       int result = snd_seq_open(&s, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
       if ( result < 0 ) {
-        throw RTMIDI_ERROR(gettext_noopt("Error creating ALSA sequencer client object."),
+	throw RTMIDI_ERROR(snd_strerror(result),
 			   Error::DRIVER_ERROR );
-        return;
+	return;
       }
       snd_seq_set_client_name( seq, name.c_str() );
     }

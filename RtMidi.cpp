@@ -2527,9 +2527,16 @@ protected:
       scoped_lock lock(mutex);
       int result = snd_seq_open(&s, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
       if ( result < 0 ) {
-	throw RTMIDI_ERROR(snd_strerror(result),
-			   Error::DRIVER_ERROR );
-	return;
+	switch (result) {
+	case ENOENT: // /dev/snd/seq does not exist
+	  throw RTMIDI_ERROR(snd_strerror(result),
+			     Error::NO_DEVICES_FOUND);
+	  return;
+	default:
+	  throw RTMIDI_ERROR(snd_strerror(result),
+			     Error::DRIVER_ERROR );
+	  return;
+	}
       }
       snd_seq_set_client_name( seq, name.c_str() );
     }

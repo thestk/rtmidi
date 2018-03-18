@@ -1741,7 +1741,7 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
   }
 }
 
-MidiInCore :: MidiInCore( const std::string clientName,
+MidiInCore :: MidiInCore( const std::string & clientName,
 			  unsigned int queueSizeLimit ) :
   MidiInApi( queueSizeLimit )
 {
@@ -1836,7 +1836,7 @@ void MidiInCore :: openPort( unsigned int portNumber,
   connected_ = true;
 }
 
-void MidiInCore :: openVirtualPort( const std::string portName )
+void MidiInCore :: openVirtualPort( const std::string & portName )
 {
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
 
@@ -1971,7 +1971,7 @@ std::string MidiInCore :: getPortName( unsigned int portNumber )
 //*********************************************************************//
 
 #define RTMIDI_CLASSNAME "MidiOutCore"
-MidiOutCore :: MidiOutCore( const std::string clientName ) : MidiOutApi()
+MidiOutCore :: MidiOutCore( const std::string & clientName ) : MidiOutApi()
 {
   initialize( clientName );
 }
@@ -2081,7 +2081,7 @@ void MidiOutCore :: closePort( void )
   }
 }
 
-void MidiOutCore :: openVirtualPort( std::string portName )
+void MidiOutCore :: openVirtualPort( const std::string & portName )
 {
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
 
@@ -2200,7 +2200,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> &message )
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
 
-  if ( message->at(0) != 0xF0 && nBytes > 3 ) {
+  if ( message.at(0) != 0xF0 && nBytes > 3 ) {
     error(RTMIDI_ERROR(gettext_noopt("message format problem ... not sysex but > 3 bytes?"),
 		       Error::WARNING ));
     return;
@@ -2214,7 +2214,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> &message )
   ByteCount remainingBytes = nBytes;
   while (remainingBytes && packet) {
     ByteCount bytesForPacket = remainingBytes > 65535 ? 65535 : remainingBytes; // 65535 = maximum size of a MIDIPacket
-    const Byte* dataStartPtr = (const Byte *) &message->at( nBytes - remainingBytes );
+    const Byte* dataStartPtr = (const Byte *) &message.at( nBytes - remainingBytes );
     packet = MIDIPacketListAdd( packetList, listSize, packet, timeStamp, bytesForPacket, dataStartPtr);
     remainingBytes -= bytesForPacket;
   }

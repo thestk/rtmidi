@@ -44,4 +44,4 @@ before_install:
 script:
     - mkdir -p config
     - touch config/config.rpath
-    - autoreconf -i -f && ./configure && make -j4 && $TEST_RUNNER make check
+    - autoreconf -i -f && ./configure && make -j4 && $TEST_RUNNER make check || cat test-suite.log

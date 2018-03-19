@@ -479,7 +479,10 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
     // function.
 
     nBytes = packet->length;
-    if ( nBytes == 0 ) continue;
+    if ( nBytes == 0 ) {
+      packet = MIDIPacketNext(packet);
+      continue;
+    }
 
     // Calculate time stamp.
     if ( data->firstMessage ) {

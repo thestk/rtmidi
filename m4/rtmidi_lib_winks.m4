@@ -36,7 +36,7 @@ AC_DEFUN([RTMIDI_LIB_WINKS],[
 		LIBS=$ac_check_lib_save_LIBS])
 	AS_IF([test "${ac_cv_lib_winks}" = yes],
       		[
-			AC_DEFINE_UNQUOTED(AS_TR_CPP(HAVE_LIBWINKS))
+			AC_DEFINE_UNQUOTED(AS_TR_CPP(HAVE_LIBWINKS),1,[Define this to 1 if windows kernel streaming libraries are present])
 			RTMIDI_LIBS="$RTMIDI_LIBS -lsetupapi -lksuser"
 			RTMIDI_API="$RTMIDI_API -D__WINDOWS_KS__"
 			$1

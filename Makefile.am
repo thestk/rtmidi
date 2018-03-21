@@ -1,4 +1,4 @@
-ACLOCAL_AMFLAGS = -I m4 --install
+ACLOCAL_AMFLAGS = -I m4 -I rtmidi-m4 --install
 SUBDIRS = po
 RTMIDICONFIGRPATH = config/config.rpath
 DLLPROGRAMS = $(check_PROGRAMS)

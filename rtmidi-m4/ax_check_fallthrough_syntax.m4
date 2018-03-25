@@ -77,10 +77,10 @@ AC_CACHE_CHECK([syntax of _AC_LANG fallthrough attribute ], CACHEVAR, [
   AS_UNSET([ax_cv_check_[]_AC_LANG_ABBREV[]flags___Werror])
   AX_CHECK_COMPILE_FLAG([-Werror],[_AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS -Werror"])
   AS_VAR_SET(CACHEVAR,[])
-  for flag in "[[fallthrough]]" "[[gnu::fallthrough]]" "__attribute__((fallthrough))"
+  for flag in "[[[fallthrough]]]" "[[[gnu::fallthrough]]]" "__attribute__((fallthrough))"
   do
     _AX_CHECK_FALLTHROUGH_SYNTAX_COMPILE([$flag],[
-      AS_VAR_SET(CACHEVAR,[[[fallthrough]]])
+      AS_VAR_SET(CACHEVAR,[$flag])
       break;
     ],[:])
   done

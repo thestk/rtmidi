@@ -8,4 +8,8 @@ environment:
       CONFIG: Debug
       
 build_script:
-- cmd: ./configure && make && make check && make distcheck
+  - SET PATH=C:\MinGW\bin;%PATH%	
+  - configure
+  - make
+  - make check
+  - make distcheck

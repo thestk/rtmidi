@@ -6,7 +6,6 @@ group: travis_latest
 os:
   - osx
   - linux
-  - windows
 
 compiler:
   - gcc

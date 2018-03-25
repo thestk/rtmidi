@@ -1,0 +1,11 @@
+environment:
+  matrix:
+    ###
+    - TOOLCHAIN: "default"
+      CONFIG: Release
+
+    - TOOLCHAIN: "default"
+      CONFIG: Debug
+      
+build_script:
+- cmd: ./configure && make && make check && make distcheck

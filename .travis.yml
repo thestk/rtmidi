@@ -3,9 +3,12 @@ git:
 sudo: false
 language: c++
 group: travis_latest
-os
+os:
   - osx
+  osx_image:
+	- xcode9.2
   - linux
+  - windows
 compiler:
   - gcc
   - clang

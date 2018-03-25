@@ -5,6 +5,8 @@ language: c++
 group: travis_latest
 os:
   - osx
+    osx_image:
+	- xcode9.2
   - linux
 compiler:
   - gcc

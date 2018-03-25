@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/keinstein/rtmidi.svg?branch=master-ts)](https://travis-ci.org/keinstein/rtmidi)
+[![Build Status](https://travis-ci.org/keinstein/rtmidi.svg?branch=master-ts)](https://travis-ci.org/keinstein/rtmidi)[![Build status](https://ci.appveyor.com/api/projects/status/ac98q210qscfjayk/branch/master-ts?svg=true)](https://ci.appveyor.com/project/keinstein/rtmidi/branch/travis-tests)
 
 Extended RtMidi fork for Mutabor, GUI based Software, and saving MIDI connections
 =================================================================================

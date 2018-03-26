@@ -8,8 +8,9 @@ language: c++
 group: travis_latest
 os:
   - osx
-    osx_image: xcode9.2
   - linux
+
+osx_image: xcode9.2
 
 compiler:
   - gcc

@@ -2,7 +2,7 @@ git:
   depth: 1
 branches:
   except:
-          /(?i:appveyor)/
+    - /(?i:appveyor)/
 sudo: false
 language: c++
 group: travis_latest

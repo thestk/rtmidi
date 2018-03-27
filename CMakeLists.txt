@@ -3,6 +3,8 @@
 
 cmake_minimum_required(VERSION 3.0)
 
+project(rtmidi)
+
 add_library(rtmidi SHARED RtMidi.h
                           RtMidi.cpp)
 

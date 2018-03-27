@@ -12,8 +12,9 @@ set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
 
 target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-if(_WINDOWS)
-    set_target_properties(rtmidi APPEND PROPERTY COMPILE_DEFINITIONS __WINDOWS_MM__)
+if(MSVC)
+    #MESSAGE("MSVC" )
+    set_property(DIRECTORY ${CMAKE_SOURCE_DIR} APPEND PROPERTY COMPILE_DEFINITIONS __WINDOWS_MM__)
     target_link_libraries(rtmidi winmm.lib)
 endif()
 

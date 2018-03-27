@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.0)
 
 project(rtmidi)
 
-add_library(rtmidi SHARED RtMidi.h
-                          RtMidi.cpp)
+add_library(rtmidi RtMidi.h
+                   RtMidi.cpp)
 
 set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
 
@@ -18,7 +18,7 @@ include(GNUInstallDirs)
 install(TARGETS rtmidi
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}  # BINDIR if not pure lib project
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 set_property(GLOBAL APPEND PROPERTY RTMIDI_TARGETS rtmidi)

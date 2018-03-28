@@ -163,6 +163,8 @@ class RTMIDI_DLL_PUBLIC RtMidi
   //! Pure virtual closePort() function.
   virtual void closePort( void ) = 0;
 
+  void setClientName( const std::string &clientName );
+
   //! Returns true if a port is open and false if not.
   /*!
       Note that this only applies to connections made with the openPort()
@@ -478,6 +480,7 @@ class RTMIDI_DLL_PUBLIC MidiApi
   virtual void openPort( unsigned int portNumber, const std::string &portName ) = 0;
   virtual void openVirtualPort( const std::string &portName ) = 0;
   virtual void closePort( void ) = 0;
+  virtual void setClientName( const std::string &clientName ) = 0;
 
   virtual unsigned int getPortCount( void ) = 0;
   virtual std::string getPortName( unsigned int portNumber ) = 0;
@@ -623,6 +626,7 @@ class MidiInCore: public MidiInApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
 
@@ -639,6 +643,7 @@ class MidiOutCore: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
   void sendMessage( const unsigned char *message, size_t size );
@@ -660,6 +665,7 @@ class MidiInJack: public MidiInApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
 
@@ -679,6 +685,7 @@ class MidiOutJack: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
   void sendMessage( const unsigned char *message, size_t size );
@@ -703,6 +710,7 @@ class MidiInAlsa: public MidiInApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
 
@@ -719,6 +727,7 @@ class MidiOutAlsa: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
   void sendMessage( const unsigned char *message, size_t size );
@@ -740,6 +749,7 @@ class MidiInWinMM: public MidiInApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
 
@@ -756,6 +766,7 @@ class MidiOutWinMM: public MidiOutApi
   void openPort( unsigned int portNumber, const std::string &portName );
   void openVirtualPort( const std::string &portName );
   void closePort( void );
+  void setClientName( const std::string &clientName );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
   void sendMessage( const unsigned char *message, size_t size );
@@ -776,6 +787,7 @@ class MidiInDummy: public MidiInApi
   void openPort( unsigned int /*portNumber*/, const std::string &/*portName*/ ) {}
   void openVirtualPort( const std::string &/*portName*/ ) {}
   void closePort( void ) {}
+  void setClientName( const std::string &/*clientName*/ ) {};
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }
 
@@ -791,6 +803,7 @@ class MidiOutDummy: public MidiOutApi
   void openPort( unsigned int /*portNumber*/, const std::string &/*portName*/ ) {}
   void openVirtualPort( const std::string &/*portName*/ ) {}
   void closePort( void ) {}
+  void setClientName( const std::string &/*clientName*/ ) {};
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }
   void sendMessage( const unsigned char * /*message*/, size_t /*size*/ ) {}

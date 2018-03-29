@@ -5,7 +5,13 @@ cmake_minimum_required(VERSION 3.0)
 
 project(rtmidi)
 
+add_library(rtmidi RtMidi.h
+                   RtMidi.cpp)
+
 set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
+
+# Standard installation directories.
+include(GNUInstallDirs)
 
 target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
@@ -15,15 +21,9 @@ if(WIN32)
     set_property(TARGET rtmidi APPEND PROPERTY COMPILE_DEFINITIONS __WINDOWS_MM__)
 endif()
 
-add_library(rtmidi RtMidi.h
-                   RtMidi.cpp)
-
 if(WIN32)
     target_link_libraries(rtmidi winmm.lib)
 endif()
-
-# Standard installation directories.
-include(GNUInstallDirs)
 
 # set installation path for CMake modules
 if(WIN32)
@@ -38,7 +38,7 @@ install(TARGETS rtmidi
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-set(RTMIDI_LIBRARIES $<TARGET_LINKER_NAME:rtmidi>)
+set(RTMIDI_LIBRARIES "$<TARGET_LINKER_NAME:rtmidi>")
 
 include(CMakePackageConfigHelpers)
 

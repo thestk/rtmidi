@@ -5,16 +5,18 @@ cmake_minimum_required(VERSION 3.0)
 
 project(rtmidi)
 
+set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
+
+target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+
+set(RTMIDI_INCLUDE_DIRS ${CMAKE_INSTALL_INCLUDEDIR})
+
 if(WIN32)
-    set_property(DIRECTORY ${CMAKE_SOURCE_DIR} APPEND PROPERTY COMPILE_DEFINITIONS __WINDOWS_MM__)
+    set_property(TARGET rtmidi APPEND PROPERTY COMPILE_DEFINITIONS __WINDOWS_MM__)
 endif()
 
 add_library(rtmidi RtMidi.h
                    RtMidi.cpp)
-
-set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
-
-target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 if(WIN32)
     target_link_libraries(rtmidi winmm.lib)
@@ -29,12 +31,6 @@ if(WIN32)
 else()
     set(RTMIDI_CMAKE_DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake)
 endif()
-
-# install header file
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/RtMidi.h"
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-set(RTMIDI_INCLUDE_DIRS ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(TARGETS rtmidi
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

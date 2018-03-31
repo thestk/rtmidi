@@ -23,8 +23,8 @@ target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURC
 
 # Tweak platform-specific configuration.
 if(WIN32)
-    target_compile_definitions(rtmidi PUBLIC __WINDOWS_MM__)
-    target_link_libraries(rtmidi PUBLIC winmm.lib)
+    target_compile_definitions(rtmidi PRIVATE __WINDOWS_MM__)
+    target_link_libraries(rtmidi PRIVATE winmm.lib)
 endif()
 
 # Add install rule.

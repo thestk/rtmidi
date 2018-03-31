@@ -4,8 +4,8 @@
 # Set minimum CMake required version for this project.
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-# Define a project.
-project(RtMidi)
+# Define a C++ project.
+project(RtMidi LANGUAGES CXX)
 
 # Create library target.
 add_library(rtmidi RtMidi.h
@@ -14,7 +14,7 @@ add_library(rtmidi RtMidi.h
 # Add headers destination for install rule.
 set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
 
-# Standard installation directories.
+# Set standard installation directories.
 include(GNUInstallDirs)
 
 # Set include paths, populate target interface.
@@ -48,7 +48,7 @@ endif()
 # Create CMake configuration export file.
 file(WRITE ${CMAKE_BINARY_DIR}/RtMidiConfig.cmake "include(\${CMAKE_CURRENT_LIST_DIR}/RtMidiTargets.cmake)")
 
-# Install CMake configuration file.
+# Install CMake configuration export file.
 install(FILES ${CMAKE_BINARY_DIR}/RtMidiConfig.cmake
         DESTINATION ${RTMIDI_CMAKE_DESTINATION})
 

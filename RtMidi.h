@@ -164,6 +164,7 @@ class RTMIDI_DLL_PUBLIC RtMidi
   virtual void closePort( void ) = 0;
 
   void setClientName( const std::string &clientName );
+  void setPortName( const std::string &portName );
 
   //! Returns true if a port is open and false if not.
   /*!
@@ -481,6 +482,7 @@ class RTMIDI_DLL_PUBLIC MidiApi
   virtual void openVirtualPort( const std::string &portName ) = 0;
   virtual void closePort( void ) = 0;
   virtual void setClientName( const std::string &clientName ) = 0;
+  virtual void setPortName( const std::string &portName ) = 0;
 
   virtual unsigned int getPortCount( void ) = 0;
   virtual std::string getPortName( unsigned int portNumber ) = 0;

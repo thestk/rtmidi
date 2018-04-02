@@ -22,9 +22,19 @@ target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURC
                                          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Tweak platform-specific configuration.
-if(WIN32)
+if(UNIX)
+    target_compile_definitions(rtmidi PRIVATE __LINUX_ALSA__)
+    target_link_libraries(rtmidi PRIVATE asound pthread)
+elseif(WIN32)
     target_compile_definitions(rtmidi PRIVATE __WINDOWS_MM__)
     target_link_libraries(rtmidi PRIVATE winmm.lib)
+elseif(APPLE)
+    target_compile_definitions(rtmidi PRIVATE __MACOSX_CORE__)
+    target_link_libraries(rtmidi PRIVATE "-framework CoreServices")
+    target_link_libraries(rtmidi PRIVATE "-framework CoreAudio")
+    target_link_libraries(rtmidi PRIVATE "-framework CoreMIDI"
+    target_link_libraries(rtmidi PRIVATE "-framework CoreFoundation")
+    set_target_properties(rtmidi PROPERTIES LINK_FLAGS "-Wl,-F/Library/Frameworks")
 endif()
 
 # Add install rule.

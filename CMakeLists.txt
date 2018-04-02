@@ -1,4 +1,4 @@
-# 2018 (c) Juan G. Victores
+# 2018 (c) Juan G. Victores, Bartek Łukawski.
 # CopyPolicy: RtMidi license.
 
 # Set minimum CMake required version for this project.

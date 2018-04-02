@@ -1,64 +1,71 @@
 # 2018 (c) Juan G. Victores
 # CopyPolicy: RtMidi license.
 
-cmake_minimum_required(VERSION 3.0)
+# Set minimum CMake required version for this project.
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-project(rtmidi)
+# Define a C++ project.
+project(RtMidi LANGUAGES CXX)
 
+# Create library target.
 add_library(rtmidi RtMidi.h
                    RtMidi.cpp)
 
+# Add headers destination for install rule.
 set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
 
-# Standard installation directories.
+# Set standard installation directories.
 include(GNUInstallDirs)
 
-target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+# Set include paths, populate target interface.
+target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-set(RTMIDI_INCLUDE_DIRS ${CMAKE_INSTALL_INCLUDEDIR})
-
+# Tweak platform-specific configuration.
 if(WIN32)
-    set_property(TARGET rtmidi APPEND PROPERTY COMPILE_DEFINITIONS __WINDOWS_MM__)
+    target_compile_definitions(rtmidi PRIVATE __WINDOWS_MM__)
+    target_link_libraries(rtmidi PRIVATE winmm.lib)
 endif()
 
-if(WIN32)
-    target_link_libraries(rtmidi winmm.lib)
-endif()
-
-# set installation path for CMake modules
-if(WIN32)
-    set(RTMIDI_CMAKE_DESTINATION CMake)
-else()
-    set(RTMIDI_CMAKE_DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake)
-endif()
-
+# Add install rule.
 install(TARGETS rtmidi
+        EXPORT RtMidiTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-set(RTMIDI_LIBRARIES "$<TARGET_LINKER_NAME:rtmidi>")
+# Store the package in the user registry.
+export(PACKAGE RtMidi)
 
-include(CMakePackageConfigHelpers)
+# Set installation path for CMake files.
+if(WIN32)
+    set(RTMIDI_CMAKE_DESTINATION cmake)
+else()
+    set(RTMIDI_CMAKE_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RtMidi)
+endif()
 
-# configure PkgConfig.cmake (install-tree)
-configure_package_config_file("${CMAKE_SOURCE_DIR}/cmake/templates/RTMIDIConfig.cmake.in"
-                              "${CMAKE_BINARY_DIR}/RTMIDIConfigForInstall.cmake"
-                              INSTALL_DESTINATION ${RTMIDI_CMAKE_DESTINATION}
-                              PATH_VARS RTMIDI_INCLUDE_DIRS RTMIDI_LIBRARIES
-                              NO_CHECK_REQUIRED_COMPONENTS_MACRO)
+# Create CMake configuration export file.
+file(WRITE ${CMAKE_BINARY_DIR}/RtMidiConfig.cmake "include(\${CMAKE_CURRENT_LIST_DIR}/RtMidiTargets.cmake)")
 
-# install PkgConfig.cmake
-install(FILES "${CMAKE_BINARY_DIR}/RTMIDIConfigForInstall.cmake"
-        RENAME RTMIDIConfig.cmake
+# Install CMake configuration export file.
+install(FILES ${CMAKE_BINARY_DIR}/RtMidiConfig.cmake
         DESTINATION ${RTMIDI_CMAKE_DESTINATION})
 
-# uninstall target configuration
+# Export library target (build-tree).
+export(EXPORT RtMidiTargets
+       NAMESPACE RtMidi::)
+
+# Export library target (install-tree).
+install(EXPORT RtMidiTargets
+        DESTINATION ${RTMIDI_CMAKE_DESTINATION}
+        NAMESPACE RtMidi::)
+
+# Configure uninstall target.
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/templates/RTMIDIConfigUninstall.cmake.in"
     "${CMAKE_BINARY_DIR}/RTMIDIConfigUninstall.cmake" @ONLY)
 
-# uninstall target creation
+# Create uninstall target.
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/RTMIDIConfigUninstall.cmake)

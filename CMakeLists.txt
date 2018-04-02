@@ -32,7 +32,7 @@ elseif(APPLE)
     target_compile_definitions(rtmidi PRIVATE __MACOSX_CORE__)
     target_link_libraries(rtmidi PRIVATE "-framework CoreServices")
     target_link_libraries(rtmidi PRIVATE "-framework CoreAudio")
-    target_link_libraries(rtmidi PRIVATE "-framework CoreMIDI"
+    target_link_libraries(rtmidi PRIVATE "-framework CoreMIDI")
     target_link_libraries(rtmidi PRIVATE "-framework CoreFoundation")
     set_target_properties(rtmidi PROPERTIES LINK_FLAGS "-Wl,-F/Library/Frameworks")
 endif()

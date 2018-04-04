@@ -3099,7 +3099,11 @@ void MidiInJack:: setClientName( const std::string& )
 void MidiInJack :: setPortName( const std::string &portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
+#ifdef __JACK_HAS_PORT_RENAME__
   jack_port_rename( data->client, data->port, portName.c_str() );
+#else
+  jack_port_set_name( data->port, portName.c_str() );
+#endif
 }
 
 //*********************************************************************//
@@ -3316,7 +3320,11 @@ void MidiOutJack:: setClientName( const std::string& )
 void MidiOutJack :: setPortName( const std::string &portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
+#ifdef __JACK_HAS_PORT_RENAME__
   jack_port_rename( data->client, data->port, portName.c_str() );
+#else
+  jack_port_set_name( data->port, portName.c_str() );
+#endif
 }
 
 void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )

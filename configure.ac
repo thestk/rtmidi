@@ -140,7 +140,7 @@ AS_IF([test "x$with_jack" = "xyes"], [
 
 AS_IF([test "x$with_jack" = "xyes"], [
   AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_port_rename, AC_DEFINE(__JACK_HAS_PORT_RENAME__), )
+  AC_CHECK_LIB(jack, jack_port_rename, AC_DEFINE(JACK_HAS_PORT_RENAME), )
 ])
 
 case $host in

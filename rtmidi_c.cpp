@@ -64,7 +64,7 @@ void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *po
     std::string name = portName;
 #if defined(__NO_EXCEPTIONS__)
     RtMidi* rtm = (RtMidi*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     rtm->openPort (portNumber, name);
     if (rtm->isError()) {
         device->ok  = false;
@@ -86,7 +86,7 @@ void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
     std::string name = portName;
 #if defined(__NO_EXCEPTIONS__)
     RtMidi* rtm = (RtMidi*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     rtm->openVirtualPort (name);
     if (rtm->isError()) {
         device->ok  = false;
@@ -108,7 +108,7 @@ void rtmidi_close_port (RtMidiPtr device)
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidi* rtm = (RtMidi*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     rtm->closePort ();
     if (rtm->isError()) {
         device->ok  = false;
@@ -129,14 +129,14 @@ unsigned int rtmidi_get_port_count (RtMidiPtr device)
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidi* rtm = (RtMidi*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     unsigned int ports = rtm->getPortCount();
     if (rtm->isError()) {
         device->ok  = false;
         device->msg = rtm->getError().what ();
         return -1;
     }
-	 return ports;
+    return ports;
 #else
     try {
         return ((RtMidi*) device->ptr)->getPortCount ();
@@ -153,7 +153,7 @@ const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber)
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidi* rtm = (RtMidi*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     std::string name = rtm->getPortName (portNumber);
     if (rtm->isError()) {
         device->ok  = false;
@@ -264,14 +264,14 @@ enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidiIn* rtm = (RtMidiIn*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     RtMidiApi curApi = (RtMidiApi) rtm->getCurrentApi ();
     if (rtm->isError()) {
         device->ok  = false;
         device->msg = rtm->getError().what ();
         return RT_MIDI_API_UNSPECIFIED;
     }
-	 return curApi;
+    return curApi;
 #else
     try {
         return (RtMidiApi) ((RtMidiIn*) device->ptr)->getCurrentApi ();
@@ -297,7 +297,7 @@ void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void 
     device->data = (void*) new CallbackProxyUserData (callback, userData);
 #if defined(__NO_EXCEPTIONS__)
     RtMidiIn* rtm = (RtMidiIn*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     rtm->setCallback (callback_proxy, device->data);
     if (rtm->isError()) {
         device->ok  = false;
@@ -321,7 +321,7 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidiIn* rtm = (RtMidiIn*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     rtm->cancelCallback ();
     if (rtm->isError()) {
         device->ok  = false;
@@ -356,12 +356,12 @@ double rtmidi_in_get_message (RtMidiInPtr device,
     // FIXME: use allocator to achieve efficient buffering
     std::vector<unsigned char> v;
     RtMidiIn* rtm = (RtMidiIn*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     double ret = rtm->getMessage (&v);
     if (rtm->isError()) {
         device->ok  = false;
         device->msg = rtm->getError().what ();
-		  return -1;
+        return -1;
     }
 
     if (v.size () > 0 && v.size() <= *size) {
@@ -485,14 +485,14 @@ enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidiOut* rtm = (RtMidiOut*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     RtMidiApi curApi = (RtMidiApi) rtm->getCurrentApi ();
     if (rtm->isError()) {
         device->ok  = false;
         device->msg = rtm->getError().what ();
         return RT_MIDI_API_UNSPECIFIED;
     }
-	 return curApi;
+    return curApi;
 #else
     try {
         return (RtMidiApi) ((RtMidiOut*) device->ptr)->getCurrentApi ();
@@ -510,14 +510,14 @@ int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, 
 {
 #if defined(__NO_EXCEPTIONS__)
     RtMidiOut* rtm = (RtMidiOut*) device->ptr;
-	 rtm->resetError();
+    rtm->resetError();
     rtm->sendMessage (message, length);
     if (rtm->isError()) {
         device->ok  = false;
         device->msg = rtm->getError().what ();
         return -1;
     }
-	 return 0;
+    return 0;
 #else
     try {
         ((RtMidiOut*) device->ptr)->sendMessage (message, length);

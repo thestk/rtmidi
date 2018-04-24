@@ -34,6 +34,42 @@ In some cases, for example to use RtMidi with GS Synth, it may be necessary for 
 
 For complete documentation on RtMidi, see the doc directory of the distribution or surf to http://music.mcgill.ca/~gary/rtmidi/.
 
+## Compiling
+
+In order to compile RtMidi for a specific OS and API, it is necessary to supply the appropriate preprocessor definition and library within the compiler statement:
+
+| OS             | API                | Preprocessor Definition | Library or Framework                |
+|---------------:|-------------------:|------------------------:|------------------------------------:|
+| Linux          | ALSA Sequencer     | `__LINUX_ALSA__`        | asound, pthread                     |
+| Linux or Mac   | JACK MIDI          | `__UNIX_JACK__`         | jack                                |
+| Macintosh OS X | CoreMIDI           | `__MACOSX_CORE__`       | CoreMIDI, CoreAudio, CoreFoundation |
+| Windows        | Multimedia Library | `__WINDOWS_MM__`        | winmm.lib, multithreaded            |
+
+### Examples
+
+Linux, ALSA Sequencer
+```
+g++ -Wall -D__LINUX_ALSA__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread
+```
+
+Linux or Mac, JACK MIDI
+```
+g++ -Wall -D__UNIX_JACK__ -o midiprobe midiprobe.cpp RtMidi.cpp -ljack
+```
+
+Macintosh OS X , CoreMIDI
+```
+g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation
+```
+
+Windows, Multimedia Library
+```
+compiler specific
+```
+
+## Compiling without exceptions
+
+If you want to compile RtMidi without exceptions support then the macro `__NO_EXCEPTIONS__` must be defined and the correct compiler options (e.g. -fno-rtti and -fno-exceptions) must be used. Every time when the header file RtMidi.h is used then the macro `__NO_EXCEPTIONS__` must be defined. Otherwise the definitions inside RtMidi.h are not compatible with the compiled version.
 
 ## Legal and ethical
 

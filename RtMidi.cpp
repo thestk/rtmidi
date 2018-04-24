@@ -39,6 +39,14 @@
 #include "RtMidi.h"
 #include <sstream>
 
+#if defined(__NO_EXCEPTIONS__)
+// THROW_EXCEPTION is called inside a member function of RtMidi and
+// error_ is a member of RtMidi.
+#define THROW_EXCEPTION(x) { error_ = x; return; }
+#else
+#define THROW_EXCEPTION(x) throw(x)
+#endif
+
 #if defined(__MACOSX_CORE__)
   #if TARGET_OS_IPHONE
     #define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
@@ -275,6 +283,9 @@ class MidiOutDummy: public MidiOutApi
 
 RtMidi :: RtMidi()
   : rtapi_(0)
+#if defined(__NO_EXCEPTIONS__)
+  , error_("", RtMidiError::NONE)
+#endif
 {
 }
 
@@ -284,12 +295,12 @@ RtMidi :: ~RtMidi()
   rtapi_ = 0;
 }
 
-std::string RtMidi :: getVersion( void ) throw()
+std::string RtMidi :: getVersion( void ) THROW()
 {
   return std::string( RTMIDI_VERSION );
 }
 
-void RtMidi :: getCompiledApi( std::vector<RtMidi::Api> &apis ) throw()
+void RtMidi :: getCompiledApi( std::vector<RtMidi::Api> &apis ) THROW()
 {
   apis.clear();
 
@@ -383,10 +394,10 @@ RTMIDI_DLL_PUBLIC RtMidiIn :: RtMidiIn( RtMidi::Api api, const std::string &clie
   // API-specific definitions are passed to the compiler. But just in
   // case something weird happens, we'll throw an error.
   std::string errorText = "RtMidiIn: no compiled API support found ... critical error!!";
-  throw( RtMidiError( errorText, RtMidiError::UNSPECIFIED ) );
+  THROW_EXCEPTION( RtMidiError( errorText, RtMidiError::UNSPECIFIED ) );
 }
 
-RtMidiIn :: ~RtMidiIn() throw()
+RtMidiIn :: ~RtMidiIn() THROW()
 {
 }
 
@@ -450,10 +461,10 @@ RTMIDI_DLL_PUBLIC RtMidiOut :: RtMidiOut( RtMidi::Api api, const std::string &cl
   // API-specific definitions are passed to the compiler. But just in
   // case something weird happens, we'll thrown an error.
   std::string errorText = "RtMidiOut: no compiled API support found ... critical error!!";
-  throw( RtMidiError( errorText, RtMidiError::UNSPECIFIED ) );
+  THROW_EXCEPTION( RtMidiError( errorText, RtMidiError::UNSPECIFIED ) );
 }
 
-RtMidiOut :: ~RtMidiOut() throw()
+RtMidiOut :: ~RtMidiOut() THROW()
 {
 }
 
@@ -463,6 +474,9 @@ RtMidiOut :: ~RtMidiOut() throw()
 
 MidiApi :: MidiApi( void )
   : apiData_( 0 ), connected_( false ), errorCallback_(0), firstErrorOccurred_(false), errorCallbackUserData_(0)
+#if defined(__NO_EXCEPTIONS__)
+  , error_("", RtMidiError::NONE)
+#endif
 {
 }
 
@@ -501,7 +515,7 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
   }
   else {
     std::cerr << '\n' << errorString << "\n\n";
-    throw RtMidiError( errorString, type );
+    THROW_EXCEPTION( RtMidiError( errorString, type ) );
   }
 }
 

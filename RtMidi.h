@@ -55,7 +55,13 @@
 
 #define RTMIDI_VERSION "3.0.0"
 
+#if defined(__NO_EXCEPTIONS__)
+#define THROW()
+#else
+#define THROW() throw()
 #include <exception>
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -70,11 +76,16 @@
 */
 /************************************************************************/
 
+#if defined(__NO_EXCEPTIONS__)
+class RTMIDI_DLL_PUBLIC RtMidiError
+#else
 class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
+#endif
 {
  public:
   //! Defined RtMidiError types.
   enum Type {
+    NONE,              /*!< no error. */
     WARNING,           /*!< A non-critical error. */
     DEBUG_WARNING,     /*!< A non-critical error which might be useful for debugging. */
     UNSPECIFIED,       /*!< The default, unspecified error type. */
@@ -89,22 +100,22 @@ class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
   };
 
   //! The constructor.
-  RtMidiError( const std::string& message, Type type = RtMidiError::UNSPECIFIED ) throw() : message_(message), type_(type) {}
+  RtMidiError( const std::string& message, Type type = RtMidiError::UNSPECIFIED ) THROW() : message_(message), type_(type) {}
  
   //! The destructor.
-  virtual ~RtMidiError( void ) throw() {}
+  virtual ~RtMidiError( void ) THROW() {}
 
   //! Prints thrown error message to stderr.
-  virtual void printMessage( void ) const throw() { std::cerr << '\n' << message_ << "\n\n"; }
+  virtual void printMessage( void ) const THROW() { std::cerr << '\n' << message_ << "\n\n"; }
 
   //! Returns the thrown error message type.
-  virtual const Type& getType(void) const throw() { return type_; }
+  virtual const Type& getType(void) const THROW() { return type_; }
 
   //! Returns the thrown error message string.
-  virtual const std::string& getMessage(void) const throw() { return message_; }
+  virtual const std::string& getMessage(void) const THROW() { return message_; }
 
   //! Returns the thrown error message as a c-style string.
-  virtual const char* what( void ) const throw() { return message_.c_str(); }
+  virtual const char* what( void ) const THROW() { return message_.c_str(); }
 
  protected:
   std::string message_;
@@ -138,7 +149,7 @@ class RTMIDI_DLL_PUBLIC RtMidi
   };
 
   //! A static function to determine the current RtMidi version.
-  static std::string getVersion( void ) throw();
+  static std::string getVersion( void ) THROW();
 
   //! A static function to determine the available compiled MIDI APIs.
   /*!
@@ -146,7 +157,7 @@ class RTMIDI_DLL_PUBLIC RtMidi
     the enumerated list values.  Note that there can be more than one
     API compiled for certain operating systems.
   */
-  static void getCompiledApi( std::vector<RtMidi::Api> &apis ) throw();
+  static void getCompiledApi( std::vector<RtMidi::Api> &apis ) THROW();
 
   //! Pure virtual openPort() function.
   virtual void openPort( unsigned int portNumber = 0, const std::string &portName = std::string( "RtMidi" ) ) = 0;
@@ -180,12 +191,20 @@ class RTMIDI_DLL_PUBLIC RtMidi
   */
   virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 ) = 0;
 
+#if defined(__NO_EXCEPTIONS__)
+  bool isError( void ) const { return error_.getType() != RtMidiError::NONE; }
+  const RtMidiError& getError( void ) const { return error_; }
+  void resetError( void ) { error_ = RtMidiError("", RtMidiError::NONE); }
+#endif
  protected:
 
   RtMidi();
   virtual ~RtMidi();
 
   MidiApi *rtapi_;
+#if defined(__NO_EXCEPTIONS__)
+  RtMidiError error_;
+#endif
 };
 
 /**********************************************************************/
@@ -250,10 +269,10 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
             unsigned int queueSizeLimit = 100 );
 
   //! If a MIDI connection is still open, it will be closed by the destructor.
-  ~RtMidiIn ( void ) throw();
+  ~RtMidiIn ( void ) THROW();
 
   //! Returns the MIDI API specifier for the current instance of RtMidiIn.
-  RtMidi::Api getCurrentApi( void ) throw();
+  RtMidi::Api getCurrentApi( void ) THROW();
 
   //! Open a MIDI input connection given by enumeration number.
   /*!
@@ -383,10 +402,10 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
              const std::string& clientName = "RtMidi Output Client" );
 
   //! The destructor closes any open MIDI connections.
-  ~RtMidiOut( void ) throw();
+  ~RtMidiOut( void ) THROW();
 
   //! Returns the MIDI API specifier for the current instance of RtMidiOut.
-  RtMidi::Api getCurrentApi( void ) throw();
+  RtMidi::Api getCurrentApi( void ) THROW();
 
   //! Open a MIDI output connection.
   /*!
@@ -493,6 +512,11 @@ class RTMIDI_DLL_PUBLIC MidiApi
   //! A basic error reporting function for RtMidi classes.
   void error( RtMidiError::Type type, std::string errorString );
 
+#if defined(__NO_EXCEPTIONS__)
+  bool isError( void ) const { return error_.getType() != RtMidiError::NONE; }
+  const RtMidiError& getError( void ) const { return error_; }
+  void resetError( void ) { error_ = RtMidiError("", RtMidiError::NONE); }
+#endif
 protected:
   virtual void initialize( const std::string& clientName ) = 0;
 
@@ -502,6 +526,10 @@ protected:
   RtMidiErrorCallback errorCallback_;
   bool firstErrorOccurred_;
   void *errorCallbackUserData_;
+
+#if defined(__NO_EXCEPTIONS__)
+  RtMidiError error_;
+#endif
 };
 
 class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
@@ -583,7 +611,7 @@ class RTMIDI_DLL_PUBLIC MidiOutApi : public MidiApi
 //
 // **************************************************************** //
 
-inline RtMidi::Api RtMidiIn :: getCurrentApi( void ) throw() { return rtapi_->getCurrentApi(); }
+inline RtMidi::Api RtMidiIn :: getCurrentApi( void ) THROW() { return rtapi_->getCurrentApi(); }
 inline void RtMidiIn :: openPort( unsigned int portNumber, const std::string &portName ) { rtapi_->openPort( portNumber, portName ); }
 inline void RtMidiIn :: openVirtualPort( const std::string &portName ) { rtapi_->openVirtualPort( portName ); }
 inline void RtMidiIn :: closePort( void ) { rtapi_->closePort(); }
@@ -596,7 +624,7 @@ inline void RtMidiIn :: ignoreTypes( bool midiSysex, bool midiTime, bool midiSen
 inline double RtMidiIn :: getMessage( std::vector<unsigned char> *message ) { return ((MidiInApi *)rtapi_)->getMessage( message ); }
 inline void RtMidiIn :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
-inline RtMidi::Api RtMidiOut :: getCurrentApi( void ) throw() { return rtapi_->getCurrentApi(); }
+inline RtMidi::Api RtMidiOut :: getCurrentApi( void ) THROW() { return rtapi_->getCurrentApi(); }
 inline void RtMidiOut :: openPort( unsigned int portNumber, const std::string &portName ) { rtapi_->openPort( portNumber, portName ); }
 inline void RtMidiOut :: openVirtualPort( const std::string &portName ) { rtapi_->openVirtualPort( portName ); }
 inline void RtMidiOut :: closePort( void ) { rtapi_->closePort(); }

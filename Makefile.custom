@@ -1,0 +1,39 @@
+all:
+	@echo "make alsa      ... for g++ with -D__LINUX_ALSA__"
+	@echo "make jack      ... for g++ with -D__UNIX_JACK__"
+	@echo "make core_midi ... for g++ with -D__MACOSX_CORE__"
+
+link:
+	ln -s Makefile.custom Makefile
+
+alsa:
+	g++ -Wall -D__LINUX_ALSA__ -I. -o tests/midiprobe tests/midiprobe.cpp RtMidi.cpp -lasound -lpthread
+
+jack:
+	g++ -Wall -D__UNIX_JACK__ -I. -o tests/midiprobe tests/midiprobe.cpp RtMidi.cpp -ljack
+
+core_midi:
+	g++ -Wall -D__MACOSX_CORE__ -I. -o tests/midiprobe tests/midiprobe.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation
+
+clean:
+	rm -rf \
+	.deps/ \
+	Makefile \
+	Makefile.in \
+	aclocal.m4 \
+	autom4te.cache/ \
+	config.log \
+	config.status \
+	config/ \
+	configure \
+	doc/Makefile \
+	doc/Makefile.in \
+	doc/doxygen/Doxyfile \
+	libtool \
+	m4/ \
+	rtmidi-config \
+	rtmidi.pc \
+	tests/.deps/ \
+	tests/Makefile \
+	tests/Makefile.in \
+

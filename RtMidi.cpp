@@ -2477,6 +2477,7 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
   if ( !InitializeCriticalSectionAndSpinCount(&(data->_mutex), 0x00000400) ) {
     errorString_ = "MidiInWinMM::initialize: InitializeCriticalSectionAndSpinCount failed.";
     error( RtMidiError::WARNING, errorString_ );
+    InitializeCriticalSection(&(data->_mutex));
   }
 }
 

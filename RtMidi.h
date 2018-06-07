@@ -1778,7 +1778,7 @@ typedef rtmidi::Midi RTMIDI_DEPRECATED(RtMidi,"RtMidi has been replaced by rtmid
 
 class RtMidiIn: public rtmidi::MidiIn {
 public:
-  RTMIDI_DEPRECATED(RtMidiIn( RtMidi::Api api = RtMidi::UNSPECIFIED,
+  RTMIDI_DEPRECATED(RtMidiIn( RtMidi::Api api = (Api_t)rtmidi::UNSPECIFIED,
 			      const std::string & clientName = std::string( "RtMidi Input Client")),
 		    "Class RtMidiIn has been replaced by rtmidi::MidiIn"):
     MidiIn((rtmidi::ApiType)api,
@@ -1786,7 +1786,7 @@ public:
 };
 class RtMidiOut: public rtmidi::MidiOut {
 public:
-  RTMIDI_DEPRECATED(RtMidiOut( RtMidi::Api api = RtMidi::UNSPECIFIED,
+  RTMIDI_DEPRECATED(RtMidiOut( RtMidi::Api api = (Api_t)rtmidi::UNSPECIFIED,
 			       const std::string & clientName = std::string( "RtMidi Output Client")),
 		    "Class RtMidiOut has been replaced by rtmidi::MidiOut"):
     MidiOut((rtmidi::ApiType)api,

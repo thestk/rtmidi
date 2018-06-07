@@ -42,7 +42,7 @@
 #include <cctype>
 #include <algorithm>
 #include <functional>
-#ifdef RTMIDI_FALLTHROUGH
+#ifndef RTMIDI_FALLTHROUGH
 #define RTMIDI_FALLTHROUGH
 #endif
 

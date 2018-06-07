@@ -326,5 +326,7 @@ AM_CONDITIONAL(RTMIDICOPYDLLS,$rtmidicopydlls && test -n "$DLLSEARCHPATH")
 
 
 AX_CHECK_FALLTHROUGH_SYNTAX
-AC_DEFINE_UNQUOTED(RTMIDI_FALLTHROUGH,[$ac_cv_cxx_fallthrough],[syntax for switch case fallthrough attributes in C++])
+AC_DEFINE_UNQUOTED(RTMIDI_FALLTHROUGH,
+	[$ax_cv_check_cxx_fallthrough_syntax_],
+	[syntax for switch case fallthrough attributes in C++])
 AC_LANG_POP(C++)

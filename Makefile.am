@@ -4,5 +4,6 @@ RTMIDICONFIGRPATH = config/config.rpath
 DLLPROGRAMS = $(check_PROGRAMS)
 check_PROGRAMS =
 TESTS =
+CLEANFILES =
 
 include %D%/Makefile.library

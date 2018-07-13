@@ -4,12 +4,14 @@
 # Set minimum CMake required version for this project.
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
+# Options
+option(BUILD_SHARED_LIBS "Compile library as shared lib." TRUE)
+
 # Define a C++ project.
 project(RtMidi LANGUAGES CXX)
 
 # Create library target.
-add_library(rtmidi RtMidi.h
-                   RtMidi.cpp)
+add_library(rtmidi SHARED RtMidi.h RtMidi.cpp)
 
 # Read version info from configure.ac
 set(R "m4_define\\(\\[lt_([a-z]+)\\], ([0-9]+)\\)")

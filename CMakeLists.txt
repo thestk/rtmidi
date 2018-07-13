@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
 # Options
 option(BUILD_SHARED_LIBS "Compile library as shared lib." TRUE)
+option(BUILD_TESTS "Compile test programs." TRUE)
 
 # Define a C++ project.
 project(RtMidi LANGUAGES CXX)
@@ -35,8 +36,8 @@ set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
 include(GNUInstallDirs)
 
 # Set include paths, populate target interface.
-target_include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                                         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Tweak platform-specific configuration.
 if(UNIX)
@@ -52,6 +53,19 @@ elseif(APPLE)
     target_link_libraries(rtmidi PRIVATE "-framework CoreMIDI")
     target_link_libraries(rtmidi PRIVATE "-framework CoreFoundation")
     set_target_properties(rtmidi PROPERTIES LINK_FLAGS "-Wl,-F/Library/Frameworks")
+endif()
+
+# Add tests if requested.
+if(BUILD_TESTS)
+  add_executable(cmidiin    tests/cmidiin.cpp)
+  add_executable(midiclock  tests/midiclock.cpp)
+  add_executable(midiout    tests/midiout.cpp)
+  add_executable(midiprobe  tests/midiprobe.cpp)
+  add_executable(qmidiin    tests/qmidiin.cpp)
+  add_executable(sysextest  tests/sysextest.cpp)
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
+               LINK_LIBRARIES rtmidi)
 endif()
 
 # Add install rule.

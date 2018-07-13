@@ -1,4 +1,4 @@
-# 2018 (c) Juan G. Victores, Bartek Łukawski.
+# 2018 (c) Juan G. Victores, Bartek Łukawski, Stephen Sinclair
 # CopyPolicy: RtMidi license.
 
 # Set minimum CMake required version for this project.
@@ -11,8 +11,23 @@ project(RtMidi LANGUAGES CXX)
 add_library(rtmidi RtMidi.h
                    RtMidi.cpp)
 
+# Read version info from configure.ac
+set(R "m4_define\\(\\[lt_([a-z]+)\\], ([0-9]+)\\)")
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/configure.ac" CONFIGAC
+  REGEX ${R})
+foreach(_S ${CONFIGAC})
+  string(REGEX REPLACE ${R} "\\1" k ${_S})
+  string(REGEX REPLACE ${R} "\\2" v ${_S})
+  set(SO_${k} ${v})
+endforeach()
+math(EXPR SO_current_minus_age "${SO_current} - ${SO_age}")
+set(SO_VER ${SO_current_minus_age})
+set(FULL_VER "${SO_current_minus_age}.${SO_revision}.${SO_age}")
+
 # Add headers destination for install rule.
-set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h)
+set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
+  SOVERSION ${SO_VER}
+  VERSION ${FULL_VER})
 
 # Set standard installation directories.
 include(GNUInstallDirs)

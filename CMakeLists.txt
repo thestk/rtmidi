@@ -4,9 +4,19 @@
 # Set minimum CMake required version for this project.
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-# Options
+# Check for Jack (any OS)
+find_package(PkgConfig)
+pkg_check_modules(jack jack)
+
+# Build Options
 option(BUILD_SHARED_LIBS "Compile library as shared lib." TRUE)
 option(BUILD_TESTS "Compile test programs." TRUE)
+
+# API Options
+option(RTMIDI_API_JACK "Compile with JACK support." ${jack_FOUND})
+option(RTMIDI_API_ALSA "Compile with ALSA support." ${UNIX})
+option(RTMIDI_API_WINMM "Compile with WINMM support." ${WIN32})
+option(RTMIDI_API_CORE "Compile with CoreMIDI support." ${APPLE})
 
 # Define a C++ project.
 project(RtMidi LANGUAGES CXX)
@@ -39,14 +49,25 @@ include(GNUInstallDirs)
 include_directories(rtmidi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-# Tweak platform-specific configuration.
-if(UNIX)
+# Tweak API-specific configuration.
+if(RTMIDI_API_JACK AND jack_FOUND)
+    target_compile_definitions(rtmidi PRIVATE __UNIX_JACK__)
+    target_include_directories(rtmidi PRIVATE ${jack_INCLUDEDIR})
+    target_link_libraries(rtmidi PRIVATE ${jack_LIBRARIES})
+endif()
+if(RTMIDI_API_ALSA)
+  find_package(ALSA)
+  if (ALSA_LIBRARY)
     target_compile_definitions(rtmidi PRIVATE __LINUX_ALSA__)
-    target_link_libraries(rtmidi PRIVATE asound pthread)
-elseif(WIN32)
+    target_include_directories(rtmidi PRIVATE ${ALSA_INCLUDE_DIR})
+    target_link_libraries(rtmidi PRIVATE ${ALSA_LIBRARY})
+  endif()
+endif()
+if(RTMIDI_API_WINMM)
     target_compile_definitions(rtmidi PRIVATE __WINDOWS_MM__)
     target_link_libraries(rtmidi PRIVATE winmm.lib)
-elseif(APPLE)
+endif()
+if(RTMIDI_API_CORE)
     target_compile_definitions(rtmidi PRIVATE __MACOSX_CORE__)
     target_link_libraries(rtmidi PRIVATE "-framework CoreServices")
     target_link_libraries(rtmidi PRIVATE "-framework CoreAudio")

@@ -8,6 +8,12 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 find_package(PkgConfig)
 pkg_check_modules(jack jack)
 
+# Necessary for Windows
+if(WIN32)
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
 # Build Options
 option(BUILD_SHARED_LIBS "Compile library as shared lib." TRUE)
 option(BUILD_TESTS "Compile test programs." TRUE)

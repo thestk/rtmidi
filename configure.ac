@@ -126,100 +126,108 @@ AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
 # Checks for package options and external software
 AC_CANONICAL_HOST
 
+# Aggregate options into a single string.
+AS_IF([test "x$with_jack"   = "xyes"], [systems="$systems jack"])
+AS_IF([test "x$with_alsa"   = "xyes"], [systems="$systems alsa"])
+AS_IF([test "x$with_core"   = "xyes"], [systems="$systems core"])
+AS_IF([test "x$with_winmm"  = "xyes"], [systems="$systems winmm"])
+AS_IF([test "x$with_winks"  = "xyes"], [systems="$systems winks"])
+AS_IF([test "x$with_dummy"  = "xyes"], [systems="$systems dummy"])
+required=" $systems "
 
+# If none, assign defaults if any are known for this OS.
+# User must specified with-* options for any unknown OS.
+AS_IF([test "x$systems" = "x"],
+  AS_CASE([$host],
+    [*-*-linux*],    [systems="alsa jack"],
+    [*-apple*],      [systems="core jack"],
+    [*-mingw32*],    [systems="winmm winks jack"],
+    [*-mingw64*],    [systems="winmm winks jack"]
+  ))
 
+# If any were specifically requested disabled, do it.
+AS_IF([test "x$with_jack"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v jack`])
+AS_IF([test "x$with_alsa"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v alsa`])
+AS_IF([test "x$with_winmm"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v winmm`])
+AS_IF([test "x$with_winks"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v winks`])
+AS_IF([test "x$with_core"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v core`])
+AS_IF([test "x$with_dummy"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v dummy`])
+systems=" `echo $systems|tr \\\\n ' '` "
 
-AC_MSG_CHECKING(for MIDI API)
+# For each MIDI system, check if it is selected and found.
+# Note: Order specified above is not necessarily respected. However,
+# *actual* priority is set at run-time, see RtMidiIn::openMidiApi and RtMidiOut::openMidiApi.
+# One AS_CASE per system, since they are not mutually-exclusive.
 
-AS_IF([test "x$with_jack" = "xyes"], [
-  AC_MSG_RESULT(using JACK)
-  AC_CHECK_LIB(jack, jack_client_open, , AC_MSG_ERROR(JACK support requires the jack library!))
-  api="$api -D__UNIX_JACK__"
-  req="$req jack"
-])
-
-AS_IF([test "x$with_jack" = "xyes"], [
-  AC_MSG_RESULT(using JACK)
+AS_CASE(["$systems"], [*" jack "*], [
+  AC_CHECK_LIB(jack, jack_client_open,
+    [api="$api -D__UNIX_JACK__"
+     req="$req jack"
+     need_pthread=yes
+     found="$found Jack"
+     LIBS="-ljack $LIBS"],
+    AS_CASE(["$required"], [*" jack "*],
+      AC_MSG_ERROR([JACK support requires the jack library!])))
   AC_CHECK_LIB(jack, jack_port_rename, AC_DEFINE(JACK_HAS_PORT_RENAME), )
 ])
 
-case $host in
-  *-*-linux*)
-  # Look for ALSA flag
-  AS_IF([test "x$with_alsa" = "xyes"], [
-    AC_MSG_RESULT(using ALSA)
-    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA support requires the asound library!))
-    api="$api -D__LINUX_ALSA__"
-    req="$req alsa"
-  ])
+AS_CASE(["$systems"], [*" alsa "*], [
+  AC_CHECK_LIB(asound, snd_seq_open,
+    [api="$api -D__LINUX_ALSA__"
+     req="$req alsa"
+     need_pthread=yes
+     found="$found ALSA"
+     LIBS="-lasound $LIBS"],
+    AS_CASE(["$required"], [*" alsa "*],
+      AC_MSG_ERROR([ALSA support requires the asound library!])))
+])
 
-  AS_IF([test "x${api}" = "x"],
-    AC_MSG_RESULT(using ALSA)
-    AC_CHECK_LIB(asound, snd_seq_open, , AC_MSG_ERROR(ALSA sequencer support requires the asound library!))
-    api="-D__LINUX_ALSA__ ${api}"
-    req="$req alsa"
-  )
+AS_CASE(["$systems"], [*" core "*], [
+  AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
+    [api="$api -D__MACOSX_CORE__"
+     need_pthread=yes
+     found="$found CoreMIDI",
+     LIBS="$LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio"],
+    AS_CASE(["$required"], [*" core "*],
+      AC_MSG_ERROR([CoreMIDI header files not found!])))
+])
 
-  # Checks for pthread library.
-  AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
-  ;;
+AS_CASE(["$systems"], [*" winmm "*], [
+  AC_CHECK_HEADERS(windows.h mmsystem.h,
+    [api="$api -D__WINDOWS_MM__"
+     CPPFLAGS="-I$srcdir/include $CPPFLAGS"
+     need_ole32=yes
+     found="$found WinMM"
+     api="$api -D__WINDOWS_MM__"
+     LIBS="-lwinmm ${LIBS}"])
+])
 
-  *-*-freebsd*)
-  # Checks for pthread library.
-  AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(RtMidi requires the pthread library!))
-  ;;
+AS_CASE(["$systems"], [*" winks "*], [
+  AC_CHECK_HEADERS(windows.h audioclient.h avrt.h mmdeviceapi.h,
+    [api="$api -D__WINDOWS_WINKS__"
+     CPPFLAGS="-I$srcdir/include $CPPFLAGS"
+     need_ole32=yes
+     found="$found kernel-streaming"
+     api="$api -D__WINDOWS_WINKS__"
+     LIBS="-lsetupapi -lksuser ${LIBS}"])
+])
 
-  *-apple*)
-  # Look for Core flag
-  AS_IF([test "x$with_core" = "xyes"], [
-    AC_MSG_RESULT(using CoreMidi)
-    AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h, [], [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    LIBS="-framework CoreMIDI -framework CoreFoundation -framework CoreAudio ${LIBS}"
-    api="$api -D__MACOSX_CORE__"
-  ])
+AS_IF([test -n "$need_ole32"], [LIBS="-lole32 $LIBS"])
 
-  # If no api flags specified, use CoreMidi
-  AS_IF([test "x${api}" = "x"],
-    AC_MSG_RESULT(using CoreMidi)
-    AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
-      [],
-      [AC_MSG_ERROR(CoreMIDI header files not found!)] )
-    LIBS="-framework CoreMIDI -framework CoreFoundation -framework CoreAudio ${LIBS}"
-    api="$api -D__MACOSX_CORE__"
-  )
-  ;;
+AS_IF([test -n "$need_pthread"],[
+  AC_MSG_CHECKING([for pthread])
+  AC_CHECK_LIB(pthread, pthread_create, ,
+    AC_MSG_ERROR([RtAudio requires the pthread library!]))])
 
-  *-mingw32*|*-mingw64*)
-  # Look for WinMM flag
-  AS_IF([test "x$with_winmm" = "xyes"], [
-    AC_MSG_RESULT(using WinMM)
-    LIBS="-lwinmm ${LIBS}"
-    api="$api -D__WINDOWS_MM__"
-  ])
+AC_MSG_CHECKING([for MIDI API])
 
-  AS_IF([test "x$with_winks" = "xyes"], [
-    AC_MSG_RESULT(using kernel streaming)
-    LIBS="-lsetupapi -lksuser ${LIBS}"
-    api="$api -D__WINDOWS_KS__"
-  ])
-
-  # I can't get the following check to work so just manually add the library
-	# or could try the following?  AC_LIB_WINMM([midiOutGetNumDevs])
-  # AC_CHECK_LIB(winmm, midiInGetNumDevs, , AC_MSG_ERROR(Windows MIDI support requires the winmm library!) )],)
-
-  # If no api flags specified, use WinMM
-  AS_IF([test "x${api}" = "x"], [
-    AC_MSG_RESULT(using WinMM)
-    LIBS="-lwinmm ${LIBS}"
-    api="${api} -D__WINDOWS_MM__"
-  ])
-  ;;
-
-  *)
-  # Default case for unknown realtime systems.
-  AC_MSG_ERROR(Unknown system type for MIDI support!)
-  ;;
-esac
+# Error case: no known realtime systems found.
+AS_IF([test x"$api" = "x"], [
+  AC_MSG_RESULT([none])
+  AC_MSG_ERROR([No known system type found for MIDI support!])
+], [
+  AC_MSG_RESULT([$found])
+])
 
 CPPFLAGS="$CPPFLAGS $api"
 

@@ -66,7 +66,7 @@ file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/configure.ac" CONFIGAC
 string(REGEX REPLACE ${R} "\\1" PACKAGE_VERSION ${CONFIGAC})
 
 # Init variables
-set(rtmidi_SOURCES RtMidi.cpp RtMidi.h)
+set(rtmidi_SOURCES RtMidi.cpp RtMidi.h rtmidi_c.cpp rtmidi_c.h)
 set(LINKLIBS)
 set(INCDIRS)
 set(PKGCONFIG_REQUIRES)

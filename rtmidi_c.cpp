@@ -3,6 +3,34 @@
 #include "rtmidi_c.h"
 #include "RtMidi.h"
 
+/* Compile-time assertions that will break if the enums are changed in
+ * the future without synchronizing them properly.  If you get (g++)
+ * "error: ‘StaticAssert<b>::StaticAssert() [with bool b = false]’ is
+ * private within this context", it means enums are not aligned. */
+template<bool b> class StaticAssert { private: StaticAssert() {} };
+template<> class StaticAssert<true>{ public: StaticAssert() {} };
+#define ENUM_EQUAL(x,y) StaticAssert<(int)x==(int)y>()
+class StaticAssertions { StaticAssertions() {
+    ENUM_EQUAL( RT_MIDI_API_UNSPECIFIED,     RtMidi::Api::UNSPECIFIED );
+    ENUM_EQUAL( RT_MIDI_API_MACOSX_CORE,     RtMidi::Api::MACOSX_CORE );
+    ENUM_EQUAL( RT_MIDI_API_LINUX_ALSA,      RtMidi::Api::LINUX_ALSA );
+    ENUM_EQUAL( RT_MIDI_API_UNIX_JACK,       RtMidi::Api::UNIX_JACK );
+    ENUM_EQUAL( RT_MIDI_API_WINDOWS_MM,      RtMidi::Api::WINDOWS_MM );
+    ENUM_EQUAL( RT_MIDI_API_RTMIDI_DUMMY,    RtMidi::Api::RTMIDI_DUMMY );
+
+    ENUM_EQUAL( RT_ERROR_WARNING,            RtMidiError::Type::WARNING );
+    ENUM_EQUAL( RT_ERROR_DEBUG_WARNING,      RtMidiError::Type::DEBUG_WARNING );
+    ENUM_EQUAL( RT_ERROR_UNSPECIFIED,        RtMidiError::Type::UNSPECIFIED );
+    ENUM_EQUAL( RT_ERROR_NO_DEVICES_FOUND,   RtMidiError::Type::NO_DEVICES_FOUND );
+    ENUM_EQUAL( RT_ERROR_INVALID_DEVICE,     RtMidiError::Type::INVALID_DEVICE );
+    ENUM_EQUAL( RT_ERROR_MEMORY_ERROR,       RtMidiError::Type::MEMORY_ERROR );
+    ENUM_EQUAL( RT_ERROR_INVALID_PARAMETER,  RtMidiError::Type::INVALID_PARAMETER );
+    ENUM_EQUAL( RT_ERROR_INVALID_USE,        RtMidiError::Type::INVALID_USE );
+    ENUM_EQUAL( RT_ERROR_DRIVER_ERROR,       RtMidiError::Type::DRIVER_ERROR );
+    ENUM_EQUAL( RT_ERROR_SYSTEM_ERROR,       RtMidiError::Type::SYSTEM_ERROR );
+    ENUM_EQUAL( RT_ERROR_THREAD_ERROR,       RtMidiError::Type::THREAD_ERROR );
+}};
+
 class CallbackProxyUserData
 {
   public:

@@ -3067,7 +3067,9 @@ std::string MidiInJack :: getPortName( unsigned int portNumber )
     return retStr;
   }
 
-  if ( ports[portNumber] == NULL ) {
+  unsigned int i;
+  for (i=0; i<portNumber && ports[i]; i++) {}
+  if (i < portNumber || !ports[portNumber]) {
     std::ostringstream ost;
     ost << "MidiInJack::getPortName: the 'portNumber' argument (" << portNumber << ") is invalid.";
     errorString_ = ost.str();
@@ -3075,7 +3077,7 @@ std::string MidiInJack :: getPortName( unsigned int portNumber )
   }
   else retStr.assign( ports[portNumber] );
 
-  free( ports );
+  jack_free( ports );
   return retStr;
 }
 

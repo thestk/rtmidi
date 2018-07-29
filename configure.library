@@ -203,7 +203,7 @@ darwin*|*apple*)
 	AC_CACHE_CHECK([where to find support dlls], [ac_cv_rtmidi_ts_mingw_dll_dirs],
 	[
 		gccsearchdirs=`$CXX $CXXFLAGS -print-search-dirs|\
-			sed -e '/^libraries:/ { s/^libraries: *=\?//;/;\([0-9a-zA-Z]\):/ { s,;\([0-9a-zA-Z]\):,:/\1/,g;s,^\([0-9a-zA-Z]\):,/\1/,g; s,\\,/,g } ;  p } ; d'`
+			sed -e '/^libraries:/ { s/^libraries: *=\?//; /;\([0-9a-zA-Z]\):/ { s,;\([0-9a-zA-Z]\):,:/\1/,g;s,^\([0-9a-zA-Z]\):,/\1/,g; s,\\\\,/,g } ;  p } ; d'` ; \
 		gccsearchdirs="$WINEDLLPATH:$gccsearchdirs:\
 /usr/share/doc/mingw32-runtime:\
 /usr/$host/bin:\
@@ -225,9 +225,7 @@ darwin*|*apple*)
 		IFS=:
 		for d in $gccsearchdirs ;
 		do
-			echo "testing $d"
-			AS_IF(test -d $d,
-					[ SEARCHDIRS="$SEARCHDIRS:$d" ])
+			AS_IF(test -d "$d",[ SEARCHDIRS="$SEARCHDIRS:$d" ])
 		done
 		IFS="$old_FS"
 		ac_cv_rtmidi_ts_mingw_dll_dirs="$SEARCHDIRS"
@@ -235,9 +233,6 @@ darwin*|*apple*)
 
 	AC_SUBST(DLLSEARCHPATH,"$ac_cv_rtmidi_ts_mingw_dll_dirs")
 	rtmidicopydlls=true
-	echo
-	echo "DLL path=  $DLLSEARCHPATH"
-
 	;;
 
 *)

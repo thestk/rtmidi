@@ -99,8 +99,8 @@ if RTMIDICOPYDLLS
 
 rtmidi_installdll:
 	@echo 'solving references for $(DLLLINKFILE)... '
-	DLLSEARCHPATH="$(DLLSEARCHPATH)" ; \
-	for f in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '` ; \
+	DLLSEARCHPATH="$(DLLSEARCHPATH)$(LOCALDLLSEARCHPATH)" ; \
+	for f in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '`; \
 	do \
 		echo -n checking "$$f ... " ; \
 		if [ ! -f $(DLLEXEDIR)/$$f ] ; then \

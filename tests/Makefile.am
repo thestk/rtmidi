@@ -99,6 +99,7 @@ if RTMIDICOPYDLLS
 
 rtmidi_installdll:
 	@echo 'solving references for $(DLLLINKFILE)... '
+	set -e -x; \
 	DLLSEARCHPATH="$(DLLSEARCHPATH)$(LOCALDLLSEARCHPATH)" ; \
 	for f in `LANG=C $(OBJDUMP) -p  $(DLLEXEDIR)/$(DLLLINKFILE) |sed '/^\s*DLL Name:.*\(lib\|thread\|wx\|mingw\|gcc\|stdc++\)/ { s/^\s*DLL Name:\s*//; p } ; d '`; \
 	do \
@@ -108,24 +109,29 @@ rtmidi_installdll:
 			IFS=: ; \
 			for d in $$DLLSEARCHPATH ; do \
 				echo "looking in $$d" ; \
-				echo -n "found " ; \
-				(test -f "$$d/$$f" && \
-					echo "$$d/$$f" || \
-					ls -1 "$$d/$$f.*" 2>/dev/null) ; \
-				echo ; \
 				IFS= ; \
-				fullname=`(test -f "$$d/$$f" && \
-					echo "$$d/$$f" || \
-					ls -1 "$$d/$$f.*" 2>/dev/null) | \
-					head -n1` ; \
+				fullname="$$d/$$f" ; \
 				echo "testing $$fullname" ; \
 				if test -f "$$fullname" ; \
 				then \
-					echo "installing $$fullname " ; \
-					$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$fullname" "`pwd`/$(DLLEXEDIR)" ; \
-					case "$$f" in \
-					*.gz)  GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$$fullname"` >$(DLLEXEDIR)/"$$f" ;; \
-					esac ; \
+					if cmp "$$fullname" "`pwd`/$(DLLEXEDIR)/$$f"; \
+					then \
+						echo "ok." ;\
+					else \
+						echo "installing $$fullname " ; \
+						$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$fullname" "`pwd`/$(DLLEXEDIR)" ; \
+					fi ; \
+					$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$f" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
+				elif test -f "$${fullname}.gz" ; \
+				then \
+					if cmp "$${fullname}.gz" "`pwd`/$(DLLEXEDIR)/$${f}.gz"; \
+					then \
+						echo "ok." ;\
+					else \
+						echo "installing $$fullname " ; \
+						$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$${fullname}.gz" "`pwd`/$(DLLEXEDIR)" ; \
+					fi; \
+					GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$${fullname}.gz"` >$(DLLEXEDIR)/"$$f" ; \
 					$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$f" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
 				fi ; \
 			done ; \
@@ -146,6 +152,7 @@ check-dll-rtmidi: all-am
 	$(MAKE) $(AM_MAKEFLAGS)	linkchecks-rtmidi
 
 linkchecks-rtmidi:
+	set -e -x ; \
 	for d in `echo $(DLLPROGRAMS)| tr ' ' '\n' | grep -i -e '$(EXEEXT)$$\|.dll$$'` ; \
 	do \
 		ls -l "$$d" ; \

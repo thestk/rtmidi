@@ -119,7 +119,7 @@ rtmidi_installdll:
 						echo "ok." ;\
 					else \
 						echo "installing $$fullname " ; \
-						$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$fullname" "`pwd`/$(DLLEXEDIR)" ; \
+						$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$$fullname" "$(DLLEXEDIR)" ; \
 					fi ; \
 					$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$f" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
 				elif test -f "$${fullname}.gz" ; \
@@ -129,7 +129,7 @@ rtmidi_installdll:
 						echo "ok." ;\
 					else \
 						echo "installing $$fullname " ; \
-						$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$${fullname}.gz" "`pwd`/$(DLLEXEDIR)" ; \
+						$(INSTALL_PROGRAM_ENV) $(INSTALL_DATA) "$${fullname}.gz" "$(DLLEXEDIR)" ; \
 					fi; \
 					GZIP=$(GZIP_ENV) gzip -dc $(DLLEXEDIR)/`basename "$${fullname}.gz"` >$(DLLEXEDIR)/"$$f" ; \
 					$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$f" DLLEXEDIR="$(DLLEXEDIR)" rtmidi_installdll ; \
@@ -159,7 +159,9 @@ linkchecks-rtmidi:
 		file=`basename "$$d"` ; \
 		dir=`dirname "$$d"` ; \
 		$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$file" DLLEXEDIR="$$dir" rtmidi_installdll ; \
-		test -f "$$dir/.libs/$$file" && \
+		if test -f "$$dir/.libs/$$file"; \
+		then \
 			$(MAKE) $(AM_MAKEFLAGS) DLLLINKFILE="$$file" DLLEXEDIR="$$dir/.libs" rtmidi_installdll ; \
+		fi ; \
 	done
 endif

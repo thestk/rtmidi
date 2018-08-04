@@ -85,16 +85,6 @@ AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
 # Checks for package options and external software
 AC_CANONICAL_HOST
 
-AC_SUBST( rtmidisharedlib, ["librtmidi${rtmidi_suffix}.so"] )
-AC_SUBST( rtmidisharedname, ["librtmidi${rtmidi_suffix}.so.\$(RELEASE)"] )
-AC_SUBST( rtmidilibflags, ["-shared -Wl,-soname,\$(SHARED).\$(MAJOR) -o \$(SHARED).\$(RELEASE)"] )
-case $host in
-  *-apple*)
-  AC_SUBST( rtmidisharedlib, ["librtmidi${rtmid_suffix}.dylib"] )
-  AC_SUBST( rtmidisharedname, ["librtmidi${rtmid_suffix}.\$(RELEASE).dylib"] )
-  AC_SUBST( rtmidilibflags, ["-dynamiclib -o librtmidi.\$(RELEASE).dylib"] )
-esac
-
 dnl # Set paths if prefix is defined
 dnl if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
 dnl  LIBS="$LIBS -L$prefix/lib"

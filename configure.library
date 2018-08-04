@@ -1,5 +1,12 @@
 # -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
+ifdef([lt_current],,[m4_include(configure.version)])
+
+m4_define([lt_version_info], [lt_current:lt_revision:lt_age])
+m4_define([lt_current_minus_age], [m4_eval(lt_current - lt_age)])
+
+RTMIDI_SO_VERSION=lt_version_info
+AC_SUBST(RTMIDI_SO_VERSION)
 
 
 # initialize the variables for the makefile

@@ -2079,6 +2079,8 @@ void MidiOutCore :: closePort( void )
     MIDIPortDispose( data->localPort );
     connected_ = false;
   }
+
+  connected_ = false;
 }
 
 void MidiOutCore :: openVirtualPort( const std::string & portName )

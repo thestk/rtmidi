@@ -1927,12 +1927,19 @@ PortList MidiInCore :: getPortList(int capabilities)
 
 void MidiInCore :: closePort( void )
 {
-  if ( connected_ ) {
-    CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+
+  if ( data->localPort ) {
     MIDIPortDispose( data->localPort );
     data->localPort = 0;
-    connected_ = false;
   }
+
+  if (data->localEndpoint) {
+    MIDIEndpointDispose( data->localEndpoint );
+    data->localEndpoint = 0;
+  }
+
+  connected_ = false;
 }
 
 unsigned int MidiInCore :: getPortCount()
@@ -2074,10 +2081,16 @@ void MidiOutCore :: openPort( unsigned int portNumber,
 
 void MidiOutCore :: closePort( void )
 {
-  if ( connected_ ) {
-    CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+
+  if ( data->localPort ) {
     MIDIPortDispose( data->localPort );
-    connected_ = false;
+    data->localPort = 0;
+  }
+
+  if (data->localEndpoint) {
+    MIDIEndpointDispose( data->localEndpoint );
+    data->localEndpoint = 0;
   }
 
   connected_ = false;
@@ -2247,7 +2260,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> &message )
 }
 #undef RTMIDI_CLASSNAME
 NAMESPACE_RTMIDI_END
-#endif  // __MACOSX_CORE__
+#endif  // __MACOSX_COREMIDI__
 
 
 //*********************************************************************//

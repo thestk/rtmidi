@@ -5,7 +5,7 @@ Extended RtMidi fork for Mutabor, GUI based Software, and saving MIDI connection
 
 RtMidi - a set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK) and Windows (Multimedia).
 
-By Gary P. Scavone, 2003-2014.
+By Gary P. Scavone, 2003-2016.
 Forked by Tobias Schlemmer, 2014-2018.
 
 This fork has been started because the original RtMidi did not work
@@ -70,7 +70,7 @@ The RtMidi license is similar to the the MIT License, with the added
 "feature" that modifications be sent to the developer.
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2014 Gary P. Scavone
+    Copyright (c) 2003-2016 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

@@ -8,7 +8,8 @@
   RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
   RtMidi: realtime MIDI i/o C++ classes
-  Copyright (c) 2003-2014 Gary P. Scavone
+  Copyright (c) 2003-2016 Gary P. Scavone
+  Forked by Tobias Schlemmer, 2014-2018.
 
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation files
@@ -107,8 +108,8 @@ enum ApiType {
   UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
   WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
   WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
-  DUMMY,    /*!< A compilable but non-functional API. */
-  ALL_API   /*!< Use all available APIs for port selection. */
+  DUMMY,          /*!< A compilable but non-functional API. */
+  ALL_API         /*!< Use all available APIs for port selection. */
 };
 
 //! Return the name on a MIDI API
@@ -178,7 +179,7 @@ class Error : public std::exception
 public:
   //! Defined Error types.
   enum Type {
-    WARNING,     /*!< A non-critical error. */
+    WARNING,           /*!< A non-critical error. */
     DEBUG_WARNING,     /*!< A non-critical error which might be useful for debugging. */
     UNSPECIFIED,       /*!< The default, unspecified error type. */
     NO_DEVICES_FOUND,  /*!< No devices found on system. */

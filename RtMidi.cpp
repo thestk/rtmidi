@@ -8,7 +8,8 @@
   Midi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
   Midi: realtime MIDI i/o C++ classes
-  Copyright (c) 2003-2014 Gary P. Scavone
+  Copyright (c) 2003-2016 Gary P. Scavone
+  Forked by Tobias Schlemmer, 2014-2018.
 
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation files
@@ -46,6 +47,16 @@
 #define RTMIDI_FALLTHROUGH
 #endif
 
+#if defined(__MACOSX_CORE__)
+#if TARGET_OS_IPHONE
+#define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
+#define AudioConvertHostTimeToNanos CAHostTimeBase::ConvertToNanos
+#endif
+#endif
+
+//*********************************************************************//
+//  RtMidi Definitions
+//*********************************************************************//
 RTMIDI_NAMESPACE_START
 
 #ifdef RTMIDI_GETTEXT
@@ -1032,14 +1043,14 @@ public:
   }
 
   static std::string getPortName(MIDIEndpointRef port, int flags) {
-    //      std::string clientname;
+    //			std::string clientname;
     std::string devicename;
     std::string portname;
     std::string entityname;
-    //      std::string externaldevicename;
+    //			std::string externaldevicename;
     std::string connections;
     std::string recommendedname;
-    //      bool isVirtual;
+    //			bool isVirtual;
     bool hasManyEntities = false;
     bool hasManyEndpoints = false;
     CFStringRef nameRef;
@@ -1109,9 +1120,9 @@ public:
       os << devicename;
       os << ":" << portname;
       os << ":" << entityname;
-      //        os << ":" << externaldevicename;
+      //				os << ":" << externaldevicename;
       os << ":" << connections;
-      //        os << ":" << recommendedname;
+      //				os << ":" << recommendedname;
       if (flags & PortDescriptor::UNIQUE_PORT_NAME)
 	os << ";" << port;
       break;
@@ -2708,7 +2719,7 @@ struct AlsaMidiData:public AlsaPortDescriptor {
   }
   snd_seq_addr_t local; /*!< Our port and client id. If client = 0 (default) this means we didn't aquire a port so far. */
   NonLockingAlsaSequencer seq;
-  //    unsigned int portNum;
+  //		unsigned int portNum;
   snd_seq_port_subscribe_t *subscription;
   snd_midi_event_t *coder;
   unsigned int bufferSize;
@@ -3501,7 +3512,7 @@ void MidiOutAlsa :: initialize( const std::string& clientName )
   // Save our api-specific connection information.
   AlsaMidiData *data = new AlsaMidiData(clientName);
   // data->seq = seq;
-  //  data->portNum = -1;
+  //	data->portNum = -1;
 
   int result = snd_midi_event_new( data->bufferSize, &data->coder );
   if ( result < 0 ) {
@@ -3793,12 +3804,12 @@ RTMIDI_NAMESPACE_END
 
 #define  RT_SYSEX_BUFFER_SIZE 1024
 #define  RT_SYSEX_BUFFER_COUNT 4
-RTMIDI_NAMESPACE_START
 
 /* some header defines UNIQUE_PORT_NAME as a macro */
 #ifdef UNIQUE_PORT_NAME
 #undef UNIQUE_PORT_NAME
 #endif
+RTMIDI_NAMESPACE_START
 /*! An abstraction layer for the ALSA sequencer layer. It provides
   the following functionality:
   - dynamic allocation of the sequencer
@@ -3941,7 +3952,7 @@ public:
 
 protected:
   struct scoped_lock {
-    //      pthread_mutex_t * mutex;
+    //			pthread_mutex_t * mutex;
     scoped_lock(unsigned int &)
     {
 #if 0
@@ -3968,7 +3979,7 @@ protected:
   }
 
 };
-//  typedef WinMMSequencer<1> LockingWinMMSequencer;
+//	typedef WinMMSequencer<1> LockingWinMMSequencer;
 typedef WinMMSequencer<0> NonLockingWinMMSequencer;
 #undef RTMIDI_CLASSNAME
 
@@ -5431,7 +5442,7 @@ void MidiInJack :: openPort( unsigned int portNumber, const std::string & portNa
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  //    connect();
+  //		connect();
 
   // Creating new port
   if ( data->local == NULL)
@@ -5453,7 +5464,7 @@ void MidiInJack :: openVirtualPort( const std::string & portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  //    connect();
+  //		connect();
   if ( data->local == NULL )
     data->local = jack_port_register( *(data->seq), portName.c_str(),
 				      JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0 );
@@ -5558,7 +5569,7 @@ std::string MidiInJack :: getPortName( unsigned int portNumber )
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   std::string retStr("");
 
-  //    connect();
+  //		connect();
 
   // List of available ports
   const char **ports = jack_get_ports(* (data->seq), NULL,

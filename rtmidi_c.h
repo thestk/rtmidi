@@ -11,12 +11,26 @@
 #endif
 
 #ifdef __cplusplus
+namespace rtmidi {
+	class Midi;
+	class MidiIn;
+	class MidiOut;
+}
+typedef rtmidi::Midi CRtMidi;
+typedef rtmidi::MidiIn CRtMidiIn;
+typedef rtmidi::MidiOut CRtMidiOut;
 extern "C" {
+	
+#else
+struct CRtMidi;
+struct CRtMidiIn;
+struct CRtMidiOut;
 #endif
 
-typedef void* RtMidiPtr;
-typedef void* RtMidiInPtr;
-typedef void* RtMidiOutPtr;
+	
+typedef CRtMidi* RtMidiPtr;
+typedef CRtMidiIn* RtMidiInPtr;
+typedef CRtMidiOut* RtMidiOutPtr;
 
   enum RtMidiApi {
     RT_MIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */
@@ -25,7 +39,8 @@ typedef void* RtMidiOutPtr;
     RT_MIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
     RT_MIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
     RT_MIDI_API_WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
-    RT_MIDI_API_RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
+    RT_MIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    RT_MIDI_API_ALL_API         /*!< Use all available APIs for port selection. */
   };
 
 enum RtMidiErrorType {

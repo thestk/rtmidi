@@ -25,6 +25,8 @@ TESTS += \
 CLEANFILES += \
 	%D%/*.class
 
+EXTRA_DIST += cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
+	sysextest.dsp RtMidi.dsw
 
 
 if RTMIDI_HAVE_VIRTUAL_DEVICES
@@ -165,3 +167,4 @@ linkchecks-rtmidi:
 		fi ; \
 	done
 endif
+

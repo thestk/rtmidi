@@ -5,6 +5,11 @@ RTMIDITESTLDFLAGS = $(EXTRA_RTMIDITESTLDFLAGS) $(RTMIDILIBRARYNAME)
 lib_LTLIBRARIES += %D%/librtmidi@rtmidi_suffix@.la
 DLLPROGRAMS += %D%/librtmidi@rtmidi_suffix@.*
 DLLPROGRAMS += %D%/.libs/librtmidi@rtmidi_suffix@.*
+
+DISTCLEANFILES += \
+	%D%/rtmidi@rtmidi_suffix@.pc \
+	%D%/rtmidi@rtmidi_suffix@-config
+
 %C%_librtmidi@rtmidi_suffix@_la_LDFLAGS = \
 	$(RTMIDI_LIBS) \
 	$(LDADD) \
@@ -34,7 +39,7 @@ EXTRA_DIST += \
 	%D%/rtmidi-config.in \
 	%D%/rtmidi.pc.in \
 	%D%/autogen.sh \
-	%D%/readme \
+	%D%/README.md \
 	%D%/msw	
 
 pkgconfigdatadir = $(libdir)/pkgconfig

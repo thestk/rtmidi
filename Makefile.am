@@ -8,5 +8,6 @@ DLLPROGRAMS = $(check_PROGRAMS)
 check_PROGRAMS =
 TESTS =
 CLEANFILES =
+DISTCLEANFILES =
 
 include %D%/Makefile.library

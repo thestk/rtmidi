@@ -1409,7 +1409,7 @@ typedef CoreSequencer<1> LockingCoreSequencer;
 typedef CoreSequencer<0> NonLockingCoreSequencer;
 
 #define RTMIDI_CLASSNAME "CorePortDescriptor"
-struct CorePortDescriptor:public PortDescriptor  {
+struct CorePortDescriptor:public PortDescriptor	{
   CorePortDescriptor(const std::string & name):api(0),
 					       clientName(name),
 					       endpoint(0)
@@ -5644,7 +5644,7 @@ void MidiOutJack :: connect()
 MidiOutJack :: ~MidiOutJack()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-  //    closePort();
+  //		closePort();
   // signal the output callback to delete the data
   // after finishing its job.
   data->stateflags = JackMidiData::DELETING;

@@ -46,7 +46,6 @@
 #define RTMIDI_FALLTHROUGH
 #endif
 
-
 RTMIDI_NAMESPACE_START
 
 #ifdef RTMIDI_GETTEXT
@@ -1502,7 +1501,7 @@ PortList CorePortDescriptor :: getPortList(int capabilities, const std::string &
 	     & caps) == caps)
 	  list.push_back(Pointer<PortDescriptor>(
 						 new CorePortDescriptor(destination, clientName)));
-      } catch (Error e) {
+      } catch (Error & e) {
 	if (e.getType() == Error::WARNING ||
 	    e.getType() == Error::DEBUG_WARNING)
 	  e.printMessage();
@@ -1523,7 +1522,7 @@ PortList CorePortDescriptor :: getPortList(int capabilities, const std::string &
 	     & caps) == caps)
 	  list.push_back(Pointer<PortDescriptor>(
 						 new CorePortDescriptor(src, clientName)));
-      } catch (Error e) {
+      } catch (Error & e) {
 	if (e.getType() == Error::WARNING ||
 	    e.getType() == Error::DEBUG_WARNING)
 	  e.printMessage();
@@ -1656,7 +1655,7 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
 	      try {
 		data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					 Error::WARNING));
-	      } catch (Error e) {
+	      } catch (Error & e) {
 		// don't bother ALSA with an unhandled exception
 	      }
 	    }
@@ -1727,7 +1726,7 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
 		try {
 		  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					   Error::WARNING));
-		} catch (Error e) {
+		} catch (Error & e) {
 		  // don't bother WinMM with an unhandled exception
 		}
 	      }
@@ -1757,7 +1756,7 @@ MidiInCore :: ~MidiInCore( void )
     // Close a connection if it exists.
     closePort();
 
-  } catch (Error e) {
+  } catch (Error & e) {
     delete data;
     throw;
   }
@@ -1920,7 +1919,7 @@ PortList MidiInCore :: getPortList(int capabilities)
   try {
     return CorePortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
 					   data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
     return PortList();
   }
@@ -2150,7 +2149,7 @@ void MidiOutCore :: openPort( const PortDescriptor & port,
 		    PortDescriptor::OUTPUT);
     data->setRemote(*remote);
     connected_ = true;
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
 }
@@ -2174,7 +2173,7 @@ Pointer<PortDescriptor> MidiOutCore :: getDescriptor(bool local)
 				       new CorePortDescriptor(*data));
       }
     }
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
   return NULL;
@@ -2186,7 +2185,7 @@ PortList MidiOutCore :: getPortList(int capabilities)
   try {
     return CorePortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT,
 					   data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
     return PortList();
   }
@@ -2835,7 +2834,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     try {
       data->error(RTMIDI_ERROR(rtmidi_gettext("Error initializing MIDI event parser."),
 			       Error::WARNING));
-    } catch (Error e) {
+    } catch (Error & e) {
       // don't bother ALSA with an unhandled exception
     }
     return 0;
@@ -2848,7 +2847,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     try {
       data->error(RTMIDI_ERROR(rtmidi_gettext("Error initializing buffer memory."),
 			       Error::WARNING));
-    } catch (Error e) {
+    } catch (Error & e) {
       // don't bother ALSA with an unhandled exception
     }
     return 0;
@@ -2882,7 +2881,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
       try {
 	data->error(RTMIDI_ERROR(rtmidi_gettext("MIDI input buffer overrun."),
 				 Error::WARNING));
-      } catch (Error e) {
+      } catch (Error & e) {
 	// don't bother ALSA with an unhandled exception
       }
 
@@ -2892,7 +2891,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
       try {
 	data->error(RTMIDI_ERROR(rtmidi_gettext("ALSA returned without providing a MIDI event."),
 				 Error::WARNING));
-      } catch (Error e) {
+      } catch (Error & e) {
 	// don't bother ALSA with an unhandled exception
       }
 
@@ -2903,7 +2902,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 	data->error(RTMIDI_ERROR1(rtmidi_gettext("Unknown MIDI input error.\nThe system reports:\n%s"),
 				  Error::WARNING,
 				  strerror(-result)));
-      } catch (Error e) {
+      } catch (Error & e) {
 	// don't bother ALSA with an unhandled exception
       }
       continue;
@@ -2960,7 +2959,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 	  try {
 	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
 				     Error::WARNING));
-	  } catch (Error e) {
+	  } catch (Error & e) {
 	    // don't bother ALSA with an unhandled exception
 	  }
 	  break;
@@ -3011,7 +3010,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 	  try {
 	    data->error(RTMIDI_ERROR(rtmidi_gettext("Event parsing error or not a MIDI event."),
 				     Error::WARNING));
-	  } catch (Error e) {
+	  } catch (Error & e) {
 	    // don't bother ALSA with an unhandled exception
 	  }
 #endif
@@ -3037,7 +3036,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 	try {
 	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-	} catch (Error e) {
+	} catch (Error & e) {
 	  // don't bother ALSA with an unhandled exception
 	}
       }
@@ -3161,7 +3160,7 @@ std::string MidiInAlsa :: getPortName( unsigned int portNumber )
     snd_seq_get_any_client_info( data->seq, cnum, cinfo );
     std::ostringstream os;
     os << snd_seq_client_info_get_name( cinfo );
-    os << " ";            // These lines added to make sure devices are listed
+    os << " ";                                    // These lines added to make sure devices are listed
     os << snd_seq_port_info_get_client( pinfo );  // with full portnames added to ensure individual device names
     os << ":";
     os << snd_seq_port_info_get_port( pinfo );
@@ -3327,7 +3326,7 @@ void MidiInAlsa :: openPort( const PortDescriptor & port,
     }
 
     connected_ = true;
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
 }
@@ -3347,7 +3346,7 @@ Pointer<PortDescriptor> MidiInAlsa :: getDescriptor(bool local)
 				       new AlsaPortDescriptor(*data,data->getClientName()));
       }
     }
-  } catch (Error e) {
+  } catch (Error & e) {
     error (e);
   }
   return NULL;
@@ -3358,7 +3357,7 @@ PortList MidiInAlsa :: getPortList(int capabilities)
   try {
     return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
 					   data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     error (e);
     return PortList();
   }
@@ -3545,7 +3544,7 @@ std::string MidiOutAlsa :: getPortName( unsigned int portNumber )
     snd_seq_get_any_client_info( data->seq, cnum, cinfo );
     std::ostringstream os;
     os << snd_seq_client_info_get_name(cinfo);
-    os << " ";            // These lines added to make sure devices are listed
+    os << " ";                                    // These lines added to make sure devices are listed
     os << snd_seq_port_info_get_client( pinfo );  // with full portnames added to ensure individual device names
     os << ":";
     os << snd_seq_port_info_get_port(pinfo);
@@ -3734,7 +3733,7 @@ void MidiOutAlsa :: openPort( const PortDescriptor & port,
     data->connectPorts(data->local,*remote,true);
 
     connected_ = true;
-  } catch (Error e) {
+  } catch (Error & e) {
     error (e);
   }
 }
@@ -3753,7 +3752,7 @@ Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor(bool local)
 				       new AlsaPortDescriptor(*data, data->getClientName()));
       }
     }
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
   return NULL;
@@ -3764,7 +3763,7 @@ PortList MidiOutAlsa :: getPortList(int capabilities)
   try {
     return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT,
 					   data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     return PortList();
   }
 }
@@ -4190,7 +4189,7 @@ struct WinMMCallbacks {
 	  try {
 	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
 				     Error::WARNING));
-	  } catch (Error e) {
+	  } catch (Error & e) {
 	    // don't bother WinMM with an unhandled exception
 	  }
 	}
@@ -4215,7 +4214,7 @@ struct WinMMCallbacks {
 	try {
 	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-	} catch (Error e) {
+	} catch (Error & e) {
 	  // don't bother WinMM with an unhandled exception
 	}
       }
@@ -4369,7 +4368,7 @@ void MidiInWinMM :: openPort(const PortDescriptor & p, const std::string & portN
   // reordering of ports so we must check whether we opened the right port.
   try {
     openPort(port->getPortNumber(),portName);
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
   if (!port->is_valid()) {
@@ -4404,7 +4403,7 @@ Pointer<PortDescriptor> MidiInWinMM :: getDescriptor(bool local)
   WinMMPortDescriptor * retval = NULL;
   try {
     retval = new WinMMPortDescriptor(devid, getPortName(devid), true, data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     try {
       error(e);
     } catch (...) {
@@ -4422,7 +4421,7 @@ PortList MidiInWinMM :: getPortList(int capabilities)
   if (!data || capabilities != PortDescriptor::INPUT) return PortList();
   try {
     return WinMMPortDescriptor::getPortList(PortDescriptor::INPUT,data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
     return PortList();
   }
@@ -4646,7 +4645,7 @@ void MidiOutWinMM :: openPort(const PortDescriptor & p, const std::string & port
   // reordering of ports so we must check whether we opened the right port.
   try {
     openPort(port->getPortNumber(),portName);
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
   if (!port->is_valid()) {
@@ -4689,7 +4688,7 @@ PortList MidiOutWinMM :: getPortList(int capabilities)
   if (!data || capabilities != PortDescriptor::OUTPUT) return PortList();
   try {
     return WinMMPortDescriptor::getPortList(PortDescriptor::OUTPUT,data->getClientName());
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
     return PortList();
   }
@@ -5290,7 +5289,7 @@ int JackBackendCallbacks::jackProcessIn( jack_nframes_t nframes, void *arg )
 	  try {
 	    rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				       Error::WARNING));
-	  } catch (Error e) {
+	  } catch (Error & e) {
 	    // don't bother WinMM with an unhandled exception
 	  }
 	}
@@ -5411,7 +5410,7 @@ MidiInJack :: ~MidiInJack()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   try {
     closePort();
-  } catch (Error e) {
+  } catch (Error & e) {
     try {
       delete data;
     } catch (...) {
@@ -5495,7 +5494,7 @@ void MidiInJack :: openPort( const PortDescriptor & p,
 		      portName);
     data->setRemote(*port);
     data->connectPorts(*port,data->local);
-  } catch (Error e) {
+  } catch (Error & e) {
     error (e);
   }
 
@@ -5516,7 +5515,7 @@ Pointer<PortDescriptor> MidiInJack :: getDescriptor(bool local)
 				       new JackPortDescriptor(*data,data->getClientName()));
       }
     }
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
   return NULL;
@@ -5528,7 +5527,7 @@ PortList MidiInJack :: getPortList(int capabilities)
   try {
     return JackPortDescriptor::getPortList(capabilities | PortDescriptor::INPUT,
 					   data->getClientName());
-  } catch (Error e) {
+  } catch (Error &  e) {
     error(e);
   }
   return PortList();
@@ -5718,7 +5717,7 @@ void MidiOutJack :: openPort( const PortDescriptor & p,
 		      portName);
     data->setRemote(*port);
     data->connectPorts(data->local,*port);
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
 }
@@ -5738,7 +5737,7 @@ Pointer<PortDescriptor> MidiOutJack :: getDescriptor(bool local)
 				       new JackPortDescriptor(*data,data->getClientName()));
       }
     }
-  } catch (Error e) {
+  } catch (Error & e) {
     error(e);
   }
   return NULL;

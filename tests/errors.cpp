@@ -45,7 +45,7 @@ int main( int /* argc */, char * /*argv*/[] )
 					MidiIn in2 (types[i?0:1]);
 					try {
 						in2.openPort(ports.front());
-					} catch (Error e) {
+					} catch (Error & e) {
 						std::string msg = e.getMessage();
 						e.printMessage();
 						if (e.getType() != Error::INVALID_DEVICE) {
@@ -53,7 +53,7 @@ int main( int /* argc */, char * /*argv*/[] )
 						}
 					}
 				}
-			} catch (Error e) {
+			} catch (Error & e) {
 				std::string msg = e.getMessage();
 				e.printMessage();
 				if (msg != rtmidi_gettext("")) {

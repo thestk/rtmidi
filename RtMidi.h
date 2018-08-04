@@ -87,11 +87,10 @@
 #endif
 #define gettext_noopt(str) (str)
 
-#define NAMESPACE_RTMIDI_START namespace rtmidi {
-#define NAMESPACE_RTMIDI_END   }
+#define RTMIDI_NAMESPACE_START namespace rtmidi {
+#define RTMIDI_NAMESPACE_END }
 
-NAMESPACE_RTMIDI_START
-
+RTMIDI_NAMESPACE_START
 
 #ifdef RTMIDI_GETTEXT
 const char * rtmidi_gettext(const char * s);
@@ -108,8 +107,8 @@ enum ApiType {
   UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
   WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
   WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
-  DUMMY,          /*!< A compilable but non-functional API. */
-  ALL_API         /*!< Use all available APIs for port selection. */
+  DUMMY,    /*!< A compilable but non-functional API. */
+  ALL_API   /*!< Use all available APIs for port selection. */
 };
 
 //! Return the name on a MIDI API
@@ -179,7 +178,7 @@ class Error : public std::exception
 public:
   //! Defined Error types.
   enum Type {
-    WARNING,           /*!< A non-critical error. */
+    WARNING,     /*!< A non-critical error. */
     DEBUG_WARNING,     /*!< A non-critical error which might be useful for debugging. */
     UNSPECIFIED,       /*!< The default, unspecified error type. */
     NO_DEVICES_FOUND,  /*!< No devices found on system. */
@@ -194,11 +193,11 @@ public:
 
   //! The constructor.
   Error( const char * message,
-         Type type,
-         const char * class_name,
-         const char * function_name,
-         const char * file_name,
-         int line_number, ...) throw();
+	 Type type,
+	 const char * class_name,
+	 const char * function_name,
+	 const char * file_name,
+	 int line_number, ...) throw();
 
   //! The destructor.
   virtual ~Error( void ) throw() {}
@@ -303,8 +302,8 @@ public:
   Pointer & operator = (const Pointer<datatype> & other) {
     if (ptr) {
       if (!(--ptr->count)) {
-        delete ptr->descriptor;
-        delete ptr;
+	delete ptr->descriptor;
+	delete ptr;
       }
     }
     if ((ptr = other.ptr))
@@ -838,10 +837,10 @@ public:
     if (list && !list->empty()) {
       PortList retval;
       for (MidiApiList::iterator i = list->begin();
-           i != list->end();
-           ++i) {
-        PortList tmp = (*i)->getPortList(capabilities);
-        retval.splice(retval.end(), tmp);
+	   i != list->end();
+	   ++i) {
+	PortList tmp = (*i)->getPortList(capabilities);
+	retval.splice(retval.end(), tmp);
       }
       return retval;
     }
@@ -1135,8 +1134,8 @@ public:
       std::vector< ApiType > apis;
       getCompiledApi( apis );
       for (size_t i = 0 ; i < apis.size() ; i++) {
-        openMidiApi( apis[0] );
-        if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+	openMidiApi( apis[0] );
+	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
       }
     }
 
@@ -1390,8 +1389,8 @@ public:
       std::vector< ApiType > apis;
       getCompiledApi( apis );
       for (size_t i = 0 ; i < apis.size() ; i++) {
-        openMidiApi( apis[0] );
-        if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+	openMidiApi( apis[0] );
+	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
       }
     }
 
@@ -1480,9 +1479,9 @@ protected:
 #endif
 
 #if defined(__MACOSX_COREMIDI__)
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
 struct MIDIPacketList;
-NAMESPACE_RTMIDI_START
+RTMIDI_NAMESPACE_START
 
 class MidiInCore: public MidiInApi
 {
@@ -1772,7 +1771,7 @@ private:
 
 
 
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
 
 typedef rtmidi::Midi RTMIDI_DEPRECATED(RtMidi,"RtMidi has been replaced by rtmidi::Midi");
 

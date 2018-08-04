@@ -46,7 +46,9 @@
 #define RTMIDI_FALLTHROUGH
 #endif
 
-NAMESPACE_RTMIDI_START
+
+RTMIDI_NAMESPACE_START
+
 #ifdef RTMIDI_GETTEXT
 const char * rtmidi_gettext (const char * s) {
   init_rtmidi_gettext();
@@ -99,7 +101,7 @@ Error::Error( const char * message,
       message_.resize(length);
     } else {
       const char * msg
-        = gettext_noopt("Error: could not format the error message");
+	= gettext_noopt("Error: could not format the error message");
 #ifdef RTMIDI_GETTEXT
       msg = rtmidi_gettext(msg);
 #endif
@@ -253,14 +255,14 @@ MidiIn :: MidiIn( ApiType api,
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       try {
-        openMidiApi( apis[i] );
-        if ( rtapi_ ) {
-          queryApis.push_back(MidiApiPtr(rtapi_));
-          rtapi_=NULL;
-        }
+	openMidiApi( apis[i] );
+	if ( rtapi_ ) {
+	  queryApis.push_back(MidiApiPtr(rtapi_));
+	  rtapi_=NULL;
+	}
       } catch (const Error & e) {
-        if (e.getType() != Error::NO_DEVICES_FOUND)
-          throw;
+	if (e.getType() != Error::NO_DEVICES_FOUND)
+	  throw;
       }
     }
     return;
@@ -367,14 +369,14 @@ MidiOut :: MidiOut( ApiType api, const std::string & clientName, bool pfsystem )
     getCompiledApi( apis );
     for ( unsigned int i=0; i<apis.size(); i++ ) {
       try {
-        openMidiApi( apis[i] );
-        if ( rtapi_ ) {
-          queryApis.push_back(MidiApiPtr(rtapi_));
-          rtapi_ = NULL;
-        }
+	openMidiApi( apis[i] );
+	if ( rtapi_ ) {
+	  queryApis.push_back(MidiApiPtr(rtapi_));
+	  rtapi_ = NULL;
+	}
       } catch (const Error & e) {
-        if (e.getType() != Error::NO_DEVICES_FOUND)
-          throw;
+	if (e.getType() != Error::NO_DEVICES_FOUND)
+	  throw;
       }
     }
     return;
@@ -582,7 +584,6 @@ MidiOutApi :: MidiOutApi( void )
 MidiOutApi :: ~MidiOutApi( void )
 {
 }
-#undef RTMIDI_CLASSNAME
 
 
 // trim from start
@@ -597,7 +598,7 @@ static inline std::string &ltrim(std::string &s) {
 // trim from end
 static inline std::string &rtrim(std::string &s) {
   s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-        return ! std::isspace(ch);
+	return ! std::isspace(ch);
       }).base(), s.end());
   return s;
 }
@@ -606,7 +607,8 @@ static inline std::string &rtrim(std::string &s) {
 static inline std::string &trim(std::string &s) {
   return ltrim(rtrim(s));
 }
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
+#undef RTMIDI_CLASSNAME
 
 // *************************************************** //
 //
@@ -625,8 +627,7 @@ NAMESPACE_RTMIDI_END
 #include <CoreAudio/HostTime.h>
 #include <CoreServices/CoreServices.h>
 
-
-NAMESPACE_RTMIDI_START
+RTMIDI_NAMESPACE_START
 /*! An abstraction layer for the CORE sequencer layer. It provides
   the following functionality:
   - dynamic allocation of the sequencer
@@ -688,8 +689,8 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
       return str;
     } else {
       if ( CFStringGetLength( str ) == 0 ) {
-        CFRelease( str );
-        return result;
+	CFRelease( str );
+	return result;
       }
       // does the entity name already start with the device name?
       // (some drivers do this though they shouldn't)
@@ -697,10 +698,10 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
       if ( CFStringCompareWithOptions( result, /* endpoint name */
 				       str /* device name */,
 				       CFRangeMake(0, CFStringGetLength( str ) ), 0 ) != kCFCompareEqualTo ) {
-        // prepend the device name to the entity name
-        if ( CFStringGetLength( result ) > 0 )
-          CFStringInsert( result, 0, CFSTR(" ") );
-        CFStringInsert( result, 0, str );
+	// prepend the device name to the entity name
+	if ( CFStringGetLength( result ) > 0 )
+	  CFStringInsert( result, 0, CFSTR(" ") );
+	CFStringInsert( result, 0, str );
       }
       CFRelease( str );
     }
@@ -731,28 +732,28 @@ static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
     if ( nConnected ) {
       const SInt32 *pid = (const SInt32 *)(CFDataGetBytePtr(connections));
       for ( i=0; i<nConnected; ++i, ++pid ) {
-        MIDIUniqueID id = EndianS32_BtoN( *pid );
-        MIDIObjectRef connObject;
-        MIDIObjectType connObjectType;
-        err = MIDIObjectFindByUniqueID( id, &connObject, &connObjectType );
-        if ( err == noErr ) {
-          if ( connObjectType == kMIDIObjectType_ExternalSource  ||
-               connObjectType == kMIDIObjectType_ExternalDestination ) {
-            // Connected to an external device's endpoint (10.3 and later).
-            str = EndpointName( (MIDIEndpointRef)(connObject), true );
-          } else {
-            // Connected to an external device (10.2) (or something else, catch-
-            str = NULL;
-            MIDIObjectGetStringProperty( connObject, kMIDIPropertyName, &str );
-          }
-          if ( str != NULL ) {
-            if ( anyStrings )
-              CFStringAppend( result, CFSTR(", ") );
-            else anyStrings = true;
-            CFStringAppend( result, str );
-            CFRelease( str );
-          }
-        }
+	MIDIUniqueID id = EndianS32_BtoN( *pid );
+	MIDIObjectRef connObject;
+	MIDIObjectType connObjectType;
+	err = MIDIObjectFindByUniqueID( id, &connObject, &connObjectType );
+	if ( err == noErr ) {
+	  if ( connObjectType == kMIDIObjectType_ExternalSource  ||
+	       connObjectType == kMIDIObjectType_ExternalDestination ) {
+	    // Connected to an external device's endpoint (10.3 and later).
+	    str = EndpointName( (MIDIEndpointRef)(connObject), true );
+	  } else {
+	    // Connected to an external device (10.2) (or something else, catch-
+	    str = NULL;
+	    MIDIObjectGetStringProperty( connObject, kMIDIPropertyName, &str );
+	  }
+	  if ( str != NULL ) {
+	    if ( anyStrings )
+	      CFStringAppend( result, CFSTR(", ") );
+	    else anyStrings = true;
+	    CFStringAppend( result, str );
+	    CFRelease( str );
+	  }
+	}
       }
     }
     CFRelease( connections );
@@ -856,32 +857,32 @@ public:
       nConnected = CFDataGetLength(connections) / sizeof(MIDIUniqueID);
 
       if (nConnected) {
-        const SInt32 *pid = reinterpret_cast<const SInt32 *>(CFDataGetBytePtr(connections));
-        for (int i = 0; i < nConnected; ++i, ++pid) {
-          MIDIUniqueID id = EndianS32_BtoN(*pid);
-          MIDIObjectRef connObject;
-          MIDIObjectType connObjectType;
-          err = MIDIObjectFindByUniqueID(id, &connObject, &connObjectType);
-          if (err == noErr) {
-            if (connObjectType == kMIDIObjectType_ExternalSource  ||
-                connObjectType == kMIDIObjectType_ExternalDestination) {
-              // Connected to an external device's endpoint (10.3 and later).
-              str = EndpointName(static_cast<MIDIEndpointRef>(connObject), true);
-            } else {
-              // Connected to an external device (10.2) (or something else, catch-all)
-              str = NULL;
-              MIDIObjectGetStringProperty(connObject, kMIDIPropertyName, &str);
-            }
+	const SInt32 *pid = reinterpret_cast<const SInt32 *>(CFDataGetBytePtr(connections));
+	for (int i = 0; i < nConnected; ++i, ++pid) {
+	  MIDIUniqueID id = EndianS32_BtoN(*pid);
+	  MIDIObjectRef connObject;
+	  MIDIObjectType connObjectType;
+	  err = MIDIObjectFindByUniqueID(id, &connObject, &connObjectType);
+	  if (err == noErr) {
+	    if (connObjectType == kMIDIObjectType_ExternalSource  ||
+		connObjectType == kMIDIObjectType_ExternalDestination) {
+	      // Connected to an external device's endpoint (10.3 and later).
+	      str = EndpointName(static_cast<MIDIEndpointRef>(connObject), true);
+	    } else {
+	      // Connected to an external device (10.2) (or something else, catch-all)
+	      str = NULL;
+	      MIDIObjectGetStringProperty(connObject, kMIDIPropertyName, &str);
+	    }
 
-            if (str != NULL) {
-              if (anyStrings)
-                CFStringAppend(result, CFSTR(", "));
-              else anyStrings = true;
-              CFStringAppend(result, str);
-              CFRelease(str);
-            }
-          }
-        }
+	    if (str != NULL) {
+	      if (anyStrings)
+		CFStringAppend(result, CFSTR(", "));
+	      else anyStrings = true;
+	      CFStringAppend(result, str);
+	      CFRelease(str);
+	    }
+	  }
+	}
       }
       CFRelease(connections);
     }
@@ -928,8 +929,8 @@ public:
       str = NULL;
       MIDIObjectGetStringProperty(entity, kMIDIPropertyName, &str);
       if (str != NULL) {
-        CFStringAppend(result, str);
-        CFRelease(str);
+	CFStringAppend(result, str);
+	CFRelease(str);
       }
     }
 
@@ -946,25 +947,25 @@ public:
       // if an external device has only one entity, throw away
       // the endpoint name and just use the device name
       if (isExternal && MIDIDeviceGetNumberOfEntities(device) < 2) {
-        CFRelease(result);
-        return str;
+	CFRelease(result);
+	return str;
       } else {
-        // does the entity name already start with the device name?
-        // (some drivers do this though they shouldn't)
-        // if so, do not prepend
+	// does the entity name already start with the device name?
+	// (some drivers do this though they shouldn't)
+	// if so, do not prepend
 
-        if (CFStringCompareWithOptions(str /* device name */,
+	if (CFStringCompareWithOptions(str /* device name */,
 				       result /* endpoint name */,
 				       CFRangeMake(0,
 						   CFStringGetLength(str)),
 				       0)
-            != kCFCompareEqualTo) {
-          // prepend the device name to the entity name
-          if (CFStringGetLength(result) > 0)
-            CFStringInsert(result, 0, CFSTR(" "));
-          CFStringInsert(result, 0, str);
-        }
-        CFRelease(str);
+	    != kCFCompareEqualTo) {
+	  // prepend the device name to the entity name
+	  if (CFStringGetLength(result) > 0)
+	    CFStringInsert(result, 0, CFSTR(" "));
+	  CFStringInsert(result, 0, str);
+	}
+	CFRelease(str);
       }
     }
 
@@ -1002,29 +1003,29 @@ public:
       MIDIObjectType connObjectType;
       err = MIDIObjectFindByUniqueID(id, &connObject, &connObjectType);
       if (err != noErr)
-        continue;
+	continue;
 
       if (connObjectType == kMIDIObjectType_ExternalSource  ||
-          connObjectType == kMIDIObjectType_ExternalDestination) {
-        // Connected to an external
-        // device's endpoint
-        // (10.3 and later).
-        strRef = EndpointName(static_cast<MIDIEndpointRef>(connObject),
+	  connObjectType == kMIDIObjectType_ExternalDestination) {
+	// Connected to an external
+	// device's endpoint
+	// (10.3 and later).
+	strRef = EndpointName(static_cast<MIDIEndpointRef>(connObject),
 			      true);
       } else {
-        // Connected to an external device
-        // (10.2) (or something else, catch-all)
-        strRef = NULL;
-        MIDIObjectGetStringProperty(connObject,
+	// Connected to an external device
+	// (10.2) (or something else, catch-all)
+	strRef = NULL;
+	MIDIObjectGetStringProperty(connObject,
 				    kMIDIPropertyName, &strRef);
       }
 
       if (strRef != NULL) {
-        if (anyStrings)
-          result << ", ";
-        else anyStrings = true;
-        result << str(strRef);
-        CFRelease(strRef);
+	if (anyStrings)
+	  result << ", ";
+	else anyStrings = true;
+	result << str(strRef);
+	CFRelease(strRef);
       }
     }
     CFRelease(connections);
@@ -1062,33 +1063,33 @@ public:
       nameRef = NULL;
       MIDIObjectGetStringProperty(entity, kMIDIPropertyName, &nameRef);
       if (nameRef != NULL) {
-        entityname = str(nameRef);
-        CFRelease(nameRef);
+	entityname = str(nameRef);
+	CFRelease(nameRef);
       }
       hasManyEndpoints =
-        MIDIEntityGetNumberOfSources(entity) >= 2 ||
-        MIDIEntityGetNumberOfDestinations(entity)
-        >= 2;
+	MIDIEntityGetNumberOfSources(entity) >= 2 ||
+	MIDIEntityGetNumberOfDestinations(entity)
+	>= 2;
 
       // now consider the device's name
       MIDIDeviceRef device = 0;
       MIDIEntityGetDevice(entity, &device);
       if (device != 0) {
-        hasManyEntities = MIDIDeviceGetNumberOfEntities(device) >= 2;
-        MIDIObjectGetStringProperty(device,
+	hasManyEntities = MIDIDeviceGetNumberOfEntities(device) >= 2;
+	MIDIObjectGetStringProperty(device,
 				    kMIDIPropertyName,
 				    &nameRef);
-        devicename = str(nameRef);
-        CFRelease(nameRef);
+	devicename = str(nameRef);
+	CFRelease(nameRef);
       }
       // does the entity name already start with the device name?
       // (some drivers do this though they shouldn't)
       if (entityname.substr(0,devicename.length())
-          == devicename) {
-        int start = devicename.length();
-        while (isspace(entityname[start]))
-          start++;
-        entityname = entityname.substr(start);
+	  == devicename) {
+	int start = devicename.length();
+	while (isspace(entityname[start]))
+	  start++;
+	entityname = entityname.substr(start);
       }
     }
 
@@ -1099,12 +1100,12 @@ public:
     switch (naming) {
     case PortDescriptor::SESSION_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "CORE:";
+	os << "CORE:";
       os << port;
       break;
     case PortDescriptor::STORAGE_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "CORE:";
+	os << "CORE:";
       // os << clientname;
       os << devicename;
       os << ":" << portname;
@@ -1113,54 +1114,54 @@ public:
       os << ":" << connections;
       //        os << ":" << recommendedname;
       if (flags & PortDescriptor::UNIQUE_PORT_NAME)
-        os << ";" << port;
+	os << ";" << port;
       break;
     case PortDescriptor::LONG_NAME:
       needcolon = !devicename.empty();
       os << devicename;
       if (hasManyEndpoints ||
-          hasManyEntities ||
-          devicename.empty()) {
-        if (!entityname.empty()) {
-          if (needcolon)
-            os << ": ";
-          os << entityname;
-          needcolon = true;
-        }
-        if ((hasManyEndpoints
-             || entityname.empty())
+	  hasManyEntities ||
+	  devicename.empty()) {
+	if (!entityname.empty()) {
+	  if (needcolon)
+	    os << ": ";
+	  os << entityname;
+	  needcolon = true;
+	}
+	if ((hasManyEndpoints
+	     || entityname.empty())
 	    && !portname.empty()) {
-          if (needcolon)
-            os << ": ";
-          os << portname;
-        }
+	  if (needcolon)
+	    os << ": ";
+	  os << portname;
+	}
       }
       if (!connections.empty()) {
-        os << " ⇒ ";
-        os << connections;
+	os << " ⇒ ";
+	os << connections;
       }
       if (flags &
-          (PortDescriptor::INCLUDE_API
-           | PortDescriptor::UNIQUE_PORT_NAME)) {
-        os << " (";
-        if (flags &
-            PortDescriptor::INCLUDE_API) {
-          os << "CORE";
-          if (flags & PortDescriptor::UNIQUE_PORT_NAME)
-            os << ":";
-        }
-        if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
-          os << port;
-        }
-        os << ")";
+	  (PortDescriptor::INCLUDE_API
+	   | PortDescriptor::UNIQUE_PORT_NAME)) {
+	os << " (";
+	if (flags &
+	    PortDescriptor::INCLUDE_API) {
+	  os << "CORE";
+	  if (flags & PortDescriptor::UNIQUE_PORT_NAME)
+	    os << ":";
+	}
+	if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
+	  os << port;
+	}
+	os << ")";
       }
       break;
     case PortDescriptor::SHORT_NAME:
     default:
       if (!recommendedname.empty()) {
-        os << recommendedname;
+	os << recommendedname;
       } else
-        if (!connections.empty()) {
+	if (!connections.empty()) {
 	  os << connections;
 	} else {
 	  os << devicename;
@@ -1178,19 +1179,19 @@ public:
 	  }
 	}
       if (flags &
-          (PortDescriptor::INCLUDE_API
-           | PortDescriptor::UNIQUE_PORT_NAME)) {
-        os << " (";
-        if (flags &
-            PortDescriptor::INCLUDE_API) {
-          os << "CORE";
-          if (flags & PortDescriptor::UNIQUE_PORT_NAME)
-            os << ":";
-        }
-        if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
-          os << port;
-        }
-        os << ")";
+	  (PortDescriptor::INCLUDE_API
+	   | PortDescriptor::UNIQUE_PORT_NAME)) {
+	os << " (";
+	if (flags &
+	    PortDescriptor::INCLUDE_API) {
+	  os << "CORE";
+	  if (flags & PortDescriptor::UNIQUE_PORT_NAME)
+	    os << ":";
+	}
+	if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
+	  os << port;
+	}
+	os << ")";
       }
       break;
     }
@@ -1209,9 +1210,9 @@ public:
 					   kMIDIPropertyUniqueID,
 					   &uid);
       if (stat != noErr) {
-        throw RTMIDI_ERROR(gettext_noopt("Could not get the unique identifier of a midi endpoint."),
+	throw RTMIDI_ERROR(gettext_noopt("Could not get the unique identifier of a midi endpoint."),
 			   Error::WARNING);
-        return 0;
+	return 0;
       }
       MIDIObjectRef obj;
       MIDIObjectType type;
@@ -1219,18 +1220,18 @@ public:
 				       &obj,
 				       &type);
       if (stat != noErr || obj != port) {
-        throw RTMIDI_ERROR(gettext_noopt("Could not get the endpoint back from the unique identifier of a midi endpoint."),
+	throw RTMIDI_ERROR(gettext_noopt("Could not get the endpoint back from the unique identifier of a midi endpoint."),
 			   Error::WARNING);
-        return 0;
+	return 0;
       }
       if (type == kMIDIObjectType_Source
-          || type == kMIDIObjectType_ExternalSource)
-        return PortDescriptor::INPUT;
+	  || type == kMIDIObjectType_ExternalSource)
+	return PortDescriptor::INPUT;
       else if (type == kMIDIObjectType_Destination
 	       || type == kMIDIObjectType_ExternalDestination)
-        return PortDescriptor::OUTPUT;
+	return PortDescriptor::OUTPUT;
       else {
-        return 0;
+	return 0;
       }
 
     } else if (stat != noErr) {
@@ -1249,21 +1250,21 @@ public:
       MIDIEntityGetNumberOfDestinations(entity);
     for (ItemCount i = 0; i < count ; i++) {
       MIDIEndpointRef dest=
-        MIDIEntityGetDestination(entity,i);
+	MIDIEntityGetDestination(entity,i);
       if (dest == port) {
-        retval |=
-          PortDescriptor::OUTPUT;
-        break;
+	retval |=
+	  PortDescriptor::OUTPUT;
+	break;
       }
     }
     count =
       MIDIEntityGetNumberOfSources(entity);
     for (ItemCount i = 0; i < count ; i++) {
       MIDIEndpointRef src=
-        MIDIEntityGetSource(entity,i);
+	MIDIEntityGetSource(entity,i);
       if (src == port) {
-        retval |=
-          PortDescriptor::INPUT;
+	retval |=
+	  PortDescriptor::INPUT;
       }
     }
     return retval;
@@ -1291,7 +1292,7 @@ public:
       break;
     case PortDescriptor::OUTPUT:
       result
-        = MIDIOutputPortCreate(seq,
+	= MIDIOutputPortCreate(seq,
 			       CFStringCreateWithCString(
 							 NULL,
 							 portName.c_str(),
@@ -1320,7 +1321,7 @@ public:
     switch (flags) {
     case PortDescriptor::INPUT:
       result
-        = MIDIDestinationCreate(seq,
+	= MIDIDestinationCreate(seq,
 				CFStringCreateWithCString(
 							  NULL,
 							  portName.c_str(),
@@ -1331,7 +1332,7 @@ public:
       break;
     case PortDescriptor::OUTPUT:
       result
-        = MIDISourceCreate(seq,
+	= MIDISourceCreate(seq,
 			   CFStringCreateWithCString(
 						     NULL,
 						     portName.c_str(),
@@ -1366,12 +1367,12 @@ protected:
     scoped_lock(pthread_mutex_t & m): mutex(&m)
     {
       if (locking)
-        pthread_mutex_lock(mutex);
+	pthread_mutex_lock(mutex);
     }
     ~scoped_lock()
     {
       if (locking)
-        pthread_mutex_unlock(mutex);
+	pthread_mutex_unlock(mutex);
     }
   };
   pthread_mutex_t mutex;
@@ -1396,9 +1397,9 @@ protected:
       OSStatus result = MIDIClientCreate(cfname, NULL, NULL, &client );
       CFRelease(cfname);
       if ( result != noErr ) {
-        throw RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI client object."),
+	throw RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI client object."),
 			   Error::DRIVER_ERROR);
-        return;
+	return;
       }
     }
   }
@@ -1495,17 +1496,17 @@ PortList CorePortDescriptor :: getPortList(int capabilities, const std::string &
       MIDIGetNumberOfDestinations();
     for (ItemCount i = 0 ; i < count; i++) {
       MIDIEndpointRef destination =
-        MIDIGetDestination(i);
+	MIDIGetDestination(i);
       try {
-        if ((seq.getPortCapabilities(destination)
-             & caps) == caps)
-          list.push_back(Pointer<PortDescriptor>(
+	if ((seq.getPortCapabilities(destination)
+	     & caps) == caps)
+	  list.push_back(Pointer<PortDescriptor>(
 						 new CorePortDescriptor(destination, clientName)));
       } catch (Error e) {
-        if (e.getType() == Error::WARNING ||
-            e.getType() == Error::DEBUG_WARNING)
-          e.printMessage();
-        else throw;
+	if (e.getType() == Error::WARNING ||
+	    e.getType() == Error::DEBUG_WARNING)
+	  e.printMessage();
+	else throw;
       }
     }
     // Combined sources and destinations
@@ -1516,17 +1517,17 @@ PortList CorePortDescriptor :: getPortList(int capabilities, const std::string &
       MIDIGetNumberOfSources();
     for (ItemCount i = 0 ; i < count; i++) {
       MIDIEndpointRef src =
-        MIDIGetSource(i);
+	MIDIGetSource(i);
       try {
-        if ((seq.getPortCapabilities(src)
-             & caps) == caps)
-          list.push_back(Pointer<PortDescriptor>(
+	if ((seq.getPortCapabilities(src)
+	     & caps) == caps)
+	  list.push_back(Pointer<PortDescriptor>(
 						 new CorePortDescriptor(src, clientName)));
       } catch (Error e) {
-        if (e.getType() == Error::WARNING ||
-            e.getType() == Error::DEBUG_WARNING)
-          e.printMessage();
-        else throw;
+	if (e.getType() == Error::WARNING ||
+	    e.getType() == Error::DEBUG_WARNING)
+	  e.printMessage();
+	else throw;
       }
     }
   }
@@ -1613,12 +1614,12 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
     else {
       time = packet->timeStamp;
       if ( time == 0 ) { // this happens when receiving asynchronous sysex messages
-        time = AudioGetCurrentHostTime();
+	time = AudioGetCurrentHostTime();
       }
       time -= apiData->lastTime;
       time = AudioConvertHostTimeToNanos( time );
       if ( !continueSysex )
-        message.timeStamp = time * 0.000000001;
+	message.timeStamp = time * 0.000000001;
     }
     apiData->lastTime = packet->timeStamp;
     if ( apiData->lastTime == 0 ) { // this happens when receiving asynchronous sysex messages
@@ -1630,111 +1631,111 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
     if ( continueSysex ) {
       // We have a continuing, segmented sysex message.
       if ( !( data->ignoreFlags & 0x01 ) ) {
-        // If we're not ignoring sysex messages, copy the entire packet.
-        for ( unsigned int j=0; j<nBytes; ++j )
-          message.bytes.push_back( packet->data[j] );
+	// If we're not ignoring sysex messages, copy the entire packet.
+	for ( unsigned int j=0; j<nBytes; ++j )
+	  message.bytes.push_back( packet->data[j] );
       }
       continueSysex = packet->data[nBytes-1] != 0xF7;
 
       if ( !( data->ignoreFlags & 0x01 ) ) {
-        if ( !continueSysex ) {
-          // If not a continuing sysex message, invoke the user callback function or queue the message.
-          if ( data->userCallback ) {
-            data->userCallback->rtmidi_midi_in( message.timeStamp,
+	if ( !continueSysex ) {
+	  // If not a continuing sysex message, invoke the user callback function or queue the message.
+	  if ( data->userCallback ) {
+	    data->userCallback->rtmidi_midi_in( message.timeStamp,
 						message.bytes);
-          }
-          else {
-            // As long as we haven't reached our queue size limit, push the message.
-            if ( data->queue.size < data->queue.ringSize ) {
-              data->queue.ring[data->queue.back++] = message;
-              if ( data->queue.back == data->queue.ringSize )
-                data->queue.back = 0;
-              data->queue.size++;
-            }
-            else {
-              try {
-                data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	  }
+	  else {
+	    // As long as we haven't reached our queue size limit, push the message.
+	    if ( data->queue.size < data->queue.ringSize ) {
+	      data->queue.ring[data->queue.back++] = message;
+	      if ( data->queue.back == data->queue.ringSize )
+		data->queue.back = 0;
+	      data->queue.size++;
+	    }
+	    else {
+	      try {
+		data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					 Error::WARNING));
-              } catch (Error e) {
-                // don't bother ALSA with an unhandled exception
-              }
-            }
-          }
-          message.bytes.clear();
-        }
+	      } catch (Error e) {
+		// don't bother ALSA with an unhandled exception
+	      }
+	    }
+	  }
+	  message.bytes.clear();
+	}
       }
     }
     else {
       while ( iByte < nBytes ) {
-        size = 0;
-        // We are expecting that the next byte in the packet is a status byte.
-        status = packet->data[iByte];
-        if ( !(status & 0x80) ) break;
-        // Determine the number of bytes in the MIDI message.
-        if ( status < 0xC0 ) size = 3;
-        else if ( status < 0xE0 ) size = 2;
-        else if ( status < 0xF0 ) size = 3;
-        else if ( status == 0xF0 ) {
-          // A MIDI sysex
-          if ( data->ignoreFlags & 0x01 ) {
-            size = 0;
-            iByte = nBytes;
-          }
-          else size = nBytes - iByte;
-          continueSysex = packet->data[nBytes-1] != 0xF7;
-        }
-        else if ( status == 0xF1 ) {
-          // A MIDI time code message
-          if ( data->ignoreFlags & 0x02 ) {
-            size = 0;
-            iByte += 2;
-          }
-          else size = 2;
-        }
-        else if ( status == 0xF2 ) size = 3;
-        else if ( status == 0xF3 ) size = 2;
-        else if ( status == 0xF8 && ( data->ignoreFlags & 0x02 ) ) {
-          // A MIDI timing tick message and we're ignoring it.
-          size = 0;
-          iByte += 1;
-        }
-        else if ( status == 0xFE && ( data->ignoreFlags & 0x04 ) ) {
-          // A MIDI active sensing message and we're ignoring it.
-          size = 0;
-          iByte += 1;
-        }
-        else size = 1;
+	size = 0;
+	// We are expecting that the next byte in the packet is a status byte.
+	status = packet->data[iByte];
+	if ( !(status & 0x80) ) break;
+	// Determine the number of bytes in the MIDI message.
+	if ( status < 0xC0 ) size = 3;
+	else if ( status < 0xE0 ) size = 2;
+	else if ( status < 0xF0 ) size = 3;
+	else if ( status == 0xF0 ) {
+	  // A MIDI sysex
+	  if ( data->ignoreFlags & 0x01 ) {
+	    size = 0;
+	    iByte = nBytes;
+	  }
+	  else size = nBytes - iByte;
+	  continueSysex = packet->data[nBytes-1] != 0xF7;
+	}
+	else if ( status == 0xF1 ) {
+	  // A MIDI time code message
+	  if ( data->ignoreFlags & 0x02 ) {
+	    size = 0;
+	    iByte += 2;
+	  }
+	  else size = 2;
+	}
+	else if ( status == 0xF2 ) size = 3;
+	else if ( status == 0xF3 ) size = 2;
+	else if ( status == 0xF8 && ( data->ignoreFlags & 0x02 ) ) {
+	  // A MIDI timing tick message and we're ignoring it.
+	  size = 0;
+	  iByte += 1;
+	}
+	else if ( status == 0xFE && ( data->ignoreFlags & 0x04 ) ) {
+	  // A MIDI active sensing message and we're ignoring it.
+	  size = 0;
+	  iByte += 1;
+	}
+	else size = 1;
 
-        // Copy the MIDI data to our vector.
-        if ( size ) {
-          message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
-          if ( !continueSysex ) {
-            // If not a continuing sysex message, invoke the user callback function or queue the message.
-            if ( data->userCallback ) {
-              data->userCallback->rtmidi_midi_in( message.timeStamp,
+	// Copy the MIDI data to our vector.
+	if ( size ) {
+	  message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
+	  if ( !continueSysex ) {
+	    // If not a continuing sysex message, invoke the user callback function or queue the message.
+	    if ( data->userCallback ) {
+	      data->userCallback->rtmidi_midi_in( message.timeStamp,
 						  message.bytes);
-            }
-            else {
-              // As long as we haven't reached our queue size limit, push the message.
-              if ( data->queue.size < data->queue.ringSize ) {
-                data->queue.ring[data->queue.back++] = message;
-                if ( data->queue.back == data->queue.ringSize )
-                  data->queue.back = 0;
-                data->queue.size++;
-              }
-              else {
-                try {
-                  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	    }
+	    else {
+	      // As long as we haven't reached our queue size limit, push the message.
+	      if ( data->queue.size < data->queue.ringSize ) {
+		data->queue.ring[data->queue.back++] = message;
+		if ( data->queue.back == data->queue.ringSize )
+		  data->queue.back = 0;
+		data->queue.size++;
+	      }
+	      else {
+		try {
+		  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					   Error::WARNING));
-                } catch (Error e) {
-                  // don't bother WinMM with an unhandled exception
-                }
-              }
-            }
-            message.bytes.clear();
-          }
-          iByte += size;
-        }
+		} catch (Error e) {
+		  // don't bother WinMM with an unhandled exception
+		}
+	      }
+	    }
+	    message.bytes.clear();
+	  }
+	  iByte += size;
+	}
       }
     }
     packet = MIDIPacketNext(packet);
@@ -1941,6 +1942,7 @@ void MidiInCore :: closePort( void )
 
   connected_ = false;
 }
+
 
 unsigned int MidiInCore :: getPortCount()
 {
@@ -2163,12 +2165,12 @@ Pointer<PortDescriptor> MidiOutCore :: getDescriptor(bool local)
   try {
     if (local) {
       if (data && data->localEndpoint) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new CorePortDescriptor(data->localEndpoint, data->getClientName()));
       }
     } else {
       if (data->getEndpoint()) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new CorePortDescriptor(*data));
       }
     }
@@ -2259,7 +2261,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> &message )
   }
 }
 #undef RTMIDI_CLASSNAME
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
 #endif  // __MACOSX_COREMIDI__
 
 
@@ -2288,7 +2290,7 @@ NAMESPACE_RTMIDI_END
 // ALSA header file.
 #include <alsa/asoundlib.h>
 
-NAMESPACE_RTMIDI_START
+RTMIDI_NAMESPACE_START
 struct AlsaMidiData;
 
 /*! An abstraction layer for the ALSA sequencer layer. It provides
@@ -2641,21 +2643,21 @@ PortList AlsaPortDescriptor :: getPortList(int capabilities, const std::string &
       unsigned int atyp = snd_seq_port_info_get_type( pinfo );
       // otherwise we get ports without any
       if ( !(capabilities & UNLIMITED) &&
-           !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC )  &&
-           !( atyp & SND_SEQ_PORT_TYPE_SYNTH )
-           ) continue;
+	   !( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC )  &&
+	   !( atyp & SND_SEQ_PORT_TYPE_SYNTH )
+	   ) continue;
       unsigned int caps = snd_seq_port_info_get_capability( pinfo );
       if (capabilities & INPUT) {
-        /* we need both READ and SUBS_READ */
-        if ((caps & (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
-            != (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
-          continue;
+	/* we need both READ and SUBS_READ */
+	if ((caps & (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
+	    != (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
+	  continue;
       }
       if (capabilities & OUTPUT) {
-        /* we need both WRITE and SUBS_WRITE */
-        if ((caps & (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
-            != (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
-          continue;
+	/* we need both WRITE and SUBS_WRITE */
+	if ((caps & (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
+	    != (SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE))
+	  continue;
       }
       list.push_back(Pointer<PortDescriptor>(
 					     new AlsaPortDescriptor(client,snd_seq_port_info_get_port(pinfo),clientName)));
@@ -2865,11 +2867,11 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     if ( snd_seq_event_input_pending( apiData->seq, 1 ) == 0 ) {
       // No data pending
       if ( poll( poll_fds, poll_fd_count, -1) >= 0 ) {
-        if ( poll_fds[0].revents & POLLIN ) {
-          bool dummy;
-          int res = read( poll_fds[0].fd, &dummy, sizeof(dummy) );
-          (void) res;
-        }
+	if ( poll_fds[0].revents & POLLIN ) {
+	  bool dummy;
+	  int res = read( poll_fds[0].fd, &dummy, sizeof(dummy) );
+	  (void) res;
+	}
       }
       continue;
     }
@@ -2878,31 +2880,31 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     result = snd_seq_event_input( apiData->seq, &ev );
     if ( result == -ENOSPC ) {
       try {
-        data->error(RTMIDI_ERROR(rtmidi_gettext("MIDI input buffer overrun."),
+	data->error(RTMIDI_ERROR(rtmidi_gettext("MIDI input buffer overrun."),
 				 Error::WARNING));
       } catch (Error e) {
-        // don't bother ALSA with an unhandled exception
+	// don't bother ALSA with an unhandled exception
       }
 
       continue;
     }
     else if ( result == -EAGAIN ) {
       try {
-        data->error(RTMIDI_ERROR(rtmidi_gettext("ALSA returned without providing a MIDI event."),
+	data->error(RTMIDI_ERROR(rtmidi_gettext("ALSA returned without providing a MIDI event."),
 				 Error::WARNING));
       } catch (Error e) {
-        // don't bother ALSA with an unhandled exception
+	// don't bother ALSA with an unhandled exception
       }
 
       continue;
     }
     else if ( result <= 0 ) {
       try {
-        data->error(RTMIDI_ERROR1(rtmidi_gettext("Unknown MIDI input error.\nThe system reports:\n%s"),
+	data->error(RTMIDI_ERROR1(rtmidi_gettext("Unknown MIDI input error.\nThe system reports:\n%s"),
 				  Error::WARNING,
 				  strerror(-result)));
       } catch (Error e) {
-        // don't bother ALSA with an unhandled exception
+	// don't bother ALSA with an unhandled exception
       }
       continue;
     }
@@ -2950,19 +2952,19 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     case SND_SEQ_EVENT_SYSEX:
       if ( (data->ignoreFlags & 0x01) ) break;
       if ( ev->data.ext.len > apiData->bufferSize ) {
-        apiData->bufferSize = ev->data.ext.len;
-        free( buffer );
-        buffer = (unsigned char *) malloc( apiData->bufferSize );
-        if ( buffer == NULL ) {
-          data->doInput = false;
-          try {
-            data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
+	apiData->bufferSize = ev->data.ext.len;
+	free( buffer );
+	buffer = (unsigned char *) malloc( apiData->bufferSize );
+	if ( buffer == NULL ) {
+	  data->doInput = false;
+	  try {
+	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error resizing buffer memory."),
 				     Error::WARNING));
-          } catch (Error e) {
-            // don't bother ALSA with an unhandled exception
-          }
-          break;
-        }
+	  } catch (Error e) {
+	    // don't bother ALSA with an unhandled exception
+	  }
+	  break;
+	}
       }
       RTMIDI_FALLTHROUGH;
     default:
@@ -2973,47 +2975,47 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 
       nBytes = snd_midi_event_decode( apiData->coder, buffer, apiData->bufferSize, ev );
       if ( nBytes > 0 ) {
-        // The ALSA sequencer has a maximum buffer size for MIDI sysex
-        // events of 256 bytes.  If a device sends sysex messages larger
-        // than this, they are segmented into 256 byte chunks.  So,
-        // we'll watch for this and concatenate sysex chunks into a
-        // single sysex message if necessary.
-        if ( !continueSysex )
-          message.bytes.assign( buffer, &buffer[nBytes] );
-        else
-          message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
+	// The ALSA sequencer has a maximum buffer size for MIDI sysex
+	// events of 256 bytes.  If a device sends sysex messages larger
+	// than this, they are segmented into 256 byte chunks.  So,
+	// we'll watch for this and concatenate sysex chunks into a
+	// single sysex message if necessary.
+	if ( !continueSysex )
+	  message.bytes.assign( buffer, &buffer[nBytes] );
+	else
+	  message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
 
-        continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
-        if ( !continueSysex ) {
+	continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
+	if ( !continueSysex ) {
 
-          // Calculate the time stamp:
-          message.timeStamp = 0.0;
+	  // Calculate the time stamp:
+	  message.timeStamp = 0.0;
 
-          // Method 1: Use the system time.
-          //(void)gettimeofday(&tv, (struct timezone *)NULL);
-          //time = (tv.tv_sec * 1000000) + tv.tv_usec;
+	  // Method 1: Use the system time.
+	  //(void)gettimeofday(&tv, (struct timezone *)NULL);
+	  //time = (tv.tv_sec * 1000000) + tv.tv_usec;
 
-          // Method 2: Use the ALSA sequencer event time data.
-          // (thanks to Pedro Lopez-Cabanillas!).
-          time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
-          lastTime = time;
-          time -= apiData->lastTime;
-          apiData->lastTime = lastTime;
-          if ( data->firstMessage == true )
-            data->firstMessage = false;
-          else
-            message.timeStamp = time * 0.000001;
-        }
-        else {
+	  // Method 2: Use the ALSA sequencer event time data.
+	  // (thanks to Pedro Lopez-Cabanillas!).
+	  time = ( ev->time.time.tv_sec * 1000000 ) + ( ev->time.time.tv_nsec/1000 );
+	  lastTime = time;
+	  time -= apiData->lastTime;
+	  apiData->lastTime = lastTime;
+	  if ( data->firstMessage == true )
+	    data->firstMessage = false;
+	  else
+	    message.timeStamp = time * 0.000001;
+	}
+	else {
 #if defined(__RTMIDI_DEBUG__)
-          try {
-            data->error(RTMIDI_ERROR(rtmidi_gettext("Event parsing error or not a MIDI event."),
+	  try {
+	    data->error(RTMIDI_ERROR(rtmidi_gettext("Event parsing error or not a MIDI event."),
 				     Error::WARNING));
-          } catch (Error e) {
-            // don't bother ALSA with an unhandled exception
-          }
+	  } catch (Error e) {
+	    // don't bother ALSA with an unhandled exception
+	  }
 #endif
-        }
+	}
       }
     }
 
@@ -3026,18 +3028,18 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     else {
       // As long as we haven't reached our queue size limit, push the message.
       if ( data->queue.size < data->queue.ringSize ) {
-        data->queue.ring[data->queue.back++] = message;
-        if ( data->queue.back == data->queue.ringSize )
-          data->queue.back = 0;
-        data->queue.size++;
+	data->queue.ring[data->queue.back++] = message;
+	if ( data->queue.back == data->queue.ringSize )
+	  data->queue.back = 0;
+	data->queue.size++;
       }
       else {
-        try {
-          data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	try {
+	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-        } catch (Error e) {
-          // don't bother ALSA with an unhandled exception
-        }
+	} catch (Error e) {
+	  // don't bother ALSA with an unhandled exception
+	}
       }
     }
   }
@@ -3321,7 +3323,7 @@ void MidiInAlsa :: openPort( const PortDescriptor & port,
 
     if ( doInput == false ) {
       doInput
-        = data->startQueue(this);
+	= data->startQueue(this);
     }
 
     connected_ = true;
@@ -3336,12 +3338,12 @@ Pointer<PortDescriptor> MidiInAlsa :: getDescriptor(bool local)
   try {
     if (local) {
       if (data && data->local.client) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new AlsaPortDescriptor(data->local,data->getClientName()));
       }
     } else {
       if (data && data->client) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new AlsaPortDescriptor(*data,data->getClientName()));
       }
     }
@@ -3416,9 +3418,9 @@ void MidiInAlsa :: openVirtualPort(const std::string & portName )
     pthread_attr_destroy(&attr);
     if ( err ) {
       if ( data->subscription ) {
-        snd_seq_unsubscribe_port( data->seq, data->subscription );
-        snd_seq_port_subscribe_free( data->subscription );
-        data->subscription = 0;
+	snd_seq_unsubscribe_port( data->seq, data->subscription );
+	snd_seq_port_subscribe_free( data->subscription );
+	data->subscription = 0;
       }
       doInput = false;
       error( RTMIDI_ERROR(gettext_noopt("Error starting MIDI input thread!"),
@@ -3742,12 +3744,12 @@ Pointer<PortDescriptor> MidiOutAlsa :: getDescriptor(bool local)
   try {
     if (local) {
       if (data && data->local.client) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new AlsaPortDescriptor(data->local, data->getClientName()));
       }
     } else {
       if (data && data->client) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new AlsaPortDescriptor(*data, data->getClientName()));
       }
     }
@@ -3766,7 +3768,7 @@ PortList MidiOutAlsa :: getPortList(int capabilities)
     return PortList();
   }
 }
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
 #undef RTMIDI_CLASSNAME
 #endif // __LINUX_ALSA__
 
@@ -3792,7 +3794,7 @@ NAMESPACE_RTMIDI_END
 
 #define  RT_SYSEX_BUFFER_SIZE 1024
 #define  RT_SYSEX_BUFFER_COUNT 4
-NAMESPACE_RTMIDI_START
+RTMIDI_NAMESPACE_START
 
 /* some header defines UNIQUE_PORT_NAME as a macro */
 #ifdef UNIQUE_PORT_NAME
@@ -3912,26 +3914,26 @@ public:
     switch (naming) {
     case PortDescriptor::SESSION_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "WinMM:";
+	os << "WinMM:";
       os << port << ":" << name.c_str();
       break;
     case PortDescriptor::STORAGE_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "WinMM:";
+	os << "WinMM:";
       os << name.c_str();
       if (flags & PortDescriptor::UNIQUE_PORT_NAME)
-        os << ";" << port;
+	os << ";" << port;
       break;
     case PortDescriptor::LONG_NAME:
     case PortDescriptor::SHORT_NAME:
     default:
       os << name.c_str();
       if (flags & PortDescriptor::UNIQUE_PORT_NAME) {
-        os << " ";
-        os << port;
+	os << " ";
+	os << port;
       }
       if (flags & PortDescriptor::INCLUDE_API)
-        os << " (WinMM)";
+	os << " (WinMM)";
 
       break;
     }
@@ -3945,14 +3947,14 @@ protected:
     {
 #if 0
       if (locking)
-        pthread_mutex_lock(mutex);
+	pthread_mutex_lock(mutex);
 #endif
     }
     ~scoped_lock()
     {
 #if 0
       if (locking)
-        pthread_mutex_unlock(mutex);
+	pthread_mutex_unlock(mutex);
 #endif
     }
   };
@@ -4016,11 +4018,11 @@ struct WinMMPortDescriptor:public PortDescriptor
   bool is_valid() const {
     if (is_input) {
       if (midiInGetNumDevs() <= port) {
-        return false;
+	return false;
       }
     } else {
       if (midiOutGetNumDevs() <= port) {
-        return false;
+	return false;
       }
     }
     return seq.getPortName(port,is_input,PortDescriptor::STORAGE_PATH)
@@ -4145,18 +4147,18 @@ struct WinMMCallbacks {
       else if ( status < 0xE0 ) nBytes = 2;
       else if ( status < 0xF0 ) nBytes = 3;
       else if ( status == 0xF1 ) {
-        if ( data->ignoreFlags & 0x02 ) return;
-        else nBytes = 2;
+	if ( data->ignoreFlags & 0x02 ) return;
+	else nBytes = 2;
       }
       else if ( status == 0xF2 ) nBytes = 3;
       else if ( status == 0xF3 ) nBytes = 2;
       else if ( status == 0xF8 && (data->ignoreFlags & 0x02) ) {
-        // A MIDI timing tick message and we're ignoring it.
-        return;
+	// A MIDI timing tick message and we're ignoring it.
+	return;
       }
       else if ( status == 0xFE && (data->ignoreFlags & 0x04) ) {
-        // A MIDI active sensing message and we're ignoring it.
-        return;
+	// A MIDI active sensing message and we're ignoring it.
+	return;
       }
 
       // Copy bytes to our MIDI message.
@@ -4166,9 +4168,9 @@ struct WinMMCallbacks {
     else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
       MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
       if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
-        // Sysex message and we're not ignoring it
-        for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-          apiData->message.bytes.push_back( sysex->lpData[i] );
+	// Sysex message and we're not ignoring it
+	for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
+	  apiData->message.bytes.push_back( sysex->lpData[i] );
       }
 
       // The WinMM API requires that the sysex buffer be requeued after
@@ -4180,20 +4182,20 @@ struct WinMMCallbacks {
       // avoid requeueing it, else the computer suddenly reboots after
       // one or two minutes.
       if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-        //if ( sysex->dwBytesRecorded > 0 ) {
-        EnterCriticalSection( &(apiData->_mutex) );
-        MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-        LeaveCriticalSection( &(apiData->_mutex) );
-        if ( result != MMSYSERR_NOERROR ){
-          try {
-            data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
+	//if ( sysex->dwBytesRecorded > 0 ) {
+	EnterCriticalSection( &(apiData->_mutex) );
+	MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
+	LeaveCriticalSection( &(apiData->_mutex) );
+	if ( result != MMSYSERR_NOERROR ){
+	  try {
+	    data->error(RTMIDI_ERROR(rtmidi_gettext("Error sending sysex to Midi device."),
 				     Error::WARNING));
-          } catch (Error e) {
-            // don't bother WinMM with an unhandled exception
-          }
-        }
+	  } catch (Error e) {
+	    // don't bother WinMM with an unhandled exception
+	  }
+	}
 
-        if ( data->ignoreFlags & 0x01 ) return;
+	if ( data->ignoreFlags & 0x01 ) return;
       }
       else return;
     }
@@ -4204,18 +4206,18 @@ struct WinMMCallbacks {
     else {
       // As long as we haven't reached our queue size limit, push the message.
       if ( data->queue.size < data->queue.ringSize ) {
-        data->queue.ring[data->queue.back++] = apiData->message;
-        if ( data->queue.back == data->queue.ringSize )
-          data->queue.back = 0;
-        data->queue.size++;
+	data->queue.ring[data->queue.back++] = apiData->message;
+	if ( data->queue.back == data->queue.ringSize )
+	  data->queue.back = 0;
+	data->queue.size++;
       }
       else {
-        try {
-          data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	try {
+	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
-        } catch (Error e) {
-          // don't bother WinMM with an unhandled exception
-        }
+	} catch (Error e) {
+	  // don't bother WinMM with an unhandled exception
+	}
       }
     }
 
@@ -4440,10 +4442,10 @@ void MidiInWinMM :: closePort( void )
       delete [] data->sysexBuffer[i]->lpData;
       delete [] data->sysexBuffer[i];
       if ( result != MMSYSERR_NOERROR ) {
-        midiInClose( data->inHandle );
-        error(RTMIDI_ERROR(gettext_noopt("Error closing Windows MM MIDI input port."),
+	midiInClose( data->inHandle );
+	error(RTMIDI_ERROR(gettext_noopt("Error closing Windows MM MIDI input port."),
 			   Error::DRIVER_ERROR) );
-        return;
+	return;
       }
     }
 
@@ -4772,7 +4774,7 @@ void MidiOutWinMM :: sendMessage( std::vector<unsigned char> &message )
   }
 }
 #undef RTMIDI_CLASSNAME
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
 #endif  // __WINDOWS_MM__
 
 
@@ -4793,7 +4795,7 @@ NAMESPACE_RTMIDI_END
 
 #define JACK_RINGBUFFER_SIZE 16384 // Default size for ringbuffer
 
-NAMESPACE_RTMIDI_START
+RTMIDI_NAMESPACE_START
 
 struct JackMidiData;
 struct JackBackendCallbacks {
@@ -4831,10 +4833,10 @@ public:
     {
       scoped_lock lock (mutex);
       if (client) {
-        jack_deactivate (client);
-        // the latter doesn't flush the queue
-        jack_client_close (client);
-        client = 0;
+	jack_deactivate (client);
+	// the latter doesn't flush the queue
+	jack_client_close (client);
+	client = 0;
       }
     }
     if (locking) {
@@ -4874,7 +4876,7 @@ public:
     switch (naming) {
     case PortDescriptor::SESSION_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "JACK:";
+	os << "JACK:";
 #if __UNIX_JACK_HAS_UUID__
       os << "UUID:" << std::hex << jack_port_uuid(port);
 #else
@@ -4883,19 +4885,19 @@ public:
       break;
     case PortDescriptor::STORAGE_PATH:
       if (flags & PortDescriptor::INCLUDE_API)
-        os << "JACK:";
+	os << "JACK:";
       os << jack_port_name(port);
       break;
     case PortDescriptor::LONG_NAME:
       os << jack_port_name(port);
       if (flags & PortDescriptor::INCLUDE_API)
-        os << " (JACK)";
+	os << " (JACK)";
       break;
     case PortDescriptor::SHORT_NAME:
     default:
       os << jack_port_short_name(port);
       if (flags & PortDescriptor::INCLUDE_API)
-        os << " (JACK)";
+	os << " (JACK)";
       break;
     }
     return os.str();
@@ -4969,12 +4971,12 @@ protected:
     scoped_lock(pthread_mutex_t & m): mutex(&m)
     {
       if (locking)
-        pthread_mutex_lock(mutex);
+	pthread_mutex_lock(mutex);
     }
     ~scoped_lock()
     {
       if (locking)
-        pthread_mutex_unlock(mutex);
+	pthread_mutex_unlock(mutex);
     }
   };
   pthread_mutex_t mutex;
@@ -4996,16 +4998,16 @@ protected:
       if (( c = jack_client_open( name.c_str(),
 				  JackNoStartServer,
 				  NULL )) == 0) {
-        c = NULL;
-        throw RTMIDI_ERROR(gettext_noopt("Could not connect to JACK server. Is it runnig?"),
+	c = NULL;
+	throw RTMIDI_ERROR(gettext_noopt("Could not connect to JACK server. Is it runnig?"),
 			   Error::NO_DEVICES_FOUND);
-        return;
+	return;
       }
 
       if (isoutput && data) {
-        jack_set_process_callback( c, JackBackendCallbacks::jackProcessOut, data );
+	jack_set_process_callback( c, JackBackendCallbacks::jackProcessOut, data );
       } else if (data)
-        jack_set_process_callback( c, JackBackendCallbacks::jackProcessIn, data );
+	jack_set_process_callback( c, JackBackendCallbacks::jackProcessIn, data );
       jack_activate( c );
     }
   }
@@ -5274,24 +5276,24 @@ int JackBackendCallbacks::jackProcessIn( jack_nframes_t nframes, void *arg )
 
     if ( !rtData->continueSysex ) {
       if ( rtData->userCallback ) {
-        rtData->userCallback->rtmidi_midi_in( message.timeStamp, message.bytes);
+	rtData->userCallback->rtmidi_midi_in( message.timeStamp, message.bytes);
       }
       else {
-        // As long as we haven't reached our queue size limit, push the message.
-        if ( rtData->queue.size < rtData->queue.ringSize ) {
-          rtData->queue.ring[rtData->queue.back++] = message;
-          if ( rtData->queue.back == rtData->queue.ringSize )
-            rtData->queue.back = 0;
-          rtData->queue.size++;
-        }
-        else {
-          try {
-            rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
+	// As long as we haven't reached our queue size limit, push the message.
+	if ( rtData->queue.size < rtData->queue.ringSize ) {
+	  rtData->queue.ring[rtData->queue.back++] = message;
+	  if ( rtData->queue.back == rtData->queue.ringSize )
+	    rtData->queue.back = 0;
+	  rtData->queue.size++;
+	}
+	else {
+	  try {
+	    rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				       Error::WARNING));
-          } catch (Error e) {
-            // don't bother WinMM with an unhandled exception
-          }
-        }
+	  } catch (Error e) {
+	    // don't bother WinMM with an unhandled exception
+	  }
+	}
       }
     }
   }
@@ -5505,12 +5507,12 @@ Pointer<PortDescriptor> MidiInJack :: getDescriptor(bool local)
   try {
     if (local) {
       if (data && data->local) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new JackPortDescriptor(data->local,data->getClientName()));
       }
     } else {
       if (data && *data) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new JackPortDescriptor(*data,data->getClientName()));
       }
     }
@@ -5727,12 +5729,12 @@ Pointer<PortDescriptor> MidiOutJack :: getDescriptor(bool local)
   try {
     if (local) {
       if (data && data->local) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new JackPortDescriptor(data->local,data->getClientName()));
       }
     } else {
       if (data && *data) {
-        return Pointer<PortDescriptor>(
+	return Pointer<PortDescriptor>(
 				       new JackPortDescriptor(*data,data->getClientName()));
       }
     }
@@ -5824,6 +5826,6 @@ void MidiOutJack :: sendMessage( std::vector<unsigned char> &message )
   jack_ringbuffer_write( data->buffSize, ( char * ) &nBytes, sizeof( nBytes ) );
 }
 #undef RTMIDI_CLASSNAME
-NAMESPACE_RTMIDI_END
+RTMIDI_NAMESPACE_END
 #endif  // __UNIX_JACK__
 

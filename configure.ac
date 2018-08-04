@@ -12,6 +12,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Fill GXX with something before test.
 AC_SUBST( GXX, ["no"] )
+
 AC_CONFIG_MACRO_DIR([m4])
 
 rtmidi_suffix="-ts"

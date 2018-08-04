@@ -8,7 +8,7 @@ DLLPROGRAMS += %D%/.libs/librtmidi@rtmidi_suffix@.*
 %C%_librtmidi@rtmidi_suffix@_la_LDFLAGS = \
 	$(RTMIDI_LIBS) \
 	$(LDADD) \
-	-version-info 3:0:0 \
+	-version-info 3:1:0 \
 	-no-undefined \
 	-v
 %C%_librtmidi@rtmidi_suffix@_la_CXXFLAGS = \
@@ -18,7 +18,9 @@ DLLPROGRAMS += %D%/.libs/librtmidi@rtmidi_suffix@.*
 	-DRTMIDI_NO_WARN_DEPRECATED
 %C%_librtmidi@rtmidi_suffix@_la_SOURCES = \
   %D%/RtMidi.cpp \
-  %D%/RtMidi.h
+  %D%/RtMidi.h \
+  %D%/rtmidi_c.cpp \
+  %D%/rtmidi_c.h
 
 EXTRA_DIST += \
 	$(RTMIDICONFIGRPATH) \

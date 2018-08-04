@@ -42,10 +42,38 @@ AC_ARG_ENABLE(debug,
 	[
 	AC_SUBST( RTMIDI_CPPFLAGS, [-D__RTMIDI_DEBUG__] )
 	AC_SUBST( RTMIDI_CXXFLAGS, [-g] )
+	AC_SUBST( object_path, [Debug] )
 	AC_MSG_RESULT(yes)],
 	[AC_SUBST( RTMIDI_CPPFLAGS, [] )
 	AC_SUBST( RTMIDI_CXXFLAGS, [-O3] )
+	AC_SUBST( object_path, [Release] )
 	AC_MSG_RESULT(no)])
+
+
+# Checks for doxygen
+AC_CHECK_PROG( DOXYGEN, [doxygen], [doxygen] )
+AM_CONDITIONAL( MAKE_DOC, [test "x${DOXYGEN}" != x] )
+
+# Copy doc files to build dir if necessary
+AC_CONFIG_LINKS( [doc/doxygen/Doxyfile:doc/doxygen/Doxyfile] )
+AC_CONFIG_LINKS( [doc/doxygen/footer.html:doc/doxygen/footer.html] )
+AC_CONFIG_LINKS( [doc/doxygen/header.html:doc/doxygen/header.html] )
+AC_CONFIG_LINKS( [doc/doxygen/tutorial.txt:doc/doxygen/tutorial.txt] )
+AC_CONFIG_LINKS( [doc/images/ccrma.gif:doc/images/ccrma.gif] )
+AC_CONFIG_LINKS( [doc/images/mcgill.gif:doc/images/mcgill.gif] )
+
+# Checks for package options and external software
+AC_CANONICAL_HOST
+
+AC_SUBST( rtmidisharedlib, ["librtmidi${rtmidi_suffix}.so"] )
+AC_SUBST( rtmidisharedname, ["librtmidi${rtmidi_suffix}.so.\$(RELEASE)"] )
+AC_SUBST( rtmidilibflags, ["-shared -Wl,-soname,\$(SHARED).\$(MAJOR) -o \$(SHARED).\$(RELEASE)"] )
+case $host in
+  *-apple*)
+  AC_SUBST( rtmidisharedlib, ["librtmidi${rtmid_suffix}.dylib"] )
+  AC_SUBST( rtmidisharedname, ["librtmidi${rtmid_suffix}.\$(RELEASE).dylib"] )
+  AC_SUBST( rtmidilibflags, ["-dynamiclib -o librtmidi.\$(RELEASE).dylib"] )
+esac
 
 dnl # Set paths if prefix is defined
 dnl if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then

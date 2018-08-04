@@ -6,11 +6,23 @@ test -z "$srcdir" && srcdir=.
 
 DIE=0
 
+if test -z "$*"; then
+  echo "**Warning**: I am going to run \`configure' with arguments for"
+  echo "developer/maintainer mode.  If you wish to pass extra arguments,"
+  echo "(such as --prefix), please specify them on the \`$0'"
+  echo "command line."
+  echo "If you wish to run configure yourself, please specify --no-configure."
+  echo
+fi
+
 (test -f $srcdir/configure.ac) || {
     echo -n "**Error**: Directory "\`$srcdir\'" does not look like the"
     echo " top-level package directory"
     exit 1
 }
+
+if ! autoreconf --version </dev/null >/dev/null 2>&1
+then
 
 (autoconf --version) < /dev/null > /dev/null 2>&1 || {
   echo
@@ -55,13 +67,6 @@ if test "$DIE" -eq 1; then
   exit 1
 fi
 
-if test -z "$*"; then
-  echo "**Warning**: I am going to run \`configure' with no arguments."
-  echo "If you wish to pass any to it, please specify them on the"
-  echo \`$0\'" command line."
-  echo
-fi
-
 # Make some directories required by automake, if they don't exist
 if ! [ -d config ]; then mkdir -v config; fi
 if ! [ -d m4     ]; then mkdir -v m4;     fi
@@ -79,6 +84,13 @@ echo "Running automake --gnu $am_opt ..."
 automake --add-missing --gnu $am_opt || exit 1
 echo "Running autoconf ..."
 autoconf || exit 1
+
+else # autoreconf instead
+
+    echo "Running autoreconf --verbose --install ..."
+    autoreconf --verbose --install || exit 1
+
+fi
 
 if ( echo "$@" | grep -q -e "--no-configure" ); then
   NOCONFIGURE=1

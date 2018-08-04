@@ -3,8 +3,8 @@
 AC_INIT(RtMidi-ts, 3.0, keinstein_junior@gmx.net, rtmidi-ts)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
-AC_CONFIG_FILES([rtmidi-config librtmidi.pc Makefile po/Makefile.in])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
+AC_CONFIG_FILES([Makefile doc/Makefile po/Makefile.in rtmidi-config rtmidi.pc],[chmod oug+x rtmidi-config])
+AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
 
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
@@ -15,13 +15,17 @@ AC_SUBST( GXX, ["no"] )
 
 AC_CONFIG_MACRO_DIR([m4])
 
+# Set paths if prefix is defined
+if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
+  LIBS="$LIBS -L$prefix/lib"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include/rtmidi"
+fi
+
 rtmidi_suffix="-ts"
 rtmidi_standalone="yes"
 SUBDIRS="$SUBDIRS %D%/po"
 m4_include(configure.library)
 
 
-
 AC_OUTPUT
 
-chmod oug+x rtmidi-config

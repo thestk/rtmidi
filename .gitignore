@@ -3,6 +3,7 @@
 /doc/html
 Makefile
 Makefile.in
+/doc/Makefile.in
 /aclocal.m4
 /autom4te.cache
 /configure

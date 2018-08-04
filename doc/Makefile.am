@@ -15,10 +15,16 @@ DOC_DIR=$(HTML_DIR)
 
 all-local: doxygen-build.stamp
 
+if MAKE_DOC
 doxygen-build.stamp: doxygen/$(DOX) $(top_srcdir)/RtMidi.h $(top_srcdir)/rtmidi_c.h
 	@echo '*** Running doxygen ***'
 	cd doxygen; $(DOXYGEN) $(DOX)
 	touch doxygen-build.stamp
+else
+doxygen-build.stamp:
+	touch "$@"
+	mkdir html
+endif
 
 clean-local:
 	rm -f *~ *.bak $(DOC_STAMPS) || true

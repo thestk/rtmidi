@@ -38,10 +38,10 @@ Compilation
 
 This distribution of RtMidi contains the following:
 
-doc:      RtMidi documentation (see doc/html/index.html)
-tests:    example RtMidi programs
+- doc:      [RtMidi documentation](doc/html/index.html)
+- tests:    example RtMidi programs
 
-On unix systems, type "./configure" in the top level directory, then "make" in the tests/ directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the tests/ directory.
+On unix systems, type `./configure` in the top level directory, then `make` in the tests/ directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the tests/ directory.
 
 If you checked out the code from git, please run "autoreconf" before "./configure".
 

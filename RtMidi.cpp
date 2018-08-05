@@ -47,7 +47,7 @@
 #define RTMIDI_FALLTHROUGH
 #endif
 
-#if defined(__MACOSX_CORE__)
+#if defined(__MACOSX_COREMIDI__)
 #if TARGET_OS_IPHONE
 #define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
 #define AudioConvertHostTimeToNanos CAHostTimeBase::ConvertToNanos
@@ -1407,8 +1407,9 @@ protected:
       OSStatus result = MIDIClientCreate(cfname, NULL, NULL, &client );
       CFRelease(cfname);
       if ( result != noErr ) {
-	throw RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI client object."),
-			   Error::DRIVER_ERROR);
+	throw RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI client object (Error no: %d."),
+			   Error::DRIVER_ERROR,
+			   result);
 	return;
       }
     }

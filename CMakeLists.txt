@@ -29,7 +29,9 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type (Release,Debug)")
 
 # API Options
 option(RTMIDI_API_JACK "Compile with JACK support." ${HAVE_JACK})
-option(RTMIDI_API_ALSA "Compile with ALSA support." ${UNIX})
+if(UNIX AND NOT APPLE)
+  option(RTMIDI_API_ALSA "Compile with ALSA support." ON)
+endif()
 option(RTMIDI_API_WINMM "Compile with WINMM support." ${WIN32})
 option(RTMIDI_API_CORE "Compile with CoreMIDI support." ${APPLE})
 
@@ -242,7 +244,7 @@ install(EXPORT RtMidiTargets
 
 # Configure uninstall target.
 configure_file(
-    "${CMAKE_SOURCE_DIR}/cmake/RtMidiConfigUninstall.cmake.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RtMidiConfigUninstall.cmake.in"
     "${CMAKE_BINARY_DIR}/RtMidiConfigUninstall.cmake" @ONLY)
 
 # Create uninstall target.

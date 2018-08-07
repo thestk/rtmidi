@@ -4,6 +4,16 @@
 #include "RtMidi.h"
 
 #define RTMIDI_CLASSNAME "C interface"
+class CallbackProxyUserData
+{
+  public:
+	CallbackProxyUserData (RtMidiCCallback cCallback, void *userData)
+		: c_callback (cCallback), user_data (userData)
+	{
+	}
+	RtMidiCCallback c_callback;
+	void *user_data;
+};
 
 /* misc */
 int rtmidi_sizeof_rtmidi_api ()
@@ -132,12 +142,14 @@ RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsign
     try {
         rtmidi::MidiIn* rIn = new rtmidi::MidiIn ((rtmidi::ApiType) api, name, queueSizeLimit);
         
-        wrp->ptr = rIn;
+        wrp->ptr = (void*) rIn;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
 
     } catch (const RtMidiError & err) {
-        wrp->ptr = 0; 
+        wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -147,6 +159,8 @@ RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsign
 
 void rtmidi_in_free (RtMidiInPtr device)
 {
+    if (device->data)
+      delete (CallbackProxyUserData*) device->data;
     delete (rtmidi::MidiIn*) device->ptr;
     delete device;
 }
@@ -164,17 +178,7 @@ enum RtMidiApi rtmidi_in_get_current_api (RtMidiInPtr device)
     }
 }
 
-class CallbackProxyUserData
-{
-  public:
-	CallbackProxyUserData (RtMidiCCallback cCallback, void *userData)
-		: c_callback (cCallback), user_data (userData)
-	{
-	}
-	RtMidiCCallback c_callback;
-	void *user_data;
-};
-
+static
 void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void *userData)
 {
 	CallbackProxyUserData* data = reinterpret_cast<CallbackProxyUserData*> (userData);
@@ -183,13 +187,14 @@ void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)
 {
+    device->data = (void*) new CallbackProxyUserData (callback, userData);
     try {
-        void *data = (void *) new CallbackProxyUserData (callback, userData);
-	((rtmidi::MidiIn*)device->ptr)->setCallback (callback_proxy, data);
-    
+	((rtmidi::MidiIn*)device->ptr)->setCallback (callback_proxy, device->data);
     } catch (const RtMidiError & err) {
         device->ok  = false;
         device->msg = err.what ();
+        delete (CallbackProxyUserData*) device->data;
+        device->data = 0;
     }
 }
 
@@ -197,6 +202,8 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
 {
     try {
 	((rtmidi::MidiIn*)device->ptr)->cancelCallback ();
+        delete (CallbackProxyUserData*) device->data;
+        device->data = 0;
     } catch (const RtMidiError & err) {
         device->ok  = false;
         device->msg = err.what ();

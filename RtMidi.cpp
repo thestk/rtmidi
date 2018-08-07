@@ -3136,7 +3136,8 @@ unsigned int portInfo( snd_seq_t *seq, snd_seq_port_info_t *pinfo, unsigned int 
     snd_seq_port_info_set_port( pinfo, -1 );
     while ( snd_seq_query_next_port( seq, pinfo ) >= 0 ) {
       unsigned int atyp = snd_seq_port_info_get_type( pinfo );
-      if ( ( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC ) == 0 ) continue;
+      if ( ( ( atyp & SND_SEQ_PORT_TYPE_MIDI_GENERIC ) == 0 ) &&
+	   ( ( atyp & SND_SEQ_PORT_TYPE_SYNTH ) == 0 ) ) continue;
       unsigned int caps = snd_seq_port_info_get_capability( pinfo );
       if ( ( caps & type ) != type ) continue;
       if ( count == portNumber ) return 1;

@@ -15,16 +15,19 @@ extern "C" {
 
 struct RtMidiWrapper {
     void* ptr;
+    void* data;
     bool  ok;
     const char* msg;
 };
 struct RtMidiInWrapper {
     void* ptr;
+    void* data;
     bool  ok;
     const char* msg;
 };
 struct RtMidiOutWrapper {
     void* ptr;
+    void* data;
     bool  ok;
     const char* msg;
 };

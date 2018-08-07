@@ -1,5 +1,6 @@
 
 #include <stdbool.h>
+#include <stddef.h>
 #ifndef RTMIDI_C_H
 #define RTMIDI_C_H
 

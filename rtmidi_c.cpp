@@ -310,8 +310,7 @@ int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, 
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
-        std::vector<unsigned char> v(length);
-        memcpy (v.data (), message, length);
+        std::vector<unsigned char> v(message, message + length);
         ((rtmidi::MidiOut*) device->ptr)->sendMessage (v);
         return 0;
     }

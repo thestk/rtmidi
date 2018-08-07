@@ -41,7 +41,7 @@ This distribution of RtMidi contains the following:
 - doc:      RtMidi documentation (also online at http://music.mcgill.ca/~gary/rtmidi/)
 - tests:    example RtMidi programs
 
-On unix systems, type `./configure` in the top level directory, then `make` in the tests/ directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the tests/ directory.
+On Unix systems, type `./configure` in the top level directory, then `make` in the tests/ directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the tests/ directory.
 
 If you checked out the code from git, please run "autoreconf" before "./configure".
 
@@ -66,8 +66,7 @@ For complete documentation on the original RtMidi, see the doc directory of the 
 Legal and ethical
 -----------------
 
-The RtMidi license is similar to the the MIT License, with the added
-"feature" that modifications be sent to the developer.
+The RtMidi license is similar to the MIT License, with the added *feature* that modifications be sent to the developer.
 
     RtMidi: realtime MIDI i/o C++ classes
     Copyright (c) 2003-2016 Gary P. Scavone
@@ -83,9 +82,7 @@ The RtMidi license is similar to the the MIT License, with the added
     The above copyright notice and this permission notice shall be
     included in all copies or substantial portions of the Software.
 
-    Any person wishing to distribute modifications to the Software is
-    asked to send the modifications to the original developer so that
-    they can be incorporated into the canonical version.  This is,
+    Any person wishing to distribute modifications to the Software is asked to send the modifications to the original developer so that they can be incorporated into the canonical version.  This is,
     however, not a binding provision of this license.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,

@@ -76,36 +76,7 @@ Latest Release (11 February 2016): <A href="http://www.music.mcgill.ca/~gary/rtm
 
 The first thing that must be done when using RtMidi is to create an instance of the rtmidi::MidiIn or rtmidi::MidiOut subclasses.  rtmidi::Midi is an abstract base class, which itself cannot be instantiated.  Each default constructor attempts to establish any necessary "connections" with the underlying MIDI system.  RtMidi uses C++ exceptions to report errors, necessitating try/catch blocks around many member functions.  An rtmidi::Error can be thrown during instantiation in some circumstances.  A warning message may also be reported if no MIDI devices are found during instantiation.  The RtMidi classes have been designed to work with "hot pluggable" or virtual (software) MIDI devices, making it possible to connect to MIDI devices that may not have been present when the classes were instantiated.  The following code example demonstrates default object construction and destruction:
 
-\code
-
-#include "RtMidi.h"
-
-int main()
-{
-  rtmidi::MidiIn *midiin = 0;
-
-  try {
-    // MidiIn constructor
-    try {
-      midiin = new rtmidi::MidiIn();
-    }
-    catch (rtmidi::Error &error) {
-      // Handle the exception here
-      error.printMessage();
-    }
-
-    /* put your code here */
-
-    // Clean up
-    delete midiin;
-    midiin = 0;
-  } catch (...) {
-    // avoid resource leaks in case of exceptions thrown by your code
-    delete midiin;
-    throw;
-  }
-}
-\endcode
+\include getting_started.cpp
 
 Obviously, this example doesn't demonstrate any of the real functionality of RtMidi.  However, all uses of RtMidi must begin with construction and must end with class destruction.  Further, it is necessary that all class methods that can throw a C++ exception be called within a try/catch block.
 

@@ -14,7 +14,9 @@ check_PROGRAMS += \
 	%D%/qmidiin2 \
 	%D%/midiout2 \
 	%D%/loopback \
-	%D%/errors
+	%D%/errors \
+	%D%/midiclock_in \
+	%D%/midiclock_out
 
 TESTS += \
 	%D%/midiprobe \
@@ -25,8 +27,13 @@ TESTS += \
 CLEANFILES += \
 	%D%/*.class
 
-EXTRA_DIST += cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
-	sysextest.dsp RtMidi.dsw
+EXTRA_DIST += \
+	%D%/cmidiin.dsp \
+	%D%/midiout.dsp \
+	%D%/midiprobe.dsp \
+	%D%/qmidiin.dsp	\
+	%D%/sysextest.dsp \
+	%D%/RtMidi.dsw
 
 
 if RTMIDI_HAVE_VIRTUAL_DEVICES
@@ -46,6 +53,8 @@ endif
 %C%_midiout2_SOURCES       = %D%/midiout2.cpp
 %C%_loopback_SOURCES       = %D%/loopback.cpp
 %C%_errors_SOURCES         = %D%/errors.cpp
+%C%_midiclock_in_SOURCES   = %D%/midiclock.cpp
+%C%_midiclock_out_SOURCES  = %D%/midiclock.cpp
 
 # When a nonstandard gettext library or wrapper is used,
 # we need extra flags.
@@ -61,6 +70,8 @@ endif
 %C%_midiout2_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
 %C%_loopback_CXXFLAGS      = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
 %C%_errors_CXXFLAGS        = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
+%C%_midiclock_in_CXXFLAGS  = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
+%C%_midiclock_out_CXXFLAGS = $(AM_CXXFLAGS) $(RTMIDITESTCXXFLAGS) -DRTMIDI_NO_WARN_DEPRECATED
 
 
 %C%_midiprobe_LDFLAGS      = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
@@ -75,6 +86,8 @@ endif
 %C%_midiout2_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
 %C%_loopback_LDFLAGS       = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
 %C%_errors_LDFLAGS         = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_midiclock_in_LDFLAGS   = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
+%C%_midiclock_out_LDFLAGS  = $(AM_LDFLAGS) $(RTMIDITESTLDFLAGS)
 
 
 %C%_midiprobe_LDADD      = $(RTMIDILIBRARYNAME)
@@ -89,6 +102,8 @@ endif
 %C%_midiout2_LDADD       = $(RTMIDILIBRARYNAME)
 %C%_loopback_LDADD       = $(RTMIDILIBRARYNAME)
 %C%_errors_LDADD         = $(RTMIDILIBRARYNAME)
+%C%_midiclock_in_LDADD   = $(RTMIDILIBRARYNAME)
+%C%_midiclock_out_LDADD  = $(RTMIDILIBRARYNAME)
 
 
 if RTMIDICOPYDLLS

@@ -1,6 +1,5 @@
 
 #include <stdbool.h>
-
 #ifndef RTMIDI_C_H
 #define RTMIDI_C_H
 
@@ -11,26 +10,28 @@
 #endif
 
 #ifdef __cplusplus
-namespace rtmidi {
-	class Midi;
-	class MidiIn;
-	class MidiOut;
-}
-typedef rtmidi::Midi CRtMidi;
-typedef rtmidi::MidiIn CRtMidiIn;
-typedef rtmidi::MidiOut CRtMidiOut;
 extern "C" {
-	
-#else
-struct CRtMidi;
-struct CRtMidiIn;
-struct CRtMidiOut;
 #endif
 
-	
-typedef CRtMidi* RtMidiPtr;
-typedef CRtMidiIn* RtMidiInPtr;
-typedef CRtMidiOut* RtMidiOutPtr;
+struct RtMidiWrapper {
+    void* ptr;
+    bool  ok;
+    const char* msg;
+};
+struct RtMidiInWrapper {
+    void* ptr;
+    bool  ok;
+    const char* msg;
+};
+struct RtMidiOutWrapper {
+    void* ptr;
+    bool  ok;
+    const char* msg;
+};
+
+typedef struct RtMidiWrapper* RtMidiPtr;
+typedef struct RtMidiInWrapper* RtMidiInPtr;
+typedef struct RtMidiOutWrapper* RtMidiOutPtr;
 
   enum RtMidiApi {
     RT_MIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */
@@ -71,7 +72,7 @@ RTMIDIAPI enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device);
 RTMIDIAPI void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData);
 RTMIDIAPI void rtmidi_in_cancel_callback (RtMidiInPtr device);
 RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense);
-RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message);
+RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message, size_t * size);
 
 /* RtMidiOut API */
 RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default ();

@@ -41,7 +41,7 @@
 #include <cstring>
 #include <algorithm>
 
-NAMSPACE_RTMIDI_START
+NAMESPACE_RTMIDI_START
 //*********************************************************************//
 //  Midi Definitions
 //*********************************************************************//
@@ -405,7 +405,7 @@ static inline std::string &rtrim(std::string &s) {
 static inline std::string &trim(std::string &s) {
   return ltrim(rtrim(s));
 }
-NAMSPACE_RTMIDI_END
+NAMESPACE_RTMIDI_END
 
 // *************************************************** //
 //
@@ -425,7 +425,7 @@ NAMSPACE_RTMIDI_END
 #include <CoreServices/CoreServices.h>
 
 
-NAMSPACE_RTMIDI_START
+NAMESPACE_RTMIDI_START
 /*! An abstraction layer for the CORE sequencer layer. It provides
   the following functionality:
   - dynamic allocation of the sequencer
@@ -1310,14 +1310,14 @@ struct CorePortDescriptor:public PortDescriptor	{
   }
   ~CorePortDescriptor() {}
 
-  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) const {
     if (getCapabilities() & INPUT)
       return new MidiInCore(clientName,queueSizeLimit);
     else
       return 0;
   }
 
-  MidiOutApi * getOutputApi() {
+  MidiOutApi * getOutputApi() const {
     if (getCapabilities() & OUTPUT)
       return new MidiOutCore(clientName);
     else
@@ -1340,7 +1340,7 @@ struct CorePortDescriptor:public PortDescriptor	{
   const std::string & getClientName() {
     return clientName;
   }
-  int getCapabilities() {
+  int getCapabilities() const {
     if (!endpoint) return 0;
     return seq.getPortCapabilities(endpoint);
   }
@@ -2098,7 +2098,7 @@ void MidiOutCore :: sendMessage( std::vector<unsigned char> &message )
     }
   }
 }
-NAMSPACE_RTMIDI_END
+NAMESPACE_RTMIDI_END
 #endif  // __MACOSX_CORE__
 
 
@@ -2127,7 +2127,7 @@ NAMSPACE_RTMIDI_END
 // ALSA header file.
 #include <alsa/asoundlib.h>
 
-NAMSPACE_RTMIDI_START
+NAMESPACE_RTMIDI_START
 struct AlsaMidiData;
 
 /*! An abstraction layer for the ALSA sequencer layer. It provides
@@ -2413,13 +2413,13 @@ struct AlsaPortDescriptor:public PortDescriptor,
     seq.setName(name);
   }
   ~AlsaPortDescriptor() {}
-  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) const {
     if (getCapabilities() & INPUT)
       return new MidiInAlsa(clientName,queueSizeLimit);
     else
       return 0;
   }
-  MidiOutApi * getOutputApi() {
+  MidiOutApi * getOutputApi() const {
     if (getCapabilities() & OUTPUT)
       return new MidiOutAlsa(clientName);
     else
@@ -2432,7 +2432,7 @@ struct AlsaPortDescriptor:public PortDescriptor,
   const std::string & getClientName() {
     return clientName;
   }
-  int getCapabilities() {
+  int getCapabilities() const {
     if (!client) return 0;
     return seq.getPortCapabilities(client,port);
   }
@@ -2442,7 +2442,6 @@ protected:
 };
 
 LockingAlsaSequencer AlsaPortDescriptor::seq;
-
 
 
 PortList AlsaPortDescriptor :: getPortList(int capabilities, const std::string & clientName)
@@ -3517,7 +3516,7 @@ PortList MidiOutAlsa :: getPortList(int capabilities)
   return AlsaPortDescriptor::getPortList(capabilities | PortDescriptor::OUTPUT,
 					 data->getClientName());
 }
-NAMSPACE_RTMIDI_END
+NAMESPACE_RTMIDI_END
 #endif // __LINUX_ALSA__
 
 
@@ -4060,7 +4059,7 @@ NAMESPACE_RTMIDI_END
 
 #define JACK_RINGBUFFER_SIZE 16384 // Default size for ringbuffer
 
-NAMSPACE_RTMIDI_START
+NAMESPACE_RTMIDI_START
 
 struct JackMidiData;
 static int jackProcessIn( jack_nframes_t nframes, void *arg );
@@ -4330,13 +4329,13 @@ struct JackPortDescriptor:public PortDescriptor
   ~JackPortDescriptor()
   {
   }
-  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) {
+  MidiInApi * getInputApi(unsigned int queueSizeLimit = 100) const {
     if (getCapabilities() & INPUT)
       return new MidiInJack(clientName,queueSizeLimit);
     else
       return 0;
   }
-  MidiOutApi * getOutputApi() {
+  MidiOutApi * getOutputApi() const {
     if (getCapabilities() & OUTPUT)
       return new MidiOutJack(clientName);
     else
@@ -4351,7 +4350,7 @@ struct JackPortDescriptor:public PortDescriptor
   const std::string & getClientName() {
     return clientName;
   }
-  int getCapabilities() {
+  int getCapabilities() const {
     return seq.getPortCapabilities(port);
   }
   static PortList getPortList(int capabilities, const std::string & clientName);
@@ -5024,6 +5023,6 @@ void MidiOutJack :: sendMessage( std::vector<unsigned char> &message )
 			 message.size() );
   jack_ringbuffer_write( data->buffSize, ( char * ) &nBytes, sizeof( nBytes ) );
 }
-NAMSPACE_RTMIDI_END
+NAMESPACE_RTMIDI_END
 #endif  // __UNIX_JACK__
 

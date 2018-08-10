@@ -1009,10 +1009,8 @@ protected:
 				 clientName(name) {}
   virtual ~Midi()
   {
-    if (rtapi_) {
-      delete rtapi_;
-      rtapi_ = 0;
-    }
+    delete rtapi_;
+    rtapi_ = 0;
   }
 };
 

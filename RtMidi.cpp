@@ -208,8 +208,7 @@ void Midi :: error(Error e)
 #define RTMIDI_CLASSNAME "MidiIn"
 void MidiIn :: openMidiApi( ApiType api )
 {
-  if ( rtapi_ )
-    delete rtapi_;
+  delete rtapi_;
   rtapi_ = 0;
 
   try {
@@ -300,7 +299,7 @@ MidiIn :: MidiIn( ApiType api,
   getCompiledApi( apis );
   for ( unsigned int i=0; i<apis.size(); i++ ) {
     openMidiApi( apis[i] );
-    if ( rtapi_->getPortCount() ) break;
+    if ( rtapi_ && rtapi_->getPortCount() ) break;
   }
 
   if ( rtapi_ ) return;
@@ -324,8 +323,7 @@ MidiIn :: ~MidiIn() throw()
 #define RTMIDI_CLASSNAME "MidiOut"
 void MidiOut :: openMidiApi( ApiType api )
 {
-  if ( rtapi_ )
-    delete rtapi_;
+  delete rtapi_;
   rtapi_ = 0;
 
   try {
@@ -413,7 +411,7 @@ MidiOut :: MidiOut( ApiType api, const std::string & clientName, bool pfsystem )
   getCompiledApi( apis );
   for ( unsigned int i=0; i<apis.size(); i++ ) {
     openMidiApi( apis[i] );
-    if ( rtapi_->getPortCount() ) break;
+    if ( rtapi_ && rtapi_->getPortCount() ) break;
   }
 
   if ( rtapi_ ) return;

@@ -740,7 +740,7 @@ public:
 
   MidiOutApi( void );
   virtual ~MidiOutApi( void );
-  virtual void sendMessage( const std::vector<unsigned char> &message ) = 0;
+  virtual void sendMessage( const unsigned char *message, size_t size ) = 0;
   RTMIDI_DEPRECATED(void sendMessage( const std::vector<unsigned char> *message ),
 		    "Please, use a C++ style reference to pass the message vector.")
   {
@@ -748,7 +748,7 @@ public:
       error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
 			  Error::WARNING));
     }
-    sendMessage(*message);
+    sendMessage(message->data(),message->size());
   }
 };
 #undef RTMIDI_CLASSNAME
@@ -1439,15 +1439,7 @@ public:
   RTMIDI_DEPRECATED(void sendMessage( const std::vector<unsigned char> *message ),
 		    "Please, use a C++ style reference to pass the message vector.")
   {
-    if (!message) {
-      error( RTMIDI_ERROR(gettext_noopt("No data in MIDI message."),
-			  Error::WARNING));
-    }
-    if (rtapi_)
-      static_cast<MidiOutApi *>(rtapi_)->sendMessage(*message);
-    else
-      error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
-			  Error::WARNING));
+    sendMessage(*message);
   }
 
 
@@ -1456,13 +1448,30 @@ public:
     An exception is thrown if an error occurs during output or an
     output connection was not previously established.
   */
+
   void sendMessage( std::vector<unsigned char> &message ) {
+    sendMessage(message.data(), message.size());
+  }
+  //! Immediately send a single message out an open MIDI output port.
+  /*!
+    An exception is thrown if an error occurs during output or an
+    output connection was not previously established.
+
+    \param message A pointer to the MIDI message as raw bytes
+    \param size    Length of the MIDI message in bytes
+  */
+  void sendMessage( const unsigned char *message, size_t size ) {
+    if (!message) {
+      error( RTMIDI_ERROR(gettext_noopt("No data in MIDI message."),
+			  Error::WARNING));
+    }
     if (rtapi_)
-      static_cast<MidiOutApi *>(rtapi_)->sendMessage( message);
+      static_cast<MidiOutApi *>(rtapi_)->sendMessage(message,size);
     else
       error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
 			  Error::WARNING));
   }
+
 protected:
   static MidiApiList queryApis;
   void openMidiApi( ApiType api );
@@ -1527,7 +1536,7 @@ public:
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const std::vector<unsigned char> &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
 protected:
   void initialize( const std::string& clientName );
@@ -1575,7 +1584,7 @@ public:
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const std::vector<unsigned char> &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
 protected:
   std::string clientName;
@@ -1673,7 +1682,7 @@ public:
   void closePort( void );
   unsigned int getPortCount( void );
   std::string getPortName( unsigned int portNumber );
-  void sendMessage( const std::vector<unsigned char> &message );
+  void sendMessage( const unsigned char *message, size_t size );
 
 protected:
   void initialize( const std::string& clientName );
@@ -1734,7 +1743,7 @@ public:
   void closePort( void ) {}
   unsigned int getPortCount( void ) { return 0; }
   std::string getPortName( unsigned int /*portNumber*/ ) { return ""; }
-  void sendMessage( const std::vector<unsigned char> & /*message*/ ) {}
+  void sendMessage( const unsigned char * /*message*/, size_t /*size*/ ) {}
 
 protected:
   void initialize( const std::string& /*clientName*/ ) {}

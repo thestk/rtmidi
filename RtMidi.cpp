@@ -4404,7 +4404,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
     result = midiInPrepareHeader( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
-      data->inHandle = INVALID_HANDLE_VALUE;
+      data->inHandle = 0;
       error(RTMIDI_ERROR(gettext_noopt("Error initializing data for Windows MM MIDI input port."),
 			 Error::DRIVER_ERROR ));
       return;
@@ -4414,7 +4414,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
     result = midiInAddBuffer( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
-      data->inHandle = INVALID_HANDLE_VALUE;
+      data->inHandle = 0;
       error(RTMIDI_ERROR(gettext_noopt("Could not register the input buffer for Windows MM MIDI input port."),
 			 Error::DRIVER_ERROR) );
       return;
@@ -4424,7 +4424,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
   result = midiInStart( data->inHandle );
   if ( result != MMSYSERR_NOERROR ) {
     midiInClose( data->inHandle );
-    data->inHandle = INVALID_HANDLE_VALUE;
+    data->inHandle = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error starting Windows MM MIDI input port."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -4535,8 +4535,8 @@ void MidiInWinMM :: closePort( void )
       delete [] data->sysexBuffer[i]->lpData;
       delete [] data->sysexBuffer[i];
       if ( result != MMSYSERR_NOERROR ) {
-	midiInClose( data->inHandle );
-        data->inHandle = INVALID_HANDLE_VALUE;
+        midiInClose( data->inHandle );
+        data->inHandle = 0;
 	error(RTMIDI_ERROR(gettext_noopt("Error closing Windows MM MIDI input port."),
 			   Error::DRIVER_ERROR) );
 	return;
@@ -4544,7 +4544,7 @@ void MidiInWinMM :: closePort( void )
     }
 
     midiInClose( data->inHandle );
-    data->inHandle = INVALID_HANDLE_VALUE;
+    data->inHandle = 0;
     connected_ = false;
     LeaveCriticalSection( &(data->_mutex) );
   }
@@ -4711,7 +4711,7 @@ void MidiOutWinMM :: closePort( void )
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
     midiOutReset( data->outHandle );
     midiOutClose( data->outHandle );
-    data->outHandle = INVALID_HANDLE_VALUE;
+    data->outHandle = 0;
     connected_ = false;
   }
 }

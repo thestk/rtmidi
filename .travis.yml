@@ -31,7 +31,7 @@ addons:
 before_install:
     - eval "${MATRIX_EVAL}"
     - if test "$TRAVIS_OS_NAME" = osx ; then  brew update ; fi
-    - if test "$TRAVIS_OS_NAME" = osx ; then brew upgrade boost ; fi
+    - if test "$TRAVIS_OS_NAME" = osx ; then if brew upgrade boost ; then echo "upgraded" ; else echo "nothing to be done"; fi ;  fi
     - if test "$TRAVIS_OS_NAME" = osx ; then rm -rf /usr/local/include/c++ ; fi # fix broken gcc installation
     - if test "$TRAVIS_OS_NAME" = osx ; then brew install $EXTRA_BREW  gettext flex bison libtool autoconf jack   doxygen ; fi
     - if test "$TRAVIS_OS_NAME" = osx ; then brew link --force $EXTRA_BREW gettext flex bison libtool autoconf jack ; fi

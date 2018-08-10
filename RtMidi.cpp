@@ -616,7 +616,7 @@ bool MidiInApi::MidiQueue::pop(std::vector<unsigned char> &msg, double& timeStam
     return false;
 
   // Copy queued message to the vector pointer argument and then "pop" it.
-  msg->assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
+  msg.assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
   timeStamp = ring[_front].timeStamp;
   front = (front+1)%ringSize;
   return true;
@@ -2082,7 +2082,7 @@ std::string MidiOutCore :: getPortName( unsigned int portNumber )
 
   portRef = MIDIGetDestination( portNumber );
   nameRef = ConnectedEndpointName(portRef);
-  CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8);
+  CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8 );
   CFRelease( nameRef );
 
   return stringName = name;
@@ -2113,7 +2113,7 @@ void MidiOutCore :: openPort( unsigned int portNumber,
 
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-  OSStatus result = MIDIOutputPortCreate( data->client, 
+  OSStatus result = MIDIOutputPortCreate( data->client,
 					  CFStringWrapper( portName ),
 					  &port );
   if ( result != noErr ) {
@@ -3156,7 +3156,7 @@ MidiInAlsa :: ~MidiInAlsa()
   if ( data->local.client ) data->deletePort();
 #ifndef AVOID_TIMESTAMPING
   snd_seq_free_queue( data->seq, data->queue_id );
-  queue_id = -1;
+  data->queue_id = -1;
 #endif
   delete data;
 }
@@ -3754,7 +3754,6 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
 {
   int result;
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-  unsigned int size = message.size();
   if ( size > data->bufferSize ) {
     data->bufferSize = size;
     result = snd_midi_event_resize_buffer ( data->coder, size);
@@ -3887,6 +3886,34 @@ RTMIDI_NAMESPACE_END
 // Windows MM MIDI header files.
 #include <windows.h>
 #include <mmsystem.h>
+
+// Convert a null-terminated wide string or ANSI-encoded string to UTF-8.
+static std::string ConvertToUTF8(const TCHAR *str)
+{
+  std::string u8str;
+  const WCHAR *wstr = L"";
+#if defined( UNICODE ) || defined( _UNICODE )
+  wstr = str;
+#else
+  // Convert from ANSI encoding to wide string
+  int wlength = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
+  std::wstring wstrtemp;
+  if ( wlength )
+  {
+    wstrtemp.assign( wlength - 1, 0 );
+    MultiByteToWideChar( CP_ACP, 0, str, -1, &wstrtemp[0], wlength );
+    wstr = &wstrtemp[0];
+  }
+#endif
+  // Convert from wide string to UTF-8
+  int length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL );
+  if ( length )
+  {
+    u8str.assign( length - 1, 0 );
+    length = WideCharToMultiByte( CP_UTF8, 0, wstr, -1, &u8str[0], length, NULL, NULL );
+  }
+  return u8str;
+}
 
 #define  RT_SYSEX_BUFFER_SIZE 1024
 #define  RT_SYSEX_BUFFER_COUNT 4
@@ -4567,14 +4594,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
 
   MIDIINCAPS deviceCaps;
   midiInGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIINCAPS));
-
-#if defined( UNICODE ) || defined( _UNICODE )
-  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
-  stringName.assign( length, 0 );
-  length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, static_cast<int>(wcslen(deviceCaps.szPname)), &stringName[0], length, NULL, NULL);
-#else
-  stringName = std::string( deviceCaps.szPname );
-#endif
+  stringName = ConvertToUTF8( deviceCaps.szPname );
 
   // Next lines added to add the portNumber to the name so that
   // the device's names are sure to be listed with individual names
@@ -4647,16 +4667,9 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
 
   MIDIOUTCAPS deviceCaps;
   midiOutGetDevCaps( portNumber, &deviceCaps, sizeof(MIDIOUTCAPS));
+  stringName = ConvertToUTF8( deviceCaps.szPname );
 
-#if defined( UNICODE ) || defined( _UNICODE )
-  int length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, -1, NULL, 0, NULL, NULL) - 1;
-  stringName.assign( length, 0 );
-  length = WideCharToMultiByte(CP_UTF8, 0, deviceCaps.szPname, static_cast<int>(wcslen(deviceCaps.szPname)), &stringName[0], length, NULL, NULL);
-#else
-  stringName = std::string( deviceCaps.szPname );
-#endif
-
-  // Next lines added to add the portNumber to the name so that 
+  // Next lines added to add the portNumber to the name so that
   // the device's names are sure to be listed with individual names
   // even when they have the same brand name
   std::ostringstream os;
@@ -4891,6 +4904,9 @@ RTMIDI_NAMESPACE_END
 #include <jack/jack.h>
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
+#ifdef HAVE_SEMAPHORE
+  #include <semaphore.h>
+#endif
 
 #define JACK_RINGBUFFER_SIZE 16384 // Default size for ringbuffer
 
@@ -5043,13 +5059,10 @@ public:
 		  jack_port_name( to ) );
   }
 
-  void closePort(jack_port_t * from,
-		 jack_port_t * to)
+  void closePort(jack_port_t * port)
   {
     init();
-    jack_disconnect( client,
-		     jack_port_name( from ),
-		     jack_port_name( to ) );
+    jack_port_disconnect( client, port);
   }
 
 
@@ -5237,6 +5250,10 @@ struct JackMidiData:public JackPortDescriptor {
   jack_ringbuffer_t *buffSize;
   jack_ringbuffer_t *buffMessage;
   jack_time_t lastTime;
+#ifdef HAVE_SEMAPHORE
+  sem_t sem_cleanup;
+  sem_t sem_needpost;
+#endif
   MidiInJack *rtMidiIn;
   /*! Sequencer object: This must be deleted _before_ the MIDI data to avoid
     segmentation faults while queued data is still in the ring buffer. */
@@ -5258,6 +5275,10 @@ struct JackMidiData:public JackPortDescriptor {
 					rtMidiIn(inputData_),
 					seq(new NonLockingJackSequencer(clientName,this))
   {
+#ifdef HAVE_SEMAPHORE
+    sem_init(&sem_cleanup, 0, 0);
+    sem_init(&sem_needpost, 0, 0);
+#endif
   }
 
   /**
@@ -5276,6 +5297,10 @@ struct JackMidiData:public JackPortDescriptor {
 					      rtMidiIn(),
 					      seq(new NonLockingJackSequencer(clientName,this))
   {
+#ifdef HAVE_SEMAPHORE
+    sem_init(&sem_cleanup, 0, 0);
+    sem_init(&sem_needpost, 0, 0);
+#endif
   }
 
 
@@ -5285,6 +5310,11 @@ struct JackMidiData:public JackPortDescriptor {
       deletePort();
     if (seq)
       delete seq;
+#ifdef HAVE_SEMAPHORE
+    sem_destroy(&sem_cleanup);
+    sem_destroy(&sem_needpost);
+#endif
+
     if (buffSize) {
       jack_ringbuffer_free( buffSize );
       buffSize = 0;
@@ -5320,18 +5350,106 @@ struct JackMidiData:public JackPortDescriptor {
     return 0;
   }
 
-  void deletePort() {
-    seq->deletePort(local);
-    local = 0;
+  void delayedDeletePort() {
+    /* Closing the port can be twofold to ensure all data is sent:
+       - Use a semaphore to wait for this state
+       - Close the port from within jackProcessOut
+    */
+    if (local == NULL) return;
+
+#ifdef HAVE_SEMAPHORE
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != -1)
+      {
+	ts.tv_sec += 1; // wait max one second
+	sem_post(&sem_needpost);
+	sem_timedwait(&sem_cleanup, &ts);
+      }
+
+    deletePort();
+#else
+    if ( local == NULL || state_response == JackMidiData::CLOSED ) return;
+    stateflags = JackMidiData::CLOSING;
+#endif
+#if defined(__RTMIDI_DEBUG__)
+    std::cerr << "Closed Port" << std::endl;
+#endif
   }
 
-  void closePort(bool output_is_remote) {
-    if (output_is_remote) {
-      seq->closePort( local, port );
-    } else {
-      seq->closePort( port, local );
+  void request_delete() {
+    // signal the output callback to delete the data
+    // after finishing its job.
+    // this can be done twofold:
+    //   - via signal in jackProcessOut
+    //   - using a semaphore
+#ifdef HAVE_SEMAPHORE
+    closePort();
+
+    // Cleanup
+    delete this;
+    return;
+#else
+    stateflags = JackMidiData::DELETING;
+#endif
+  }
+
+  void deletePortIfRequested() {
+#ifdef HAVE_SEMAPHORE
+    if (!sem_trywait(&sem_needpost))
+      sem_post(&sem_cleanup);
+#else
+    switch (stateflags) {
+    case JackMidiData::RUNNING: break;
+    case JackMidiData::CLOSING:
+      if (state_response != JackMidiData::CLOSING2) {
+	/* output the transferred data */
+	state_response = JackMidiData::CLOSING2;
+	return 0;
+      }
+      deletePort();
+      state_response = JackMidiData::CLOSED;
+      break;
+
+    case JackMidiData::DELETING:
+#if defined(__RTMIDI_DEBUG__)
+      std::cerr << "deleting port" << std::endl;
+#endif
+      if (state_response != JackMidiData::DELETING2) {
+	state_response = JackMidiData::DELETING2;
+	/* output the transferred data */
+	return 0;
+      }
+
+      delete this;
+      return;
+#if defined(__RTMIDI_DEBUG__)
+      std::cerr << "deleted port" << std::endl;
+#endif
+      break;
     }
-    port = 0;
+#endif
+  }
+
+  void deletePort() {
+    if (local == NULL)
+      return;
+
+#ifdef HAVE_SEMAPHORE
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != -1) {
+      ts.tv_sec += 2; // wait max two seconds
+      sem_post(&sem_needpost);
+      sem_timedwait(&sem_cleanup, &ts);
+    }
+#endif
+
+    seq->deletePort(local);
+    local = NULL;
+  }
+
+  void closePort() {
+    seq->closePort( local );
+    local = NULL;
   }
 
   operator jack_port_t * () const { return port; }
@@ -5420,44 +5538,7 @@ int JackBackendCallbacks::jackProcessOut( jack_nframes_t nframes, void *arg )
     }
   }
 
-  switch (data->stateflags) {
-  case JackMidiData::RUNNING: break;
-  case JackMidiData::CLOSING:
-    if (data->state_response != JackMidiData::CLOSING2) {
-      /* output the transferred data */
-      data->state_response = JackMidiData::CLOSING2;
-      return 0;
-    }
-    if ( data->local == NULL ) break;
-    jack_port_unregister( *(data->seq), data->local );
-    data->local = NULL;
-    data->state_response = JackMidiData::CLOSED;
-    break;
-
-  case JackMidiData::DELETING:
-#if defined(__RTMIDI_DEBUG__)
-    std::cerr << "deleting port" << std::endl;
-#endif
-    if (data->state_response != JackMidiData::DELETING2) {
-      data->state_response = JackMidiData::DELETING2;
-      /* output the transferred data */
-      return 0;
-    }
-
-    if (data->local != NULL && data->state_response != JackMidiData::DELETING2) {
-      data->stateflags = JackMidiData::CLOSING;
-      jack_port_unregister( *(data->seq), data->local );
-      data->local = NULL;
-      data->state_response = JackMidiData::DELETING2;
-      return 0;
-    }
-    delete data;
-#if defined(__RTMIDI_DEBUG__)
-    std::cerr << "deleted port" << std::endl;
-#endif
-    break;
-  }
-
+  data->deletePortIfRequested();
   return 0;
 }
 #undef RTMIDI_CLASSNAME
@@ -5685,9 +5766,7 @@ void MidiInJack :: closePort()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   if (!data) return;
 
-  if ( data->local == NULL ) return;
-  jack_port_unregister( *(data->seq), data->local );
-  data->local = NULL;
+  data->deletePort();
 }
 #undef RTMIDI_CLASSNAME
 
@@ -5743,9 +5822,7 @@ MidiOutJack :: ~MidiOutJack()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   //		closePort();
-  // signal the output callback to delete the data
-  // after finishing its job.
-  data->stateflags = JackMidiData::DELETING;
+  data -> request_delete();
 }
 
 void MidiOutJack :: openPort( unsigned int portNumber, const std::string & portName )
@@ -5905,16 +5982,12 @@ void MidiOutJack :: closePort()
 #endif
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  if ( data->local == NULL || data->state_response == JackMidiData::CLOSED ) return;
-  data -> stateflags = JackMidiData::CLOSING;
-#if defined(__RTMIDI_DEBUG__)
-  std::cerr << "Closed Port" << std::endl;
-#endif
+  data->delayedDeletePort();
 }
 
 void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
 {
-  int nBytes = message.size();
+  int nBytes = size;
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   // Write full message to buffer

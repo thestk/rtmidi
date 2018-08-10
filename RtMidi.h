@@ -741,6 +741,14 @@ public:
   MidiOutApi( void );
   virtual ~MidiOutApi( void );
   virtual void sendMessage( const unsigned char *message, size_t size ) = 0;
+  void sendMessage( const std::vector<unsigned char> &message )
+  {
+    if (message.empty()) {
+      error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
+			  Error::WARNING));
+    }
+    sendMessage(message.data(),message.size());
+  }
   RTMIDI_DEPRECATED(void sendMessage( const std::vector<unsigned char> *message ),
 		    "Please, use a C++ style reference to pass the message vector.")
   {
@@ -748,7 +756,7 @@ public:
       error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
 			  Error::WARNING));
     }
-    sendMessage(message->data(),message->size());
+    sendMessage(*message);
   }
 };
 #undef RTMIDI_CLASSNAME
@@ -1449,7 +1457,7 @@ public:
     output connection was not previously established.
   */
 
-  void sendMessage( std::vector<unsigned char> &message ) {
+  void sendMessage(const std::vector<unsigned char> &message ) {
     sendMessage(message.data(), message.size());
   }
   //! Immediately send a single message out an open MIDI output port.

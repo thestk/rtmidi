@@ -36,7 +36,6 @@ AX_CXX_COMPILE_STDCXX(11)
 AC_HEADER_STDC
 #AC_CHECK_HEADERS(sys/ioctl.h unistd.h)
 
-
 # Check version number coherency between RtMidi.h and configure.ac
 AC_MSG_CHECKING([that version numbers are coherent])
 AC_RUN_IFELSE(
@@ -204,6 +203,14 @@ dnl  AC_SUBST( libflags, ["-dynamiclib -o librtmidi.\$(RELEASE).dylib"] )
 dnl esac
 
 
+
+
+# Check for POSIX semaphore support
+AC_CHECK_HEADER([semaphore.h], [
+  AC_CHECK_LIB(pthread, sem_init,
+    AC_DEFINE([HAVE_SEMAPHORE],[1],[Define to 1 if you have POSIX semaphore support on your system.]),
+    AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
+])
 
 
 AC_SUBST( RTMIDI_API, [""] )

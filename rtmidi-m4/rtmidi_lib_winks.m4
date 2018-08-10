@@ -24,7 +24,7 @@
 # freedom.
 AC_DEFUN([RTMIDI_LIB_WINKS],[
 	AC_LANG_PUSH(C++)
-	AC_CACHE_CHECK([for midiOutGetNumDevs in -lwinks], [ac_cv_lib_winks],[
+	AC_CACHE_CHECK([for midiOutGetNumDevs in -lksuser], [ac_cv_lib_winks],[
 		ac_check_lib_save_LIBS="$LIBS"
 		LIBS="-lsetupapi -lksuser $LIBS"
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([

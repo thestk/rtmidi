@@ -586,14 +586,14 @@ bool MidiInApi::MidiQueue::push(const MidiInApi::MidiMessage& msg)
   unsigned int _front = front;
   unsigned int size;
 
-  if (back >= front)
-    size = back - front;
+  if (_back >= _front)
+    size = _back - _front;
   else
-    size = ringSize - front + back;
+    size = ringSize - _front + _back;
 
   if ( size < ringSize-1 )
   {
-    ring[back] = msg;
+    ring[_back] = msg;
     back = (back+1)%ringSize;
     return true;
   }
@@ -607,17 +607,17 @@ bool MidiInApi::MidiQueue::pop(std::vector<unsigned char> &msg, double& timeStam
   unsigned int _front = front;
   unsigned int size;
 
-  if (back >= front)
-    size = back - front;
+  if (_back >= _front)
+    size = _back - _front;
   else
-    size = ringSize - front + back;
+    size = ringSize - _front + _back;
 
   if (size == 0)
     return false;
 
   // Copy queued message to the vector pointer argument and then "pop" it.
-  msg.assign( ring[front].bytes.begin(), ring[front].bytes.end() );
-  timeStamp = ring[front].timeStamp;
+  msg->assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
+  timeStamp = ring[_front].timeStamp;
   front = (front+1)%ringSize;
   return true;
 }
@@ -1858,6 +1858,7 @@ void MidiInCore :: openPort( unsigned int portNumber,
 					 midiInputCallback, (void *)this, &port );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
+    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI input port."),
 		       Error::DRIVER_ERROR));
     return;
@@ -1867,7 +1868,9 @@ void MidiInCore :: openPort( unsigned int portNumber,
   MIDIEndpointRef endpoint = MIDIGetSource( portNumber );
   if ( endpoint == 0 ) {
     MIDIPortDispose( port );
+    port = 0;
     MIDIClientDispose( data->client );
+    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error getting MIDI input source reference."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -1877,7 +1880,9 @@ void MidiInCore :: openPort( unsigned int portNumber,
   result = MIDIPortConnectSource( port, endpoint, NULL );
   if ( result != noErr ) {
     MIDIPortDispose( port );
+    port = 0;
     MIDIClientDispose( data->client );
+    data -> client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error connecting OS-X MIDI input port."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -2113,6 +2118,7 @@ void MidiOutCore :: openPort( unsigned int portNumber,
 					  &port );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
+    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI output port."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -2122,7 +2128,9 @@ void MidiOutCore :: openPort( unsigned int portNumber,
   MIDIEndpointRef destination = MIDIGetDestination( portNumber );
   if ( destination == 0 ) {
     MIDIPortDispose( port );
+    port = 0;
     MIDIClientDispose( data->client );
+    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error getting MIDI output destination reference."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -2757,6 +2765,7 @@ struct AlsaMidiData:public AlsaPortDescriptor {
     buffer = 0;
     dummy_thread_id = pthread_self();
     thread = dummy_thread_id;
+    queue_id = -1;
     trigger_fds[0] = -1;
     trigger_fds[1] = -1;
   }
@@ -3095,6 +3104,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     }
 
     snd_seq_free_event( ev );
+    ev = 0;
     if ( message.bytes.size() == 0 || continueSysex ) continue;
 
     if ( data->userCallback ) {
@@ -3147,6 +3157,7 @@ MidiInAlsa :: ~MidiInAlsa()
   if ( data->local.client ) data->deletePort();
 #ifndef AVOID_TIMESTAMPING
   snd_seq_free_queue( data->seq, data->queue_id );
+  queue_id = -1;
 #endif
   delete data;
 }
@@ -3549,9 +3560,18 @@ MidiOutAlsa :: ~MidiOutAlsa()
 
   // Cleanup.
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
-  if ( data->local.client > 0 ) snd_seq_delete_port( data->seq, data->local.port );
-  if ( data->coder ) snd_midi_event_free( data->coder );
-  if ( data->buffer ) free( data->buffer );
+  if ( data->local.client > 0 ) {
+    snd_seq_delete_port( data->seq, data->local.port );
+    data->local.port = -1;
+  }
+  if ( data->coder ) {
+    snd_midi_event_free( data->coder );
+    data->coder = 0;
+  }
+  if ( data->buffer ) {
+    free( data->buffer );
+    data->buffer = 0;
+  }
   delete data;
 }
 
@@ -3683,6 +3703,7 @@ void MidiOutAlsa :: openPort( unsigned int portNumber, const std::string & portN
   // Make subscription
   if (snd_seq_port_subscribe_malloc( &data->subscription ) < 0) {
     snd_seq_port_subscribe_free( data->subscription );
+    data->subscription = 0;
     error(RTMIDI_ERROR(gettext_noopt("Could not allocate ALSA port subscription."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -3693,6 +3714,7 @@ void MidiOutAlsa :: openPort( unsigned int portNumber, const std::string & portN
   snd_seq_port_subscribe_set_time_real(data->subscription, 1);
   if ( snd_seq_subscribe_port(data->seq, data->subscription) ) {
     snd_seq_port_subscribe_free( data->subscription );
+    data->subscription = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error making ALSA port connection."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -3707,6 +3729,7 @@ void MidiOutAlsa :: closePort( void )
     AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
     snd_seq_unsubscribe_port( data->seq, data->subscription );
     snd_seq_port_subscribe_free( data->subscription );
+    data->subscription = 0;
     connected_ = false;
   }
 }
@@ -4382,6 +4405,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
     result = midiInPrepareHeader( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
+      data->inHandle = INVALID_HANDLE_VALUE;
       error(RTMIDI_ERROR(gettext_noopt("Error initializing data for Windows MM MIDI input port."),
 			 Error::DRIVER_ERROR ));
       return;
@@ -4391,6 +4415,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
     result = midiInAddBuffer( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       midiInClose( data->inHandle );
+      data->inHandle = INVALID_HANDLE_VALUE;
       error(RTMIDI_ERROR(gettext_noopt("Could not register the input buffer for Windows MM MIDI input port."),
 			 Error::DRIVER_ERROR) );
       return;
@@ -4400,6 +4425,7 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string & /*por
   result = midiInStart( data->inHandle );
   if ( result != MMSYSERR_NOERROR ) {
     midiInClose( data->inHandle );
+    data->inHandle = INVALID_HANDLE_VALUE;
     error(RTMIDI_ERROR(gettext_noopt("Error starting Windows MM MIDI input port."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -4511,6 +4537,7 @@ void MidiInWinMM :: closePort( void )
       delete [] data->sysexBuffer[i];
       if ( result != MMSYSERR_NOERROR ) {
 	midiInClose( data->inHandle );
+        data->inHandle = INVALID_HANDLE_VALUE;
 	error(RTMIDI_ERROR(gettext_noopt("Error closing Windows MM MIDI input port."),
 			   Error::DRIVER_ERROR) );
 	return;
@@ -4518,6 +4545,7 @@ void MidiInWinMM :: closePort( void )
     }
 
     midiInClose( data->inHandle );
+    data->inHandle = INVALID_HANDLE_VALUE;
     connected_ = false;
     LeaveCriticalSection( &(data->_mutex) );
   }
@@ -4684,6 +4712,7 @@ void MidiOutWinMM :: closePort( void )
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
     midiOutReset( data->outHandle );
     midiOutClose( data->outHandle );
+    data->outHandle = INVALID_HANDLE_VALUE;
     connected_ = false;
   }
 }
@@ -5258,10 +5287,14 @@ struct JackMidiData:public JackPortDescriptor {
       deletePort();
     if (seq)
       delete seq;
-    if (buffSize)
+    if (buffSize) {
       jack_ringbuffer_free( buffSize );
-    if (buffMessage)
+      buffSize = 0;
+    }
+    if (buffMessage) {
       jack_ringbuffer_free( buffMessage );
+      buffMessage = 0;
+    }
   }
 
   void init(bool isinput) {

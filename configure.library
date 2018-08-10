@@ -224,16 +224,16 @@ dnl	with_coremidi=no
 darwin*|*apple*)
 	PLATFORM=macosx
 	# Check for CoreAudio framework
-	with_winmm=no
-	with_winks=no
-	with_alsa=no
+dnl	with_winmm=no
+dnl	with_winks=no
+dnl	with_alsa=no
 
 	;;
 
 *winnt*|*interix*|cygwin*|*mingw*|uwin*)
 	PLATFORM=windows
-	with_alsa=no
-	with_coremidi=no
+dnl	with_alsa=no
+dnl	with_coremidi=no
 
 	# I can't get the following check to work so just manually add the library
 	# or could try the following?  AC_LIB_WINMM([midiOutGetNumDevs])
@@ -312,7 +312,7 @@ AC_ARG_WITH(winks, [  --with-winks = choose native Windows kernel streaming API 
 	],[ RTMIDI_LIB_WINKS(,[true]) ])
 
 AC_ARG_WITH(coremidi, [--with-coremidi = choose native CoreAudio API support],[
-		AS_IF([test "x$with_core" = "xno"],,[RTMIDI_LIB_CORE ])
+		AS_IF([test "x$with_coremidi" = "xno"],,[RTMIDI_LIB_COREMIDI ])
 	],[ RTMIDI_LIB_COREMIDI(,[true]) ])
 
 AS_IF([test "x$RTMIDI_API" = "x"],[

@@ -572,16 +572,54 @@ double MidiInApi :: getMessage( std::vector<unsigned char> &message )
 
   if ( queue.size == 0 ) return 0.0;
 
-  // Copy queued message to the vector pointer argument and then "pop" it.
-  std::vector<unsigned char> *bytes = &(queue.ring[queue.front].bytes);
-  message.assign( bytes->begin(), bytes->end() );
-  double deltaTime = queue.ring[queue.front].timeStamp;
-  queue.size--;
-  queue.front++;
-  if ( queue.front == queue.ringSize )
-    queue.front = 0;
+  double timeStamp;
+  if (!queue.pop(message, timeStamp))
+    return 0.0;
 
-  return deltaTime;
+  return timeStamp;
+}
+
+bool MidiInApi::MidiQueue::push(const MidiInApi::MidiMessage& msg)
+{
+  // As long as we haven't reached our queue size limit, push the message.
+  unsigned int _back = back;
+  unsigned int _front = front;
+  unsigned int size;
+
+  if (back >= front)
+    size = back - front;
+  else
+    size = ringSize - front + back;
+
+  if ( size < ringSize-1 )
+  {
+    ring[back] = msg;
+    back = (back+1)%ringSize;
+    return true;
+  }
+
+  return false;
+}
+
+bool MidiInApi::MidiQueue::pop(std::vector<unsigned char> &msg, double& timeStamp)
+{
+  unsigned int _back = back;
+  unsigned int _front = front;
+  unsigned int size;
+
+  if (back >= front)
+    size = back - front;
+  else
+    size = ringSize - front + back;
+
+  if (size == 0)
+    return false;
+
+  // Copy queued message to the vector pointer argument and then "pop" it.
+  msg.assign( ring[front].bytes.begin(), ring[front].bytes.end() );
+  timeStamp = ring[front].timeStamp;
+  front = (front+1)%ringSize;
+  return true;
 }
 #undef RTMIDI_CLASSNAME
 
@@ -1664,13 +1702,7 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
 	  }
 	  else {
 	    // As long as we haven't reached our queue size limit, push the message.
-	    if ( data->queue.size < data->queue.ringSize ) {
-	      data->queue.ring[data->queue.back++] = message;
-	      if ( data->queue.back == data->queue.ringSize )
-		data->queue.back = 0;
-	      data->queue.size++;
-	    }
-	    else {
+	    if (!data->queue.push(message)) {
 	      try {
 		data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					 Error::WARNING));
@@ -1735,13 +1767,7 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
 	    }
 	    else {
 	      // As long as we haven't reached our queue size limit, push the message.
-	      if ( data->queue.size < data->queue.ringSize ) {
-		data->queue.ring[data->queue.back++] = message;
-		if ( data->queue.back == data->queue.ringSize )
-		  data->queue.back = 0;
-		data->queue.size++;
-	      }
-	      else {
+	      if (!data->queue.push(message)) {
 		try {
 		  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 					   Error::WARNING));
@@ -3069,13 +3095,7 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
     }
     else {
       // As long as we haven't reached our queue size limit, push the message.
-      if ( data->queue.size < data->queue.ringSize ) {
-	data->queue.ring[data->queue.back++] = message;
-	if ( data->queue.back == data->queue.ringSize )
-	  data->queue.back = 0;
-	data->queue.size++;
-      }
-      else {
+      if (!data->queue.push(message)) {
 	try {
 	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
@@ -4252,13 +4272,7 @@ struct WinMMCallbacks {
     }
     else {
       // As long as we haven't reached our queue size limit, push the message.
-      if ( data->queue.size < data->queue.ringSize ) {
-	data->queue.ring[data->queue.back++] = apiData->message;
-	if ( data->queue.back == data->queue.ringSize )
-	  data->queue.back = 0;
-	data->queue.size++;
-      }
-      else {
+      if (!data->queue.push(apiData->message)) {
 	try {
 	  data->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				   Error::WARNING));
@@ -5331,18 +5345,12 @@ int JackBackendCallbacks::jackProcessIn( jack_nframes_t nframes, void *arg )
       }
       else {
 	// As long as we haven't reached our queue size limit, push the message.
-	if ( rtData->queue.size < rtData->queue.ringSize ) {
-	  rtData->queue.ring[rtData->queue.back++] = message;
-	  if ( rtData->queue.back == rtData->queue.ringSize )
-	    rtData->queue.back = 0;
-	  rtData->queue.size++;
-	}
-	else {
+	if (!rtData->queue.push(message)) {
 	  try {
 	    rtData->error(RTMIDI_ERROR(rtmidi_gettext("Error: Message queue limit reached."),
 				       Error::WARNING));
 	  } catch (Error & e) {
-	    // don't bother WinMM with an unhandled exception
+	    // don't bother JACK with an unhandled exception
 	  }
 	}
       }

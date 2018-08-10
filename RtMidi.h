@@ -701,6 +701,8 @@ public:
     // Default constructor.
     MidiQueue()
       :front(0), back(0), size(0), ringSize(0) {}
+    bool push(const MidiMessage&);
+    bool pop(std::vector<unsigned char>& message, double& timestamp);
   };
 
 

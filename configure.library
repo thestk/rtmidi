@@ -52,11 +52,13 @@ AS_IF(
    [AC_MSG_FAILURE([testing RTMIDI_VERSION==PACKAGE_VERSION failed, check that RtMidi.h defines RTMIDI_VERSION as "$PACKAGE_VERSION" or that the first line of configure.ac has been updated.])])
 
 
-AC_ARG_ENABLE(suffix,
+
+
+AC_ARG_WITH(suffix,
 AS_HELP_STRING([--with-suffix],[add a suffix to the library. Default is $rtmidi_suffix]),
-[AS_IF(test "x$enableval" = "xno",
+[AS_IF(test "x$with_suffix" = "xno",
 		[ rtmidi_suffix=""],
-		[ rtmidi_suffix="$enableval"])])
+		[ rtmidi_suffix="$with_suffix"])])
 AC_SUBST(rtmidi_suffix)
 
 
@@ -64,7 +66,7 @@ AC_SUBST(rtmidi_suffix)
 # Check for debug
 AC_MSG_CHECKING(whether to compile debug version)
 AC_ARG_ENABLE(debug,
-	[  --enable-debug = enable various debug output],
+AS_HELP_STRING([--enable-debug],[enable various debug output]),
 	[
 	AC_SUBST( RTMIDI_CPPFLAGS, [-D__RTMIDI_DEBUG__] )
 	AC_SUBST( RTMIDI_CXXFLAGS, [-g] )
@@ -73,7 +75,7 @@ AC_ARG_ENABLE(debug,
 	[AC_SUBST( RTMIDI_CPPFLAGS, [] )
 	AC_SUBST( RTMIDI_CXXFLAGS, [-O3] )
 	AC_SUBST( object_path, [Release] )
-	rtmidi_visibility="rtmidi_visibility -fvisibility=hidden"
+	rtmidi_visibility="${rtmidi_visibility} -fvisibility=hidden"
 	AC_MSG_RESULT(no)])
 
 
@@ -130,6 +132,7 @@ do
 		AC_MSG_RESULT([yes])
 	],[AC_MSG_RESULT([no])])
 done
+rtmidi_visibility="$rtmidi_visibility_result"
 
 
 dnl mudflap is not possible with g++ 4.7.1 and wxWidgets 2.8
@@ -232,6 +235,19 @@ AC_CHECK_HEADER([semaphore.h], [
     AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
 ])
 
+AC_MSG_CHECKING(whether to check all apis)
+AC_ARG_ENABLE(apisearch,
+	AS_HELP_STRING([--disable-apisearch],[disable all unrequested apis]),
+	[
+		AS_IF([test "x$enableval" = "xno"],[
+			         AC_MSG_RESULT(no)
+				 AS_IF([test "x$with_alsa" = "x"],[with_alsa=no])
+				 AS_IF([test "x$with_jack" = "x"],[with_jack=no])
+				 AS_IF([test "x$with_winmm" = "x"],[with_winmm=no])
+				 AS_IF([test "x$with_winks" = "x"],[with_winks=no])
+				 AS_IF([test "x$with_coremidi" = "x"],[with_coremidi=no])
+		],[AC_MSG_RESULT(yes)])
+	],[AC_MSG_RESULT(yes)])
 
 AC_SUBST( RTMIDI_API, [""] )
 AC_SUBST( RTMIDI_LIB_CFLAGS, [""] )
@@ -322,24 +338,24 @@ dnl	with_coremidi=no
 esac
 
 AC_ARG_WITH(jack,
-	[  --with-jack = choose JACK server support (needs libjack to be installed)],[
+	AS_HELP_STRING([--with-jack],[choose JACK server support (needs libjack to be installed)]),[
 		echo running jack:
 		AS_IF([test "x$with_jack" = "xno"],,[RTMIDI_LIB_JACK ])
 	],[ echo runnning jack 2 ; RTMIDI_LIB_JACK(,[true]) ])
 
-AC_ARG_WITH(alsa, [  --with-alsa = choose native ALSA sequencer API support],[
+AC_ARG_WITH(alsa, AS_HELP_STRING([--with-alsa],[choose native ALSA sequencer API support]),[
 		AS_IF([test "x$with_alsa" = "xno"],,[ RTMIDI_LIB_ALSA ])
 		],[ RTMIDI_LIB_ALSA(,[true]) ])
 
-AC_ARG_WITH(winmm, [  --with-winmm = choose native Windows Multimedia API support],[
+AC_ARG_WITH(winmm, AS_HELP_STRING([--with-winmm],[choose native Windows Multimedia API support]),[
 		AS_IF([test "x$with_winmm" = "xno"],,[RTMIDI_LIB_WINMM ])
 	],[ RTMIDI_LIB_WINMM(,[true]) ])
 
-AC_ARG_WITH(winks, [  --with-winks = choose native Windows kernel streaming API support],[
+AC_ARG_WITH(winks, AS_HELP_STRING([--with-winks],[choose native Windows kernel streaming API support]),[
 		AS_IF([test "x$with_winks" = "xno"],,[ RTMIDI_LIB_WINKS ])
 	],[ RTMIDI_LIB_WINKS(,[true]) ])
 
-AC_ARG_WITH(coremidi, [--with-coremidi = choose native CoreAudio API support],[
+AC_ARG_WITH(coremidi, AS_HELP_STRING([--with-coremidi],[choose native CoreAudio API support]),[
 		AS_IF([test "x$with_coremidi" = "xno"],,[RTMIDI_LIB_COREMIDI ])
 	],[ RTMIDI_LIB_COREMIDI(,[true]) ])
 

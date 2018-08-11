@@ -87,8 +87,8 @@ autoconf || exit 1
 
 else # autoreconf instead
 
-    echo "Running autoreconf --verbose --install ..."
-    autoreconf --verbose --install || exit 1
+    echo "Running autoreconf --verbose --install --force ..."
+    autoreconf --verbose --install --force || exit 1
 
 fi
 

@@ -251,7 +251,7 @@ void MidiIn :: openMidiApi( ApiType api )
 
 MidiApiList MidiIn::queryApis;
 
-extern RTMIDI_DLL_PUBLIC MidiIn :: MidiIn( ApiType api,
+RTMIDI_DLL_PUBLIC MidiIn :: MidiIn( ApiType api,
 					   const std::string &clientName,
 					   unsigned int queueSize,
 					   bool pfsystem )
@@ -368,7 +368,7 @@ void MidiOut :: openMidiApi( ApiType api )
 
 MidiApiList MidiOut::queryApis;
 
-extern RTMIDI_DLL_PUBLIC MidiOut :: MidiOut( ApiType api, const std::string &clientName, bool pfsystem )
+RTMIDI_DLL_PUBLIC MidiOut :: MidiOut( ApiType api, const std::string &clientName, bool pfsystem )
   : Midi(&queryApis, pfsystem, clientName)
 {
   if ( api == rtmidi::ALL_API) {
@@ -1678,7 +1678,10 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
     // function.
 
     nBytes = packet->length;
-    if ( nBytes == 0 ) continue;
+    if ( nBytes == 0 ) {
+      packet = MIDIPacketNext(packet);
+      continue;
+    }
 
     // Calculate time stamp.
 
@@ -1819,7 +1822,7 @@ MidiInCore :: MidiInCore( const std::string &clientName,
 			  unsigned int queueSizeLimit ) :
   MidiInApi( queueSizeLimit )
 {
-  initialize( clientName );
+  MidiInCore::initialize( clientName );
 }
 
 MidiInCore :: ~MidiInCore( void )
@@ -1828,7 +1831,7 @@ MidiInCore :: ~MidiInCore( void )
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   try {
     // Close a connection if it exists.
-    closePort();
+    MidiInCore::closePort();
 
   } catch (Error & e) {
     delete data;
@@ -2060,13 +2063,13 @@ std::string MidiInCore :: getPortName( unsigned int portNumber )
 #define RTMIDI_CLASSNAME "MidiOutCore"
 MidiOutCore :: MidiOutCore( const std::string &clientName ) : MidiOutApi()
 {
-  initialize( clientName );
+  MidiOutCore::initialize( clientName );
 }
 
 MidiOutCore :: ~MidiOutCore( void )
 {
   // Close a connection if it exists.
-  closePort();
+  MidiOutCore::closePort();
 
   // Cleanup.
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
@@ -3152,13 +3155,13 @@ void * MidiInAlsa::alsaMidiHandler( void *ptr ) throw()
 MidiInAlsa :: MidiInAlsa( const std::string &clientName,
 			  unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
-  initialize( clientName );
+  MidiInAlsa::initialize( clientName );
 }
 
 MidiInAlsa :: ~MidiInAlsa()
 {
   // Close a connection if it exists.
-  closePort();
+  MidiInAlsa::closePort();
 
   // Shutdown the input thread.
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
@@ -3569,13 +3572,13 @@ void MidiInAlsa :: closePort( void )
 #define RTMIDI_CLASSNAME "MidiOutAlsa"
 MidiOutAlsa :: MidiOutAlsa( const std::string &clientName ) : MidiOutApi()
 {
-  initialize( clientName );
+  MidiOutAlsa::initialize( clientName );
 }
 
 MidiOutAlsa :: ~MidiOutAlsa()
 {
   // Close a connection if it exists.
-  closePort();
+  MidiOutAlsa::closePort();
 
   // Cleanup.
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
@@ -4370,13 +4373,13 @@ struct WinMMCallbacks {
 MidiInWinMM :: MidiInWinMM( const std::string &clientName,
 			    unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
-  initialize( clientName );
+  MidiInWinMM::initialize( clientName );
 }
 
 MidiInWinMM :: ~MidiInWinMM()
 {
   // Close a connection if it exists.
-  closePort();
+  MidiInWinMM::closePort();
 
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
   DeleteCriticalSection( &(data->_mutex) );
@@ -4641,13 +4644,13 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
 #define RTMIDI_CLASSNAME "MidiOutWinMM"
 MidiOutWinMM :: MidiOutWinMM( const std::string &clientName ) : MidiOutApi()
 {
-  initialize( clientName );
+  MidiOutWinMM::initialize( clientName );
 }
 
 MidiOutWinMM :: ~MidiOutWinMM()
 {
   // Close a connection if it exists.
-  closePort();
+  MidiOutWinMM::closePort();
 
   // Cleanup.
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
@@ -5569,7 +5572,7 @@ int JackBackendCallbacks::jackProcessOut( jack_nframes_t nframes, void *arg )
 #define RTMIDI_CLASSNAME "MidiInJack"
 MidiInJack :: MidiInJack( const std::string &clientName, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit )
 {
-  initialize( clientName );
+  MidiInJack::initialize( clientName );
 }
 
 void MidiInJack :: initialize( const std::string &clientName )
@@ -5611,7 +5614,7 @@ MidiInJack :: ~MidiInJack()
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   try {
-    closePort();
+    MidiInJack::closePort();
   } catch (Error & e) {
     try {
       delete data;
@@ -5802,7 +5805,7 @@ void MidiInJack :: closePort()
 #define RTMIDI_CLASSNAME "MidiOutJack"
 MidiOutJack :: MidiOutJack( const std::string &clientName ) : MidiOutApi()
 {
-  initialize( clientName );
+  MidiOutJack::initialize( clientName );
 }
 
 void MidiOutJack :: initialize( const std::string &clientName )

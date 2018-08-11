@@ -1448,9 +1448,9 @@ inline void MidiIn :: cancelCallback() {
   if (rtapi_)
     static_cast<MidiInApi*>(rtapi_)->cancelCallback();
 }
-inline void MidiIn :: ignoreTypes( bool midiSysex = true,
-				   bool midiTime = true,
-				   bool midiSense = true ) {
+inline void MidiIn :: ignoreTypes( bool midiSysex,
+				   bool midiTime,
+				   bool midiSense ) {
   if (rtapi_)
     static_cast<MidiInApi*>(rtapi_)->ignoreTypes(midiSysex, midiTime, midiSense);
 }

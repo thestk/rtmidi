@@ -1881,7 +1881,6 @@ void MidiInCore :: openPort( unsigned int portNumber,
 					 midiInputCallback, (void *)this, &port );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
-    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI input port."),
 		       Error::DRIVER_ERROR));
     return;
@@ -1893,7 +1892,6 @@ void MidiInCore :: openPort( unsigned int portNumber,
     MIDIPortDispose( port );
     port = 0;
     MIDIClientDispose( data->client );
-    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error getting MIDI input source reference."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -1905,7 +1903,6 @@ void MidiInCore :: openPort( unsigned int portNumber,
     MIDIPortDispose( port );
     port = 0;
     MIDIClientDispose( data->client );
-    data -> client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error connecting OS-X MIDI input port."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -2141,7 +2138,6 @@ void MidiOutCore :: openPort( unsigned int portNumber,
 					  &port );
   if ( result != noErr ) {
     MIDIClientDispose( data->client );
-    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error creating OS-X MIDI output port."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -2153,7 +2149,6 @@ void MidiOutCore :: openPort( unsigned int portNumber,
     MIDIPortDispose( port );
     port = 0;
     MIDIClientDispose( data->client );
-    data->client = 0;
     error(RTMIDI_ERROR(gettext_noopt("Error getting MIDI output destination reference."),
 		       Error::DRIVER_ERROR) );
     return;
@@ -2300,7 +2295,7 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
 
-  if ( message.at(0) != 0xF0 && size > 3 ) {
+  if ( message[0] != 0xF0 && size > 3 ) {
     error(RTMIDI_ERROR(gettext_noopt("message format problem ... not sysex but > 3 bytes?"),
 		       Error::WARNING ));
     return;
@@ -5430,7 +5425,7 @@ struct JackMidiData:public JackPortDescriptor {
       if (state_response != JackMidiData::CLOSING2) {
 	/* output the transferred data */
 	state_response = JackMidiData::CLOSING2;
-	return 0;
+	return;
       }
       deletePort();
       state_response = JackMidiData::CLOSED;
@@ -5443,7 +5438,7 @@ struct JackMidiData:public JackPortDescriptor {
       if (state_response != JackMidiData::DELETING2) {
 	state_response = JackMidiData::DELETING2;
 	/* output the transferred data */
-	return 0;
+	return;
       }
 
       delete this;

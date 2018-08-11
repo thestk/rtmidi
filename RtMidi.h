@@ -517,26 +517,14 @@ public:
     the enumerated list values.  Note that there can be more than one
     API compiled for certain operating systems.
   */
-  static std::vector<ApiType> getCompiledApi(  ) throw() {
-    std::vector<ApiType> apis;
-    getCompiledApi(apis);
-    return apis;
-  }
+  static std::vector<ApiType> getCompiledApi(  ) throw();
 
-  //! Returns the MIDI API specifier for the current instance of RtMidiIn.
-  ApiType getCurrentApi( void ) throw()
-  {
-    if (rtapi_) return rtapi_->getCurrentApi();
-    else return rtmidi::UNSPECIFIED;
-  }
+  //! Returns the MIDI API specifier for the current instance of rtmidi::MidiIn.
+  ApiType getCurrentApi( void ) throw();
 
 
   //! Pure virtual function to return a port descirptor if the port is open
-  Pointer<PortDescriptor> getDescriptor(bool local=false)
-  {
-    if (rtapi_) return rtapi_->getDescriptor(local);
-    return 0;
-  }
+  Pointer<PortDescriptor> getDescriptor(bool local=false);
 
   //! Return a list of all available ports of the current API.
   /*!
@@ -558,27 +546,10 @@ public:
     if \ref PortDescriptor::OUTPUT is passed as \ref
     capabilities parameter.
   */
-  PortList getPortList(int capabilities = 0)
-  {
-    if (rtapi_) return rtapi_->getPortList(capabilities);
-    if (list && !list->empty()) {
-      PortList retval;
-      for (MidiApiList::iterator i = list->begin();
-	   i != list->end();
-	   ++i) {
-	PortList tmp = (*i)->getPortList(capabilities);
-	retval.splice(retval.end(), tmp);
-      }
-      return retval;
-    }
-    return PortList();
-  }
+  PortList getPortList(int capabilities = 0);
 
   //! Close an open MIDI connection (if one exists).
-  void closePort( void )
-  {
-    if (rtapi_) rtapi_->closePort();
-  }
+  void closePort( void );
 
   //! Returns true if a port is open and false if not.
   /*!
@@ -588,21 +559,14 @@ public:
     \retval true if a port is open and
     \retval false if the port is not open (e.g. not opend or closed).
   */
-  bool isPortOpen( void ) const
-  {
-    if (rtapi_) return rtapi_->isPortOpen();
-    return false;
-  }
+  bool isPortOpen( void ) const;
 
   //! Pure virtual function to set an error callback function to be invoked when an error has occured.
   /*!
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  void setErrorCallback( ErrorInterface * callback)
-  {
-    if (rtapi_) rtapi_->setErrorCallback(callback);
-  }
+  void setErrorCallback( ErrorInterface * callback);
 
   //! A basic error reporting function for RtMidi classes.
   void error( Error e );
@@ -622,16 +586,7 @@ public:
 #define Api Api_t
   RTMIDI_DEPRECATED(static void getCompiledApi( std::vector<Api> &apis, bool
 						preferSystem
-						= true ) throw(), "enum RtMidi::Api has been replaced by enum rtmidi::ApiType" ) {
-    std::vector<rtmidi::ApiType> api2;
-    Midi::getCompiledApi(api2,preferSystem);
-    apis.reserve(api2.size());
-    size_t s = api2.size();
-    for (size_t i = 0; i < s; i++) {
-      apis.push_back((Api)api2[i]);
-    }
-  }
-
+						= true ) throw(), "enum RtMidi::Api has been replaced by enum rtmidi::ApiType" );
   //! Compatibilty function for older code
   virtual
   RTMIDI_DEPRECATED(void openVirtualPort( const std::string &portName
@@ -651,10 +606,7 @@ public:
   */
   RTMIDI_DEPRECATED(void openPort( unsigned int portNumber = 0,
 				   const std::string &portName = std::string( "RtMidi" )
-				   ),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)")
-  {
-    if (rtapi_) rtapi_->openPort(portNumber,portName);
-  }
+				   ),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)");
 
   //! Pure virtual to return the number of available MIDI ports of the current API.
   /*!
@@ -668,11 +620,7 @@ public:
     \sa getPortName
     \deprecated
   */
-  RTMIDI_DEPRECATED(unsigned int getPortCount(),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)")
-  {
-    if (rtapi_) return rtapi_->getPortCount();
-    return 0;
-  }
+  RTMIDI_DEPRECATED(unsigned int getPortCount(),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)");
 
   //! Pure virtual function to return a string identifier for the specified MIDI port number.
   /*!
@@ -687,28 +635,14 @@ public:
     \sa getPortCount()
     \deprecated
   */
-  RTMIDI_DEPRECATED(std::string getPortName( unsigned int portNumber = 0 ),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)")
-  {
-    if (rtapi_) return rtapi_->getPortName(portNumber);
-    return "";
-  }
+  RTMIDI_DEPRECATED(std::string getPortName( unsigned int portNumber = 0 ),"Port numbers are unreliable. Use port descriptors instead (see examples for a demonstration)");
 
   //! Pure virtual function to set an error callback function to be invoked when an error has occured.
   /*!
     The callback function will be called whenever an error has occured. It is best
     to set the error callback function before opening a port.
   */
-  RTMIDI_DEPRECATED(void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ), "setErrorCallback now expects an object of type ErrorInterface")
-  {
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    if (rtapi_) rtapi_->setErrorCallback(errorCallback, userData);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-  }
+  RTMIDI_DEPRECATED(void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ), "setErrorCallback now expects an object of type ErrorInterface");
 
 
 protected:
@@ -719,15 +653,9 @@ protected:
 
   Midi(MidiApiList * l,
        bool pfsystem,
-       const std::string &name):rtapi_(0),
-				list(l),
-				preferSystem(pfsystem),
-				clientName(name) {}
-  virtual ~Midi()
-  {
-    delete rtapi_;
-    rtapi_ = 0;
-  }
+       const std::string &name);
+
+  virtual ~Midi();
 };
 
 inline RTMIDI_DEPRECATED(std::string getApiName(Midi::Api type),"Use rtmidi::ApiType instead of RtMidi::Api");
@@ -819,11 +747,7 @@ public:
     \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
   */
   void openPort( const PortDescriptor & port,
-		 const std::string &portName = std::string( "RtMidi" ) )
-  {
-    if (!rtapi_) rtapi_ = port.getInputApi();
-    if (rtapi_) rtapi_->openPort(port,portName);
-  }
+		 const std::string &portName = std::string( "RtMidi" ) );
 
 
   //!  Open a MIDI connection given by a port descriptor pointer.
@@ -833,14 +757,7 @@ public:
     \sa openPort(const PortDescriptor &,const std::string &);
   */
   void openPort( Pointer<PortDescriptor> p,
-		 const std::string &portName = std::string( "RtMidi" ) ) {
-    if (!p) {
-      error(RTMIDI_ERROR(gettext_noopt("A NULL pointer has been passed as port descriptor"),
-			 Error::INVALID_PARAMETER));
-      return;
-    }
-    openPort(*p, portName);
-  }
+		 const std::string &portName = std::string( "RtMidi" ) );
 
   //! Function to create a virtual port, with optional name.
   /*!
@@ -852,25 +769,7 @@ public:
     \param portName An optional name for the application port that is
     used to connect to portId can be specified.
   */
-  void openVirtualPort( const std::string &portName = std::string( "RtMidi virtual input port" ) )
-  {
-    if (!rtapi_ && list && !list->empty()) {
-      Pointer<MidiApi> api = list->front();
-
-      std::vector< ApiType > apis;
-      getCompiledApi( apis );
-      for (size_t i = 0 ; i < apis.size() ; i++) {
-	openMidiApi( apis[0] );
-	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
-      }
-    }
-
-    if (rtapi_) rtapi_->openVirtualPort(portName);
-    else {
-      error(RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
-			 Error::INVALID_DEVICE));
-    }
-  }
+  void openVirtualPort( const std::string &portName = std::string( "RtMidi virtual input port" ) );
 
   //! Return a list of all available ports of the current API.
   /*!
@@ -909,22 +808,14 @@ public:
     \param userData Opitionally, a pointer to additional data can be
     passed to the callback function whenever it is called.
   */
-  void setCallback( MidiInterface * callback )
-  {
-    if (rtapi_)
-      static_cast<MidiInApi*>(rtapi_)->setCallback(callback);
-  }
+  void setCallback( MidiInterface * callback );
 
   //! Cancel use of the current callback function (if one exists).
   /*!
     Subsequent incoming MIDI messages will be written to the queue
     and can be retrieved with the \e getMessage function.
   */
-  void cancelCallback()
-  {
-    if (rtapi_)
-      static_cast<MidiInApi*>(rtapi_)->cancelCallback();
-  }
+  void cancelCallback();
 
   //! Specify whether certain MIDI message types should be queued or ignored during input.
   /*!
@@ -936,11 +827,7 @@ public:
   */
   void ignoreTypes( bool midiSysex = true,
 		    bool midiTime = true,
-		    bool midiSense = true )
-  {
-    if (rtapi_)
-      static_cast<MidiInApi*>(rtapi_)->ignoreTypes(midiSysex, midiTime, midiSense);
-  }
+		    bool midiSense = true );
 
   //! Fill the user-provided vector with the data bytes for the next available MIDI message in the input queue and return the event delta-time in seconds.
   /*!
@@ -950,14 +837,7 @@ public:
     message retrieval or an input connection was not previously
     established.
   */
-  double getMessage( std::vector<unsigned char> &message )
-  {
-    if (rtapi_)
-      return static_cast<MidiInApi*>(rtapi_)->getMessage(message);
-    error( RTMIDI_ERROR(gettext_noopt("Could not find any valid MIDI system."),
-			Error::WARNING));
-    return 0.0;
-  }
+  double getMessage( std::vector<unsigned char> &message );
 
 
   //! Set a callback function to be invoked for incoming MIDI messages.
@@ -972,18 +852,8 @@ public:
     passed to the callback function whenever it is called.
   */
   RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ),
-		    "RtMidi now provides a type-safe MidiInterface class.")
-  {
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    if (rtapi_)
-      static_cast<MidiInApi*>(rtapi_)->setCallback(callback,userData);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-  }
+		    "RtMidi now provides a type-safe MidiInterface class.");
+
   //! Fill the user-provided vector with the data bytes for the next available MIDI message in the input queue and return the event delta-time in seconds.
   /*!
     This function returns immediately whether a new message is
@@ -995,18 +865,7 @@ public:
     \deprecated
   */
   RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ),
-		    "Please, use a C++ style reference to pass the message vector.")
-  {
-    if (!message) {
-      error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
-			  Error::WARNING));
-    }
-    if (rtapi_)
-      return static_cast<MidiInApi*>(rtapi_)->getMessage(*message);
-    error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been found."),
-			Error::WARNING));
-    return 0.0;
-  }
+		    "Please, use a C++ style reference to pass the message vector.");
 protected:
   static MidiApiList queryApis;
   int queueSizeLimit;
@@ -1074,12 +933,7 @@ public:
     \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
   */
   void openPort( const PortDescriptor & port,
-		 const std::string &portName = std::string( "RtMidi" ) )
-  {
-    if (!rtapi_) rtapi_ = port.getOutputApi();
-    if (rtapi_) rtapi_->openPort(port,portName);
-  }
-
+		 const std::string &portName = std::string( "RtMidi" ) );
   //!  Open a MIDI connection given by a port descriptor pointer.
   /*!
     \param port     A pointer to a port descriptor of the port must be specified.
@@ -1087,15 +941,7 @@ public:
     \sa openPort(const PortDescriptor &,const std::string &);
   */
   void openPort( Pointer<PortDescriptor> p,
-		 const std::string &portName = std::string( "RtMidi" ) ) {
-    if (!p) {
-      error(RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
-			 Error::INVALID_PARAMETER));
-      return;
-    }
-    openPort(*p, portName);
-  }
-
+		 const std::string &portName = std::string( "RtMidi" ) );
 
   //! Function to create a virtual port, with optional name.
   /*!
@@ -1107,25 +953,7 @@ public:
     \param portName An optional name for the applicaction port that is
     used to connect to portId can be specified.
   */
-  void openVirtualPort( const std::string &portName = std::string( "RtMidi virtual output port" ) )
-  {
-    if (!rtapi_ && list && !list->empty()) {
-      Pointer<MidiApi> api = list->front();
-
-      std::vector< ApiType > apis;
-      getCompiledApi( apis );
-      for (size_t i = 0 ; i < apis.size() ; i++) {
-	openMidiApi( apis[0] );
-	if (rtapi_ && rtapi_->hasVirtualPorts()) break;
-      }
-    }
-
-    if (rtapi_) rtapi_->openVirtualPort(portName);
-    else {
-      error(RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
-			 Error::INVALID_DEVICE));
-    }
-  }
+  void openVirtualPort( const std::string &portName = std::string( "RtMidi virtual output port" ) );
 
   //! Return a list of all available ports of the current API.
   /*!
@@ -1182,17 +1010,7 @@ public:
     \param message A pointer to the MIDI message as raw bytes
     \param size    Length of the MIDI message in bytes
   */
-  void sendMessage( const unsigned char *message, size_t size ) {
-    if (!message) {
-      error( RTMIDI_ERROR(gettext_noopt("No data in MIDI message."),
-			  Error::WARNING));
-    }
-    if (rtapi_)
-      static_cast<MidiOutApi *>(rtapi_)->sendMessage(message,size);
-    else
-      error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
-			  Error::WARNING));
-  }
+  void sendMessage( const unsigned char *message, size_t size );
 
 protected:
   static MidiApiList queryApis;
@@ -1200,6 +1018,7 @@ protected:
   bool firstErrorOccurred_;
 };
 #undef RTMIDI_CLASSNAME
+
 
 // **************************************************************** //
 //
@@ -1487,6 +1306,220 @@ public:
 };
 #undef RTMIDI_CLASSNAME
 
+
+// **************************************************************** //
+//
+// Inline rtmidi::Midi, rtmidi::MidiIn and rtmidid:MidiOut definitions.
+//
+// **************************************************************** //
+// rtmidi::Midi
+#define RTMIDI_CLASSNAME "Midi"
+inline std::vector<ApiType> Midi :: getCompiledApi(  ) throw() {
+  std::vector<ApiType> apis;
+  getCompiledApi(apis);
+  return apis;
+}
+inline ApiType Midi :: getCurrentApi( void ) throw() {
+  if (rtapi_) return rtapi_->getCurrentApi();
+  else return rtmidi::UNSPECIFIED;
+}
+inline Pointer<PortDescriptor> Midi :: getDescriptor( bool local ) {
+  if (rtapi_) return rtapi_->getDescriptor(local);
+  return 0;
+}
+inline PortList Midi :: getPortList(int capabilities ) {
+  if (rtapi_) return rtapi_->getPortList(capabilities);
+  if (list && !list->empty()) {
+    PortList retval;
+    for (MidiApiList::iterator i = list->begin();
+	 i != list->end();
+	 ++i) {
+      PortList tmp = (*i)->getPortList(capabilities);
+      retval.splice(retval.end(), tmp);
+    }
+    return retval;
+  }
+  return PortList();
+}
+inline void Midi :: closePort( void ) {
+  if (rtapi_) rtapi_->closePort();
+}
+inline bool Midi :: isPortOpen( void ) const {
+  if (rtapi_) return rtapi_->isPortOpen();
+  return false;
+}
+inline void Midi :: setErrorCallback( ErrorInterface * callback) {
+  if (rtapi_) rtapi_->setErrorCallback(callback);
+}
+inline void Midi :: getCompiledApi( std::vector<Api> &apis, bool
+				    preferSystem ) throw() {
+  std::vector<rtmidi::ApiType> api2;
+  Midi::getCompiledApi(api2,preferSystem);
+  apis.reserve(api2.size());
+  size_t s = api2.size();
+  for (size_t i = 0; i < s; i++) {
+    apis.push_back((Api)api2[i]);
+  }
+}
+inline void Midi :: openPort( unsigned int portNumber,
+	       const std::string &portName) {
+  if (rtapi_) rtapi_->openPort(portNumber,portName);
+}
+inline unsigned int Midi :: getPortCount() {
+  if (rtapi_) return rtapi_->getPortCount();
+  return 0;
+}
+inline std::string Midi :: getPortName( unsigned int portNumber ) {
+  if (rtapi_) return rtapi_->getPortName(portNumber);
+  return "";
+}
+inline void Midi :: setErrorCallback( ErrorCallback errorCallback , void * userData ) {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+  if (rtapi_) rtapi_->setErrorCallback(errorCallback, userData);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+}
+inline Midi :: Midi(MidiApiList * l,
+		    bool pfsystem,
+		    const std::string &name):rtapi_(0),
+					     list(l),
+					     preferSystem(pfsystem),
+					     clientName(name) { }
+inline Midi :: ~Midi() {
+  delete rtapi_;
+  rtapi_ = 0;
+}
+#undef RTMIDI_CLASSNAME
+
+#define RTMIDI_CLASSNAME "MidiIn"
+// rtmidi::MidiIn
+inline void MidiIn :: openPort( const PortDescriptor & port,
+				const std::string &portName ) {
+  if (!rtapi_) rtapi_ = port.getInputApi();
+  if (rtapi_) rtapi_->openPort(port,portName);
+}
+inline void MidiIn :: openPort( Pointer<PortDescriptor> p,
+				const std::string &portName ) {
+  if (!p) {
+    error(RTMIDI_ERROR(gettext_noopt("A NULL pointer has been passed as port descriptor"),
+		       Error::INVALID_PARAMETER));
+    return;
+  }
+  openPort(*p, portName);
+}
+inline void MidiIn :: openVirtualPort( const std::string &portName ) {
+  if (!rtapi_ && list && !list->empty()) {
+    Pointer<MidiApi> api = list->front();
+
+    std::vector< ApiType > apis;
+    getCompiledApi( apis );
+    for (size_t i = 0 ; i < apis.size() ; i++) {
+      openMidiApi( apis[0] );
+      if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+    }
+  }
+
+  if (rtapi_) rtapi_->openVirtualPort(portName);
+  else {
+    error(RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
+		       Error::INVALID_DEVICE));
+  }
+}
+inline void MidiIn :: setCallback( MidiInterface * callback ) {
+  if (rtapi_)
+    static_cast<MidiInApi*>(rtapi_)->setCallback(callback);
+}
+inline void MidiIn :: cancelCallback() {
+  if (rtapi_)
+    static_cast<MidiInApi*>(rtapi_)->cancelCallback();
+}
+inline void MidiIn :: ignoreTypes( bool midiSysex = true,
+				   bool midiTime = true,
+				   bool midiSense = true ) {
+  if (rtapi_)
+    static_cast<MidiInApi*>(rtapi_)->ignoreTypes(midiSysex, midiTime, midiSense);
+}
+inline double MidiIn :: getMessage( std::vector<unsigned char> &message ) {
+  if (rtapi_)
+    return static_cast<MidiInApi*>(rtapi_)->getMessage(message);
+  error( RTMIDI_ERROR(gettext_noopt("Could not find any valid MIDI system."),
+		      Error::WARNING));
+  return 0.0;
+}
+inline void MidiIn :: setCallback( MidiCallback callback, void *userData) {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+  if (rtapi_)
+    static_cast<MidiInApi*>(rtapi_)->setCallback(callback,userData);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+}
+inline double MidiIn :: getMessage( std::vector<unsigned char> *message ) {
+  if (!message) {
+    error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
+			Error::WARNING));
+  }
+  if (rtapi_)
+    return static_cast<MidiInApi*>(rtapi_)->getMessage(*message);
+  error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been found."),
+		      Error::WARNING));
+  return 0.0;
+}
+#undef RTMIDI_CLASSNAME
+
+// rtmidi::MidiOut
+#define RTMIDI_CLASSNAME "MidiOut"
+inline void MidiOut :: openPort( const PortDescriptor & port,
+				 const std::string &portName ) {
+  if (!rtapi_) rtapi_ = port.getOutputApi();
+  if (rtapi_) rtapi_->openPort(port,portName);
+}
+inline void MidiOut :: openPort( Pointer<PortDescriptor> p,
+				 const std::string &portName ) {
+  if (!p) {
+    error(RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
+		       Error::INVALID_PARAMETER));
+    return;
+  }
+  openPort(*p, portName);
+}
+inline void MidiOut :: openVirtualPort( const std::string &portName ) {
+  if (!rtapi_ && list && !list->empty()) {
+    Pointer<MidiApi> api = list->front();
+
+    std::vector< ApiType > apis;
+    getCompiledApi( apis );
+    for (size_t i = 0 ; i < apis.size() ; i++) {
+      openMidiApi( apis[0] );
+      if (rtapi_ && rtapi_->hasVirtualPorts()) break;
+    }
+  }
+
+  if (rtapi_) rtapi_->openVirtualPort(portName);
+  else {
+    error(RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
+		       Error::INVALID_DEVICE));
+  }
+}
+inline void MidiOut :: sendMessage( const unsigned char *message, size_t size ) {
+  if (!message) {
+    error( RTMIDI_ERROR(gettext_noopt("No data in MIDI message."),
+			Error::WARNING));
+  }
+  if (rtapi_)
+    static_cast<MidiOutApi *>(rtapi_)->sendMessage(message,size);
+  else
+    error( RTMIDI_ERROR(gettext_noopt("No valid MIDI system has been selected."),
+			Error::WARNING));
+}
+#undef RTMIDI_CLASSNAME
 
 // **************************************************************** //
 //

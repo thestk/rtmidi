@@ -8,7 +8,7 @@
   RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
 
   RtMidi: realtime MIDI i/o C++ classes
-  Copyright (c) 2003-2016 Gary P. Scavone
+  Copyright (c) 2003-2017 Gary P. Scavone
   Forked by Tobias Schlemmer, 2014-2018.
 
   Permission is hereby granted, free of charge, to any person
@@ -44,7 +44,7 @@
 #ifndef RTMIDI_H
 #define RTMIDI_H
 
-#define RTMIDI_VERSION "3.0.0"
+#define RTMIDI_VERSION "5.0.0"
 
 #ifdef RTMIDI_NO_WARN_DEPRECATED
 #define RTMIDI_DEPRECATED(func,message) func
@@ -694,15 +694,16 @@ public:
   struct MidiQueue {
     unsigned int front;
     unsigned int back;
-    unsigned int size;
     unsigned int ringSize;
     MidiMessage *ring;
 
     // Default constructor.
     MidiQueue()
-      :front(0), back(0), size(0), ringSize(0) {}
+      :front(0), back(0), ringSize(0), ring(0) {}
     bool push(const MidiMessage&);
     bool pop(std::vector<unsigned char>& message, double& timestamp);
+    unsigned int size(unsigned int *back=0,
+		      unsigned int *front=0);
   };
 
 
@@ -865,11 +866,12 @@ public:
     if (rtapi_) rtapi_->closePort();
   }
 
-  // ! A basic error reporting function for RtMidi classes.
-  //  static void error( Error::Type type, std::string &errorString );
+  //! Returns true if a port is open and false if not.
+  /*!
+    Note that this only applies to connections made with the openPort()
+    function, not to virtual ports.
 
-  //! Pure virtual function to return whether a port is open or not.
-  /*! \retval true if a port is open and
+    \retval true if a port is open and
     \retval false if the port is not open (e.g. not opend or closed).
   */
   bool isPortOpen( void ) const
@@ -1004,9 +1006,9 @@ protected:
   Midi(MidiApiList * l,
        bool pfsystem,
        const std::string &name):rtapi_(0),
-				 list(l),
-				 preferSystem(pfsystem),
-				 clientName(name) {}
+				list(l),
+				preferSystem(pfsystem),
+				clientName(name) {}
   virtual ~Midi()
   {
     delete rtapi_;
@@ -1032,11 +1034,11 @@ inline std::string getApiName(Midi::Api type)
   retrieval using the getMessage() function or immediately passed to
   a user-specified callback function.  Create multiple instances of
   this class to connect to more than one MIDI device at the same
-  time.  With the OS-X and Linux ALSA MIDI APIs, it is also possible
-  to open a virtual input port to which other MIDI software clients
-  can connect.
+  time.  With the OS-X, Linux ALSA, and JACK MIDI APIs, it is also
+  possible to open a virtual input port to which other MIDI software
+  clients can connect.
 
-  by Gary P. Scavone, 2003-2014.
+  by Gary P. Scavone, 2003-2017.
 */
 /**********************************************************************/
 
@@ -1308,10 +1310,10 @@ protected:
   connect to one such port, and to send MIDI bytes immediately over
   the connection.  Create multiple instances of this class to
   connect to more than one MIDI device at the same time.  With the
-  OS-X and Linux ALSA MIDI APIs, it is also possible to open a
+  OS-X, Linux ALSA and JACK MIDI APIs, it is also possible to open a
   virtual port to which other MIDI software clients can connect.
 
-  by Gary P. Scavone, 2003-2014.
+  by Gary P. Scavone, 2003-2017.
 */
 /**********************************************************************/
 

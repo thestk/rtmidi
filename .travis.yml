@@ -18,6 +18,12 @@ matrix:
   - os: linux
     env: HOST="" API="jack"
     compiler: clang
+  - os: linux
+    env: HOST="--with-jack" API="alsa"
+    compiler: gcc
+  - os: linux
+    env: HOST="--with-jack" API="alsa"
+    compiler: clang
   # - os: linux
   #   env: HOST="--host=i686-w64-mingw32" API="winmm"
   #  compiler: gcc
@@ -32,10 +38,22 @@ matrix:
   #   env: HOST="--host=arm-linux-gnueabihf" API="jack"
   #   compiler: gcc
   - os: osx
-    env: HOST="" API="core"
+    env: HOST="" API="coremidi"
     compiler: gcc
   - os: osx
-    env: HOST="" API="core"
+    env: HOST="" API="coremidi"
+    compiler: clang
+  - os: osx
+    env: HOST="" API="jack"
+    compiler: gcc
+  - os: osx
+    env: HOST="" API="jack"
+    compiler: clang
+  - os: osx
+    env: HOST="--with-jack" API="coremidi"
+    compiler: gcc
+  - os: osx
+    env: HOST="--with-jack" API="coremidi"
     compiler: clang
 language: c++
 group: travis_latest

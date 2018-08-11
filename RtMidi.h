@@ -333,6 +333,8 @@ using Pointer = std::shared_ptr<T>;
 class MidiApi;
 class MidiInApi;
 class MidiOutApi;
+typedef Pointer<MidiApi> MidiApiPtr;
+typedef std::list <MidiApiPtr> MidiApiList;
 
 class PortDescriptor {
 public:
@@ -476,294 +478,6 @@ typedef void (*MidiCallback_t)( double timeStamp, std::vector<unsigned char> *me
 RTMIDI_DEPRECATED(typedef MidiCallback_t MidiCallback,"RtMidi now provides a class MidiInterface for MIDI callbacks");
 #define MidiCallback MidiCallback_t
 
-// **************************************************************** //
-//
-// MidiInApi / MidiOutApi class declarations.
-//
-// Subclasses of MidiInApi and MidiOutApi contain all API- and
-// OS-specific code necessary to fully implement the RtMidi API.
-//
-// Note that MidiInApi and MidiOutApi are abstract base classes and
-// cannot be explicitly instantiated.  MidiIn and MidiOut will
-// create instances of a MidiInApi or MidiOutApi subclass.
-//
-// **************************************************************** //
-
-#define RTMIDI_CLASSNAME "MidiApi"
-class MidiApi
-{
-public:
-
-  MidiApi();
-  virtual ~MidiApi();
-
-  //! Return whether the API supports virtual ports
-  /*!
-    \retval true The funcion returns true if the API supports virtual ports.
-    \retval false The funcion returns false if the API doesn't support virtual ports.
-    \sa openVirtualPort
-  */
-  virtual bool hasVirtualPorts() const = 0;
-
-  //! Pure virtal function to create a virtual port, with optional name.
-  /*!
-    This function creates a virtual MIDI port to which other
-    software applications can connect. This type of functionality
-    is currently only supported by the Macintosh OS-X, any JACK,
-    and Linux ALSA APIs (the function returns an error for the other APIs).
-
-    \param portName An optional name for the applicaction port that is
-    used to connect to portId can be specified.
-
-    \sa hasVirtualPorts
-  */
-  virtual void openVirtualPort( const std::string &portName = std::string( "RtMidi virtual port" ) ) = 0;
-
-  //! Pure virtual function to open a MIDI connection given by enumeration number.
-  /*! \param portNumber An optional port number greater than 0
-    can be specified.  Otherwise, the default or first port
-    found is opened.
-
-    \param portName An optional name for the applicaction port
-    that will be generated to connect to portId can be
-    specified.
-  */
-  virtual void openPort( unsigned int portNumber = 0, const std::string &portName = std::string( "RtMidi" ) ) = 0;
-
-  //! Pure virtual function to open a MIDI connection given by a port descriptor.
-  /*!
-    \param port     A port descriptor of the port must be specified.
-    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
-  */
-  virtual void openPort( const PortDescriptor & port, const std::string &portName = std::string( "RtMidi" ) ) = 0;
-
-  //!  Open a MIDI connection given by a port descriptor pointer.
-  /*!
-    \param port     A pointer to a port descriptor of the port must be specified.
-    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
-    \sa openPort(const PortDescriptor &,const std::string &);
-  */
-  void openPort( Pointer<PortDescriptor> p, const std::string &portName = std::string( "RtMidi" ) ) {
-    if (!p) {
-      error(RTMIDI_ERROR( gettext_noopt("Passed NULL pointer."),
-			  Error::INVALID_PARAMETER));
-      return;
-    }
-    openPort(*p, portName);
-  }
-
-  //! Pure virtual function to return a port descriptor if the port is open
-  /*! This function returns a port descriptor that can be used to open another port
-    either to the connected port or – if the backend supports it – the connecting port.
-    \param local The parameter local defines whether the function returns a descriptor to
-    the virtual port (true) or the remote port (false). The function returns 0 if the
-    port cannot be determined (e.g. if the port is not connected or the backend dosen't support it).
-  */
-  virtual Pointer<PortDescriptor> getDescriptor(bool local=false) = 0;
-
-  //! Pure virtual function to return a list of all available ports of the current API.
-  /*!
-    \param capabilities an optional parameter that describes which
-    capabilities the device typu
-
-    \return This function returns a list of port descriptors.
-
-    \note An input API may but need not necessarily report
-    output devices which cannot be used as input if
-    \ref 0 is passed as \ref capabilities parameter.
-    \sa PortDescriptor::PortCapabilitiers
-  */
-  virtual PortList getPortList(int capabilities = 0) = 0;
-
-  //! Pure virtual to return the number of available MIDI ports of the current API.
-  /*!
-    \return This function returns the number of MIDI ports of
-    the selected API.
-
-    \note Only ports are counted that can be used with the
-    current API so an input API does ignore all output devices
-    and vice versa.
-
-    \sa getPortName
-  */
-  virtual unsigned int getPortCount() = 0;
-
-  //! Pure virtual function to return a string identifier for the specified MIDI port number.
-  /*!
-    \param portNumber Number of the device to be referred to.
-    \return The name of the port with the given Id is returned.
-    \retval An empty string is returned if an invalid port specifier is provided.
-
-    \note Only ports are counted that can be used with the
-    current API so an input API does ignore all output devices
-    and vice versa.
-
-    \sa getPortCount()
-  */
-  virtual std::string getPortName( unsigned int portNumber = 0 ) = 0;
-
-  //! Pure virtual function to close an open MIDI connection (if one exists).
-  virtual void closePort( void ) = 0;
-
-  // ! A basic error reporting function for RtMidi classes.
-  //  static void error( Error::Type type, std::string &errorString );
-
-  //! Pure virtual function to return whether a port is open or not.
-  /*! \retval true if a port is open and
-    \retval false if the port is not open (e.g. not opend or closed).
-  */
-  bool isPortOpen() const { return connected_; }
-
-
-  //! Virtual function to set the error callback object
-  /*!
-    Everytime an error is detected or a warning is issued the function
-    \r ErrorInterface::rtmidi_error of the callback object is called with an error object
-    that describes the situation.
-
-    \param callback An objact that provides an ErrorInterface.
-  */
-  virtual void setErrorCallback(ErrorInterface * callback);
-
-
-  //! Returns the MIDI API specifier for the current instance of RtMidiIn.
-  virtual ApiType getCurrentApi( void ) throw() = 0;
-
-  //! A basic error reporting function for RtMidi classes.
-  /*!  This function hanles errors end warnings that
-    occur during runtime of RtMidi. If an error callback
-    has been set the function calls the callback and
-    returns quietly assuming the callback handled the
-    case correctly.
-
-    Otherwise it depends on the type of the error. If it
-    is a warning, a message is displayed to
-    std::cerr. If it is an error the object is thrown as
-    an exception.
-
-    \param e Error/Warning object describing the current
-    situation.
-
-    \throw Error
-  */
-  void error( Error e );
-
-
-  //! Virtual function to set an error callback function to be invoked when an error has occured.
-  /*!
-    The callback function will be called whenever an error has occured. It is best
-    to set the error callback function before opening a port.
-  */
-  RTMIDI_DEPRECATED(virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ), "RtMidi now provides a typesafe ErrorInterface class");
-
-protected:
-  virtual void initialize( const std::string &clientName ) = 0;
-
-  void *apiData_;
-  bool connected_;
-  bool firstErrorOccurred_;
-  std::string errorString_;
-  ErrorInterface * errorCallback_;
-};
-#undef RTMIDI_CLASSNAME
-
-#define RTMIDI_CLASSNAME "MidiInApi"
-class MidiInApi : public MidiApi
-{
-public:
-
-  MidiInApi( unsigned int queueSizeLimit );
-  virtual ~MidiInApi( void );
-  void setCallback( MidiInterface * callback);
-  void cancelCallback( void );
-  virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
-  double getMessage( std::vector<unsigned char> &message );
-
-  // A MIDI structure used internally by the class to store incoming
-  // messages.  Each message represents one and only one MIDI message.
-  struct MidiMessage {
-    std::vector<unsigned char> bytes;
-    //! Time in seconds elapsed since the previous message
-    double timeStamp;
-
-    // Default constructor.
-    MidiMessage()
-      :bytes(0), timeStamp(0.0) {}
-  };
-
-  struct MidiQueue {
-    unsigned int front;
-    unsigned int back;
-    unsigned int ringSize;
-    MidiMessage *ring;
-
-    // Default constructor.
-    MidiQueue()
-      :front(0), back(0), ringSize(0), ring(0) {}
-    bool push(const MidiMessage&);
-    bool pop(std::vector<unsigned char>& message, double& timestamp);
-    unsigned int size(unsigned int *back=0,
-		      unsigned int *front=0);
-  };
-
-
-
-  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ),
-		    "RtMidi now provides a type-safe MidiInterface class.");
-  RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ),
-		    "Please, use a C++ style reference to pass the message vector.")
-  {
-    if (!message) {
-      error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
-			  Error::WARNING ));
-    }
-    return getMessage(*message);
-  }
-
-protected:
-  // The RtMidiInData structure is used to pass private class data to
-  // the MIDI input handling function or thread.
-  MidiQueue queue;
-  MidiMessage message;
-  unsigned char ignoreFlags;
-  bool doInput;
-  bool firstMessage;
-  MidiInterface * userCallback;
-  bool continueSysex;
-  friend struct JackBackendCallbacks;
-};
-#undef RTMIDI_CLASSNAME
-
-#define RTMIDI_CLASSNAME "MidiOutApi"
-class MidiOutApi : public MidiApi
-{
-public:
-
-  MidiOutApi( void );
-  virtual ~MidiOutApi( void );
-  virtual void sendMessage( const unsigned char *message, size_t size ) = 0;
-  void sendMessage( const std::vector<unsigned char> &message )
-  {
-    if (message.empty()) {
-      error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
-			  Error::WARNING));
-    }
-    sendMessage(message.data(),message.size());
-  }
-  RTMIDI_DEPRECATED(void sendMessage( const std::vector<unsigned char> *message ),
-		    "Please, use a C++ style reference to pass the message vector.")
-  {
-    if (!message) {
-      error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
-			  Error::WARNING));
-    }
-    sendMessage(*message);
-  }
-};
-#undef RTMIDI_CLASSNAME
-
-typedef Pointer<MidiApi> MidiApiPtr;
-typedef std::list <MidiApiPtr> MidiApiList;
 
 /*! \class Midi
   \brief A global class that implements basic backend API handling.
@@ -1484,6 +1198,292 @@ protected:
   static MidiApiList queryApis;
   void openMidiApi( ApiType api );
   bool firstErrorOccurred_;
+};
+#undef RTMIDI_CLASSNAME
+
+// **************************************************************** //
+//
+// MidiInApi / MidiOutApi class declarations.
+//
+// Subclasses of MidiInApi and MidiOutApi contain all API- and
+// OS-specific code necessary to fully implement the RtMidi API.
+//
+// Note that MidiInApi and MidiOutApi are abstract base classes and
+// cannot be explicitly instantiated.  MidiIn and MidiOut will
+// create instances of a MidiInApi or MidiOutApi subclass.
+//
+// **************************************************************** //
+
+#define RTMIDI_CLASSNAME "MidiApi"
+class MidiApi
+{
+public:
+
+  MidiApi();
+  virtual ~MidiApi();
+
+  //! Return whether the API supports virtual ports
+  /*!
+    \retval true The funcion returns true if the API supports virtual ports.
+    \retval false The funcion returns false if the API doesn't support virtual ports.
+    \sa openVirtualPort
+  */
+  virtual bool hasVirtualPorts() const = 0;
+
+  //! Pure virtal function to create a virtual port, with optional name.
+  /*!
+    This function creates a virtual MIDI port to which other
+    software applications can connect. This type of functionality
+    is currently only supported by the Macintosh OS-X, any JACK,
+    and Linux ALSA APIs (the function returns an error for the other APIs).
+
+    \param portName An optional name for the applicaction port that is
+    used to connect to portId can be specified.
+
+    \sa hasVirtualPorts
+  */
+  virtual void openVirtualPort( const std::string &portName = std::string( "RtMidi virtual port" ) ) = 0;
+
+  //! Pure virtual function to open a MIDI connection given by enumeration number.
+  /*! \param portNumber An optional port number greater than 0
+    can be specified.  Otherwise, the default or first port
+    found is opened.
+
+    \param portName An optional name for the applicaction port
+    that will be generated to connect to portId can be
+    specified.
+  */
+  virtual void openPort( unsigned int portNumber = 0, const std::string &portName = std::string( "RtMidi" ) ) = 0;
+
+  //! Pure virtual function to open a MIDI connection given by a port descriptor.
+  /*!
+    \param port     A port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+  */
+  virtual void openPort( const PortDescriptor & port, const std::string &portName = std::string( "RtMidi" ) ) = 0;
+
+  //!  Open a MIDI connection given by a port descriptor pointer.
+  /*!
+    \param port     A pointer to a port descriptor of the port must be specified.
+    \param portName An optional name for the applicaction port that is used to connect to portId can be specified.
+    \sa openPort(const PortDescriptor &,const std::string &);
+  */
+  void openPort( Pointer<PortDescriptor> p, const std::string &portName = std::string( "RtMidi" ) ) {
+    if (!p) {
+      error(RTMIDI_ERROR( gettext_noopt("Passed NULL pointer."),
+			  Error::INVALID_PARAMETER));
+      return;
+    }
+    openPort(*p, portName);
+  }
+
+  //! Pure virtual function to return a port descriptor if the port is open
+  /*! This function returns a port descriptor that can be used to open another port
+    either to the connected port or – if the backend supports it – the connecting port.
+    \param local The parameter local defines whether the function returns a descriptor to
+    the virtual port (true) or the remote port (false). The function returns 0 if the
+    port cannot be determined (e.g. if the port is not connected or the backend dosen't support it).
+  */
+  virtual Pointer<PortDescriptor> getDescriptor(bool local=false) = 0;
+
+  //! Pure virtual function to return a list of all available ports of the current API.
+  /*!
+    \param capabilities an optional parameter that describes which
+    capabilities the device typu
+
+    \return This function returns a list of port descriptors.
+
+    \note An input API may but need not necessarily report
+    output devices which cannot be used as input if
+    \ref 0 is passed as \ref capabilities parameter.
+    \sa PortDescriptor::PortCapabilitiers
+  */
+  virtual PortList getPortList(int capabilities = 0) = 0;
+
+  //! Pure virtual to return the number of available MIDI ports of the current API.
+  /*!
+    \return This function returns the number of MIDI ports of
+    the selected API.
+
+    \note Only ports are counted that can be used with the
+    current API so an input API does ignore all output devices
+    and vice versa.
+
+    \sa getPortName
+  */
+  virtual unsigned int getPortCount() = 0;
+
+  //! Pure virtual function to return a string identifier for the specified MIDI port number.
+  /*!
+    \param portNumber Number of the device to be referred to.
+    \return The name of the port with the given Id is returned.
+    \retval An empty string is returned if an invalid port specifier is provided.
+
+    \note Only ports are counted that can be used with the
+    current API so an input API does ignore all output devices
+    and vice versa.
+
+    \sa getPortCount()
+  */
+  virtual std::string getPortName( unsigned int portNumber = 0 ) = 0;
+
+  //! Pure virtual function to close an open MIDI connection (if one exists).
+  virtual void closePort( void ) = 0;
+
+  // ! A basic error reporting function for RtMidi classes.
+  //  static void error( Error::Type type, std::string &errorString );
+
+  //! Pure virtual function to return whether a port is open or not.
+  /*! \retval true if a port is open and
+    \retval false if the port is not open (e.g. not opend or closed).
+  */
+  bool isPortOpen() const { return connected_; }
+
+
+  //! Virtual function to set the error callback object
+  /*!
+    Everytime an error is detected or a warning is issued the function
+    \r ErrorInterface::rtmidi_error of the callback object is called with an error object
+    that describes the situation.
+
+    \param callback An objact that provides an ErrorInterface.
+  */
+  virtual void setErrorCallback(ErrorInterface * callback);
+
+
+  //! Returns the MIDI API specifier for the current instance of RtMidiIn.
+  virtual ApiType getCurrentApi( void ) throw() = 0;
+
+  //! A basic error reporting function for RtMidi classes.
+  /*!  This function hanles errors end warnings that
+    occur during runtime of RtMidi. If an error callback
+    has been set the function calls the callback and
+    returns quietly assuming the callback handled the
+    case correctly.
+
+    Otherwise it depends on the type of the error. If it
+    is a warning, a message is displayed to
+    std::cerr. If it is an error the object is thrown as
+    an exception.
+
+    \param e Error/Warning object describing the current
+    situation.
+
+    \throw Error
+  */
+  void error( Error e );
+
+
+  //! Virtual function to set an error callback function to be invoked when an error has occured.
+  /*!
+    The callback function will be called whenever an error has occured. It is best
+    to set the error callback function before opening a port.
+  */
+  RTMIDI_DEPRECATED(virtual void setErrorCallback( ErrorCallback errorCallback = NULL, void * userData = 0 ), "RtMidi now provides a typesafe ErrorInterface class");
+
+protected:
+  virtual void initialize( const std::string &clientName ) = 0;
+
+  void *apiData_;
+  bool connected_;
+  bool firstErrorOccurred_;
+  std::string errorString_;
+  ErrorInterface * errorCallback_;
+};
+#undef RTMIDI_CLASSNAME
+
+#define RTMIDI_CLASSNAME "MidiInApi"
+class MidiInApi : public MidiApi
+{
+public:
+
+  MidiInApi( unsigned int queueSizeLimit );
+  virtual ~MidiInApi( void );
+  void setCallback( MidiInterface * callback);
+  void cancelCallback( void );
+  virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
+  double getMessage( std::vector<unsigned char> &message );
+
+  // A MIDI structure used internally by the class to store incoming
+  // messages.  Each message represents one and only one MIDI message.
+  struct MidiMessage {
+    std::vector<unsigned char> bytes;
+    //! Time in seconds elapsed since the previous message
+    double timeStamp;
+
+    // Default constructor.
+    MidiMessage()
+      :bytes(0), timeStamp(0.0) {}
+  };
+
+  struct MidiQueue {
+    unsigned int front;
+    unsigned int back;
+    unsigned int ringSize;
+    MidiMessage *ring;
+
+    // Default constructor.
+    MidiQueue()
+      :front(0), back(0), ringSize(0), ring(0) {}
+    bool push(const MidiMessage&);
+    bool pop(std::vector<unsigned char>& message, double& timestamp);
+    unsigned int size(unsigned int *back=0,
+		      unsigned int *front=0);
+  };
+
+
+
+  RTMIDI_DEPRECATED(void setCallback( MidiCallback callback, void *userData = 0 ),
+		    "RtMidi now provides a type-safe MidiInterface class.");
+  RTMIDI_DEPRECATED(double getMessage( std::vector<unsigned char> *message ),
+		    "Please, use a C++ style reference to pass the message vector.")
+  {
+    if (!message) {
+      error( RTMIDI_ERROR(gettext_noopt("Passed NULL pointer."),
+			  Error::WARNING ));
+    }
+    return getMessage(*message);
+  }
+
+protected:
+  // The RtMidiInData structure is used to pass private class data to
+  // the MIDI input handling function or thread.
+  MidiQueue queue;
+  MidiMessage message;
+  unsigned char ignoreFlags;
+  bool doInput;
+  bool firstMessage;
+  MidiInterface * userCallback;
+  bool continueSysex;
+  friend struct JackBackendCallbacks;
+};
+#undef RTMIDI_CLASSNAME
+
+#define RTMIDI_CLASSNAME "MidiOutApi"
+class MidiOutApi : public MidiApi
+{
+public:
+
+  MidiOutApi( void );
+  virtual ~MidiOutApi( void );
+  virtual void sendMessage( const unsigned char *message, size_t size ) = 0;
+  void sendMessage( const std::vector<unsigned char> &message )
+  {
+    if (message.empty()) {
+      error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
+			  Error::WARNING));
+    }
+    sendMessage(message.data(),message.size());
+  }
+  RTMIDI_DEPRECATED(void sendMessage( const std::vector<unsigned char> *message ),
+		    "Please, use a C++ style reference to pass the message vector.")
+  {
+    if (!message) {
+      error( RTMIDI_ERROR(gettext_noopt("No data in message argument."),
+			  Error::WARNING));
+    }
+    sendMessage(*message);
+  }
 };
 #undef RTMIDI_CLASSNAME
 

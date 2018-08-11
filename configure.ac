@@ -14,27 +14,21 @@ AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
 
 
 
+# Fill GXX with something before test.
+GXX="no"
 
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-# Fill GXX with something before test.
-AC_SUBST( GXX, ["no"] )
 
 AC_CONFIG_MACRO_DIR([m4])
-
-# Set paths if prefix is defined
-if test "x$prefix" != "x" && test "x$prefix" != "xNONE"; then
-  LIBS="$LIBS -L$prefix/lib"
-  CPPFLAGS="$CPPFLAGS -I$prefix/include/rtmidi"
-fi
 
 rtmidi_suffix="-ts"
 rtmidi_standalone="yes"
 SUBDIRS="$SUBDIRS %D%/po"
+rtmidi_subdir="$srcdir"
 m4_include(configure.library)
-
 
 AC_OUTPUT
 

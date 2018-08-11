@@ -18,9 +18,11 @@ DISTCLEANFILES += \
 	-no-undefined \
 	-v
 %C%_librtmidi@rtmidi_suffix@_la_CXXFLAGS = \
+	$(rtmidi_visibility) \
 	$(CXXFLAGS) \
 	$(CPPFLAGS) \
 	$(RTMIDI_API) \
+	$(RTMIDI_LIB_CFLAGS) \
 	-DRTMIDI_NO_WARN_DEPRECATED
 %C%_librtmidi@rtmidi_suffix@_la_SOURCES = \
   %D%/RtMidi.cpp \

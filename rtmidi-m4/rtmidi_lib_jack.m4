@@ -55,8 +55,10 @@ return jack_client_close(NULL);
 return jack_port_uuid(NULL);
 			],[RTMIDI_API="$RTMIDI_API -D__UNIX_JACK_HAS_UUID__"])
 		LIBS="$rtmidi_save_libs"
-		RTMIDI_API="$RTMIDI_API -D__UNIX_JACK__ $JACK_CFLAGS"
+		RTMIDI_API="$RTMIDI_API -D__UNIX_JACK__"
+		RTMIDI_LIB_CFLAGS="$RTMIDI_LIB_CFLAGS $JACK_CFLAGS"
 		RTMIDI_LIBS="$RTMIDI_LIBS $JACK_LIBS"
+		rtmidi_pkconfig_requirements="$rtmidi_pkconfig_requirements jack"
 		RTMIDI_HAVE_VIRTUAL_DEVICES=yes
 		$1
 	],[

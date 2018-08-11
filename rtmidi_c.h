@@ -39,8 +39,13 @@ struct RtMidiOutWrapper {
     const char* msg;
 };
 
+//! Typedef for a generic RtMidi pointer.
 typedef struct RtMidiWrapper* RtMidiPtr;
+
+//! Typedef for a generic RtMidiIn pointer.
 typedef struct RtMidiInWrapper* RtMidiInPtr;
+
+//! Typedef for a generic RtMidiOut pointer.
 typedef struct RtMidiOutWrapper* RtMidiOutPtr;
 
 
@@ -66,10 +71,9 @@ enum RtMidiErrorType {
  * \param message     The midi message.
  * \param userData    Additional user data for the callback.
  */
-typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message, void *userData);
+typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
+                                 size_t messageSize, void *userData);
 
-//! Returns the size (with sizeof) of a RtMidiApi instance.
-RTMIDIAPI int rtmidi_sizeof_rtmidi_api ();
 
 /* RtMidi API */
 
@@ -79,7 +83,7 @@ RTMIDIAPI int rtmidi_sizeof_rtmidi_api ();
  *
  * \param apis  An array or a null value.
 */
-RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi **apis); // return length for NULL argument.
+RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi *apis); // return length for NULL argument.
 
 //! Report an error.
 RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);
@@ -150,7 +154,7 @@ RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool 
  *                  be sufficient. 
  * \param size      Is used to return the size of the message obtained. 
  */
-RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char **message, size_t * size);
+RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char *message, size_t *size);
 
 /* RtMidiOut API */
 

@@ -33,8 +33,10 @@ AC_DEFUN([RTMIDI_LIB_ALSA],[
 		])
 	])
 	AS_IF(test "x$rtmidi_have_alsa" = "xyes",[
-		RTMIDI_API="$RTMIDI_API -D__LINUX_ALSA__ $ALSA_CFLAGS"
+		RTMIDI_API="$RTMIDI_API -D__LINUX_ALSA__"
+		RTMIDI_LIB_CFLAGS="$RTMIDI_LIB_CFLAGS $ALSA_CFLAGS"
 		RTMIDI_LIBS="$RTMIDI_LIBS $ALSA_LIBS"
+		rtmidi_pkconfig_requirements="$rtmidi_pkconfig_requirements alsa"
 		RTMIDI_HAVE_VIRTUAL_DEVICES=yes
 		$1
 	],[

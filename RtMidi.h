@@ -71,6 +71,17 @@
 #define RTMIDI_SUPPORTS_CPP11 0
 #endif
 
+#if defined _WIN32 || defined __CYGWIN__
+  #define RTMIDI_DLL_PUBLIC
+#else
+  #if __GNUC__ >= 4
+    #define RTMIDI_DLL_PUBLIC __attribute__( (visibility( "default" )) )
+  #else
+    #define RTMIDI_DLL_PUBLIC
+  #endif
+#endif
+
+
 #include <exception>
 #include <iostream>
 #include <string>
@@ -174,7 +185,7 @@ struct MidiInterface {
   rtmidi::Error(message, type,					      \
 		RTMIDI_CLASSNAME, __FUNCTION__,			      \
 		__FILE__, __LINE__, arg1)
-class Error : public std::exception
+class RTMIDI_DLL_PUBLIC Error : public std::exception
 {
 public:
   //! Defined Error types.
@@ -490,7 +501,7 @@ RTMIDI_DEPRECATED(typedef MidiCallback_t MidiCallback,"RtMidi now provides a cla
 */
 /**********************************************************************/
 #define RTMIDI_CLASSNAME "Midi"
-class Midi {
+class RTMIDI_DLL_PUBLIC Midi {
 public:
   //! A static function to determine the current RtMidi version.
   static std::string getVersion( void ) throw();
@@ -699,7 +710,7 @@ inline std::string getApiName(Midi::Api type)
 // **************************************************************** //
 
 #define RTMIDI_CLASSNAME "MidiIn"
-class MidiIn : public Midi
+class RTMIDI_DLL_PUBLIC MidiIn : public Midi
 {
 public:
 
@@ -891,7 +902,7 @@ protected:
 /**********************************************************************/
 
 #define RTMIDI_CLASSNAME "MidiOut"
-class MidiOut : public Midi
+class RTMIDI_DLL_PUBLIC MidiOut : public Midi
 {
 public:
 
@@ -1034,7 +1045,7 @@ protected:
 // **************************************************************** //
 
 #define RTMIDI_CLASSNAME "MidiApi"
-class MidiApi
+class RTMIDI_DLL_PUBLIC MidiApi
 {
 public:
 
@@ -1212,7 +1223,7 @@ protected:
 #undef RTMIDI_CLASSNAME
 
 #define RTMIDI_CLASSNAME "MidiInApi"
-class MidiInApi : public MidiApi
+class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
 {
 public:
 
@@ -1279,7 +1290,7 @@ protected:
 #undef RTMIDI_CLASSNAME
 
 #define RTMIDI_CLASSNAME "MidiOutApi"
-class MidiOutApi : public MidiApi
+class RTMIDI_DLL_PUBLIC MidiOutApi : public MidiApi
 {
 public:
 

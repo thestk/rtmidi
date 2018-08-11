@@ -15,16 +15,10 @@ class CallbackProxyUserData
 	void *user_data;
 };
 
-/* misc */
-int rtmidi_sizeof_rtmidi_api ()
-{
-	return sizeof (RtMidiApi);
-}
-
 /* RtMidi API */
-int rtmidi_get_compiled_api (enum RtMidiApi **apis) // return length for NULL argument.
+int rtmidi_get_compiled_api (enum RtMidiApi *apis) // return length for NULL argument.
 {
-	if (!apis || !(*apis)) {
+	if (!apis) {
 		std::vector<rtmidi::ApiType> v;
 		try {
 			rtmidi::Midi::getCompiledApi (v);
@@ -38,7 +32,7 @@ int rtmidi_get_compiled_api (enum RtMidiApi **apis) // return length for NULL ar
 			std::vector<rtmidi::ApiType> v;
 			rtmidi::Midi::getCompiledApi (v);
 			for (unsigned int i = 0; i < v.size (); i++)
-				(*apis) [i] = (RtMidiApi) v[i];
+			  apis [i] = (RtMidiApi) v[i];
 			return 0;
 		} catch (...) {
 			return -1;
@@ -121,12 +115,14 @@ RtMidiInPtr rtmidi_in_create_default ()
     try {
 	rtmidi::MidiIn* rIn = new rtmidi::MidiIn ();
         
-        wrp->ptr = rIn;
+        wrp->ptr = (void*) rIn;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -182,7 +178,7 @@ static
 void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void *userData)
 {
 	CallbackProxyUserData* data = reinterpret_cast<CallbackProxyUserData*> (userData);
-	data->c_callback (timeStamp, message->data (), data->user_data);
+	data->c_callback (timeStamp, message->data (), message->size (), data->user_data);
 }
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)
@@ -216,8 +212,8 @@ void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, 
 }
 
 double rtmidi_in_get_message (RtMidiInPtr device, 
-                              unsigned char **message, 
-                              size_t * size)
+                              unsigned char *message,
+                              size_t *size)
 {
     try {
         // FIXME: use allocator to achieve efficient buffering
@@ -225,7 +221,7 @@ double rtmidi_in_get_message (RtMidiInPtr device,
 	double ret = ((rtmidi::MidiIn*)device->ptr)->getMessage (v);
 
         if (v.size () > 0 && v.size() <= *size) {
-            memcpy (*message, v.data (), (int) v.size ());
+            memcpy (message, v.data (), (int) v.size ());
         }
 
         *size = v.size();
@@ -251,12 +247,14 @@ RtMidiOutPtr rtmidi_out_create_default ()
     try {
 	rtmidi::MidiOut* rOut = new rtmidi::MidiOut ();
         
-        wrp->ptr = (void *)rOut;
+        wrp->ptr = (void*) rOut;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -273,11 +271,13 @@ RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
         rtmidi::MidiOut* rOut = new rtmidi::MidiOut ((rtmidi::ApiType) api, name);
         
         wrp->ptr = (void*) rOut;
+        wrp->data = 0;
         wrp->ok  = true;
         wrp->msg = "";
     
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
+        wrp->data = 0;
         wrp->ok  = false;
         wrp->msg = err.what ();
     }
@@ -308,9 +308,7 @@ enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length)
 {
     try {
-        // FIXME: use allocator to achieve efficient buffering
-        std::vector<unsigned char> v(message, message + length);
-        ((rtmidi::MidiOut*) device->ptr)->sendMessage (v);
+        ((RtMidiOut*) device->ptr)->sendMessage (message, length);
         return 0;
     }
     catch (const RtMidiError & err) {

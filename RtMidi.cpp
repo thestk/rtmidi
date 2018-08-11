@@ -55,8 +55,8 @@
 #endif
 
 // Default for Windows is to add an identifier to the port names; this
-// flag can be undefined to disable this behaviour.
-#define RTMIDI_ENSURE_UNIQUE_PORTNAMES
+// flag can be defined (e.g. in your project file) to disable this behaviour.
+//#define RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
 
 //*********************************************************************//
 //  RtMidi Definitions
@@ -251,10 +251,10 @@ void MidiIn :: openMidiApi( ApiType api )
 
 MidiApiList MidiIn::queryApis;
 
-MidiIn :: MidiIn( ApiType api,
-		  const std::string &clientName,
-		  unsigned int queueSize,
-		  bool pfsystem )
+extern RTMIDI_DLL_PUBLIC MidiIn :: MidiIn( ApiType api,
+					   const std::string &clientName,
+					   unsigned int queueSize,
+					   bool pfsystem )
   : Midi(&queryApis,pfsystem,clientName),
     queueSizeLimit(queueSize)
 {
@@ -368,7 +368,7 @@ void MidiOut :: openMidiApi( ApiType api )
 
 MidiApiList MidiOut::queryApis;
 
-MidiOut :: MidiOut( ApiType api, const std::string &clientName, bool pfsystem )
+extern RTMIDI_DLL_PUBLIC MidiOut :: MidiOut( ApiType api, const std::string &clientName, bool pfsystem )
   : Midi(&queryApis, pfsystem, clientName)
 {
   if ( api == rtmidi::ALL_API) {
@@ -1696,10 +1696,9 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
       if ( !continueSysex )
 	message.timeStamp = time * 0.000000001;
     }
-    apiData->lastTime = packet->timeStamp;
-    if ( apiData->lastTime == 0 ) { // this happens when receiving asynchronous sysex messages
-      apiData->lastTime = AudioGetCurrentHostTime();
-    }
+    // Track whether any non-filtered messages were found in this
+    // packet for timestamp calculation
+    bool foundNonFiltered = false;
     //std::cout << "TimeStamp = " << packet->timeStamp << std::endl;
 
     iByte = 0;
@@ -1777,6 +1776,7 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
 
 	// Copy the MIDI data to our vector.
 	if ( size ) {
+	  foundNonFiltered = true;
 	  message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
 	  if ( !continueSysex ) {
 	    // If not a continuing sysex message, invoke the user callback function or queue the message.
@@ -1802,6 +1802,16 @@ void MidiInCore::midiInputCallback( const MIDIPacketList *list,
       }
     }
     packet = MIDIPacketNext(packet);
+
+    // Save the time of the last non-filtered message
+    if (foundNonFiltered)
+    {
+      apiData->lastTime = packet->timeStamp;
+      if ( apiData->lastTime == 0 ) { // this happens when receiving asynchronous sysex messages
+        apiData->lastTime = AudioGetCurrentHostTime();
+      }
+    }
+
   }
 }
 
@@ -4266,7 +4276,6 @@ struct WinMMCallbacks {
       data->firstMessage = false;
     }
     else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
-    apiData->lastTime = timestamp;
 
     if ( inputStatus == MIM_DATA ) { // Channel or system message
 
@@ -4332,6 +4341,9 @@ struct WinMMCallbacks {
       }
       else return;
     }
+
+    // Save the time of the last non-filtered message
+    apiData->lastTime = timestamp;
 
     if ( data->userCallback ) {
       data->userCallback->rtmidi_midi_in( apiData->message.timeStamp, apiData->message.bytes );
@@ -4609,7 +4621,7 @@ std::string MidiInWinMM :: getPortName( unsigned int portNumber )
   // Next lines added to add the portNumber to the name so that
   // the device's names are sure to be listed with individual names
   // even when they have the same brand name
-#ifdef RTMIDI_ENSURE_UNIQUE_PORTNAMES
+#ifndef RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
   std::ostringstream os;
   os << " ";
   os << portNumber;
@@ -4683,7 +4695,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
   // the device's names are sure to be listed with individual names
   // even when they have the same brand name
   std::ostringstream os;
-#ifdef RTMIDI_ENSURE_UNIQUE_PORTNAMES
+#ifndef RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
   os << " ";
   os << portNumber;
   stringName += os.str();
@@ -4691,6 +4703,7 @@ std::string MidiOutWinMM :: getPortName( unsigned int portNumber )
 
   return stringName;
 }
+
 
 void MidiOutWinMM :: openPort( unsigned int portNumber, const std::string &/*portName*/ )
 {

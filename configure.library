@@ -227,10 +227,10 @@ dnl esac
 
 
 
-
+dnl sem_timedwait may not be availlable on Mac OS X
 # Check for POSIX semaphore support
 AC_CHECK_HEADER([semaphore.h], [
-  AC_CHECK_LIB(pthread, sem_init,
+  AC_CHECK_LIB(pthread, sem_timedwait,
     AC_DEFINE([HAVE_SEMAPHORE],[1],[Define to 1 if you have POSIX semaphore support on your system.]),
     AC_MSG_WARN([POSIX semaphore support not found; data may be lost on closePort]))
 ])

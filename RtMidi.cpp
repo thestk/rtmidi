@@ -64,7 +64,7 @@
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_COREMIDI__) && !defined(__WINDOWS_MM__)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -293,7 +293,7 @@ class MidiInDummy: public MidiInApi
     error( RTMIDI_ERROR(rtmidi_gettext("No valid MIDI interfaces. I'm using a dummy input interface that never receives anything."),
 			Error::WARNING) );
  }
-  ApiType getCurrentApi( void ) throw() { return rtmidi::RTMIDI_DUMMY; }
+  ApiType getCurrentApi( void ) throw() { return rtmidi::DUMMY; }
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int /*portNumber*/, const std::string &/*portName*/ ) {}
   void openVirtualPort( const std::string &/*portName*/ ) {}
@@ -322,7 +322,7 @@ class MidiOutDummy: public MidiOutApi
     error( RTMIDI_ERROR(rtmidi_gettext("No valid MIDI interfaces. I'm using a dummy output interface that does nothing."),
 			Error::WARNING) );
   }
-  ApiType getCurrentApi( void ) throw() { return rtmidi::RTMIDI_DUMMY; }
+  ApiType getCurrentApi( void ) throw() { return rtmidi::DUMMY; }
   bool hasVirtualPorts() const { return false; }
   void openPort( unsigned int /*portNumber*/, const std::string &/*portName*/ ) {}
   void openVirtualPort( const std::string &/*portName*/ ) {}

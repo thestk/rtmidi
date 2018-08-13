@@ -82,8 +82,12 @@ typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
  * Otherwise, fill the given apis array with the RtMidi::Api values.
  *
  * \param apis  An array or a null value.
+ * \param apis_size  Number of elements pointed to by apis
+ * \return number of items needed for apis array if apis==NULL, or
+ *         number of items written to apis array otherwise.  A negative
+ *         return value indicates an error.
 */
-RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi *apis); // return length for NULL argument.
+RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi *apis, unsigned int apis_size);
 
 //! Report an error.
 RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);

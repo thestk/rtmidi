@@ -70,9 +70,9 @@ func (api API) String() string {
 
 // CompiledAPI determines the available compiled MIDI APIs.
 func CompiledAPI() (apis []API) {
-	n := C.rtmidi_get_compiled_api(nil)
+	n := C.rtmidi_get_compiled_api(nil, 0)
 	capis := make([]C.enum_RtMidiApi, n, n)
-	C.rtmidi_get_compiled_api(&capis[0])
+	C.rtmidi_get_compiled_api(&capis[0], _Ctype_uint(n))
 	for _, capi := range capis {
 		apis = append(apis, API(capi))
 	}

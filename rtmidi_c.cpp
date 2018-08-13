@@ -4,6 +4,35 @@
 #include "RtMidi.h"
 
 #define RTMIDI_CLASSNAME "C interface"
+
+/* Compile-time assertions that will break if the enums are changed in
+ * the future without synchronizing them properly.  If you get (g++)
+ * "error: ‘StaticAssert<b>::StaticAssert() [with bool b = false]’ is
+ * private within this context", it means enums are not aligned. */
+template<bool b> class StaticAssert { private: StaticAssert() {} };
+template<> class StaticAssert<true>{ public: StaticAssert() {} };
+#define ENUM_EQUAL(x,y) StaticAssert<(int)x==(int)y>()
+class StaticAssertions { StaticAssertions() {
+    ENUM_EQUAL( RT_MIDI_API_UNSPECIFIED,     RtMidi::UNSPECIFIED );
+    ENUM_EQUAL( RT_MIDI_API_MACOSX_CORE,     RtMidi::MACOSX_CORE );
+    ENUM_EQUAL( RT_MIDI_API_LINUX_ALSA,      RtMidi::LINUX_ALSA );
+    ENUM_EQUAL( RT_MIDI_API_UNIX_JACK,       RtMidi::UNIX_JACK );
+    ENUM_EQUAL( RT_MIDI_API_WINDOWS_MM,      RtMidi::WINDOWS_MM );
+    ENUM_EQUAL( RT_MIDI_API_RTMIDI_DUMMY,    RtMidi::RTMIDI_DUMMY );
+
+    ENUM_EQUAL( RT_ERROR_WARNING,            RtMidiError::WARNING );
+    ENUM_EQUAL( RT_ERROR_DEBUG_WARNING,      RtMidiError::DEBUG_WARNING );
+    ENUM_EQUAL( RT_ERROR_UNSPECIFIED,        RtMidiError::UNSPECIFIED );
+    ENUM_EQUAL( RT_ERROR_NO_DEVICES_FOUND,   RtMidiError::NO_DEVICES_FOUND );
+    ENUM_EQUAL( RT_ERROR_INVALID_DEVICE,     RtMidiError::INVALID_DEVICE );
+    ENUM_EQUAL( RT_ERROR_MEMORY_ERROR,       RtMidiError::MEMORY_ERROR );
+    ENUM_EQUAL( RT_ERROR_INVALID_PARAMETER,  RtMidiError::INVALID_PARAMETER );
+    ENUM_EQUAL( RT_ERROR_INVALID_USE,        RtMidiError::INVALID_USE );
+    ENUM_EQUAL( RT_ERROR_DRIVER_ERROR,       RtMidiError::DRIVER_ERROR );
+    ENUM_EQUAL( RT_ERROR_SYSTEM_ERROR,       RtMidiError::SYSTEM_ERROR );
+    ENUM_EQUAL( RT_ERROR_THREAD_ERROR,       RtMidiError::THREAD_ERROR );
+}};
+
 class CallbackProxyUserData
 {
   public:
@@ -16,28 +45,22 @@ class CallbackProxyUserData
 };
 
 /* RtMidi API */
-int rtmidi_get_compiled_api (enum RtMidiApi *apis) // return length for NULL argument.
+int rtmidi_get_compiled_api (enum RtMidiApi *apis, unsigned int apis_size)
 {
-	if (!apis) {
-		std::vector<rtmidi::ApiType> v;
-		try {
-			rtmidi::Midi::getCompiledApi (v);
-			int size = v.size ();
-			return size;
-		} catch (...) {
-			return -1;
-		}
-	} else {
-		try {
-			std::vector<rtmidi::ApiType> v;
-			rtmidi::Midi::getCompiledApi (v);
-			for (unsigned int i = 0; i < v.size (); i++)
-			  apis [i] = (RtMidiApi) v[i];
-			return 0;
-		} catch (...) {
-			return -1;
-		}
-	}
+    std::vector<rtmidi::ApiType> v;
+    try {
+        rtmidi::Midi::getCompiledApi(v);
+    } catch (...) {
+        return -1;
+    }
+    if (apis) {
+        unsigned int i;
+        for (i = 0; i < v.size() && i < apis_size; i++)
+            apis[i] = (RtMidiApi) v[i];
+        return (int)i;
+    }
+    // return length for NULL argument.
+    return v.size();
 }
 
 void rtmidi_error (rtmidi::MidiApi *api, enum RtMidiErrorType type, const char* errorString)

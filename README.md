@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/thestk/rtmidi.svg?branch=master)](https://travis-ci.org/thestk/rtmidi)
 
-A set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMidi & JACK) and Windows (Multimedia).
+A set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK) and Windows (Multimedia).
 
 By Gary P. Scavone, 2003-2017.
 

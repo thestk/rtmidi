@@ -1,9 +1,9 @@
 //*****************************************//
-//  sysextest.cpp
 //  by Gary Scavone, 2003-2005.
-//
-//  Simple program to test MIDI sysex sending and receiving.
-//
+/*!  \example sysextest.cpp
+
+  program to test MIDI sysex sending and receiving.
+*/
 //*****************************************//
 
 #include <iostream>

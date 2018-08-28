@@ -1,0 +1,59 @@
+# -*- makefile-automake -*-
+RTMIDITESTCXXFLAGS = $(EXTRA_RTMIDITESTCXXFLAGS) -I$(top_srcdir)/%D%
+RTMIDILIBRARYNAME = %D%/librtmidi@rtmidi_suffix@.la
+RTMIDITESTLDFLAGS = $(EXTRA_RTMIDITESTLDFLAGS) $(RTMIDILIBRARYNAME)
+lib_LTLIBRARIES += %D%/librtmidi@rtmidi_suffix@.la
+DLLPROGRAMS += %D%/librtmidi@rtmidi_suffix@.*
+DLLPROGRAMS += %D%/.libs/librtmidi@rtmidi_suffix@.*
+
+DISTCLEANFILES += \
+	%D%/rtmidi@rtmidi_suffix@.pc \
+	%D%/rtmidi@rtmidi_suffix@-config
+
+%C%_librtmidi@rtmidi_suffix@_la_LDFLAGS = \
+	$(RTMIDI_LIBS) \
+	$(LDADD) \
+	-export-dynamic \
+	-version-info  @RTMIDI_SO_VERSION@ \
+	-no-undefined \
+	-v
+%C%_librtmidi@rtmidi_suffix@_la_CXXFLAGS = \
+	$(rtmidi_visibility) \
+	$(CXXFLAGS) \
+	$(CPPFLAGS) \
+	$(RTMIDI_API) \
+	$(RTMIDI_LIB_CFLAGS) \
+	-DRTMIDI_NO_WARN_DEPRECATED
+%C%_librtmidi@rtmidi_suffix@_la_SOURCES = \
+  %D%/RtMidi.cpp \
+  %D%/RtMidi.h \
+  %D%/rtmidi_c.cpp \
+  %D%/rtmidi_c.h
+
+%C%_librtmidi@rtmidi_suffix@_ladir = $(includedir)/rtmidi@rtmidi_suffix@
+%C%_librtmidi@rtmidi_suffix@_la_HEADERS = \
+  %D%/RtMidi.h \
+  %D%/rtmidi_c.h
+
+
+EXTRA_DIST += \
+	$(RTMIDICONFIGRPATH) \
+	%D%/m4/ChangeLog \
+	%D%/rtmidi-config.in \
+	%D%/rtmidi.pc.in \
+	%D%/autogen.sh \
+	%D%/README.md \
+	%D%/msw	
+
+pkgconfigdatadir = $(libdir)/pkgconfig
+pkgconfigdata_DATA = %D%/rtmidi@rtmidi_suffix@.pc
+
+%D%/rtmidi@rtmidi_suffix@.pc: %D%/rtmidi.pc
+	if cmp "$<" "$@" ; then : ; else cp "$<" "$@" ; fi
+%D%/rtmidi@rtmidi_suffix@-config: %D%/rtmidi-config
+	if cmp "$<" "$@" ; then : ; else cp -a "$<" "$@" ; fi
+
+
+
+
+include %D%/tests/Makefile.am

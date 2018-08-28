@@ -151,6 +151,10 @@
 				RelativePath="..\RtMidi.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\rtmidi_c.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -163,6 +167,10 @@
 			</File>
 			<File
 				RelativePath="..\RtMidi.h"
+				>
+			</File>
+			<File
+				RelativePath="..\rtmidi_c.h"
 				>
 			</File>
 		</Filter>

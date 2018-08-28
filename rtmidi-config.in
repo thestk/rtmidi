@@ -5,15 +5,20 @@ if (test "x$#" != "x1") ; then
 fi
 
 LIBRARY="@LIBS@"
-CXXFLAGS="@CXXFLAGS@"
-CPPFLAGS="@CPPFLAGS@"
+CXXFLAGS="@CXXFLAGS@ @RTMIDI_API@ @RTMIDI_API_CFLAGS@"
+CPPFLAGS="@CPPFLAGS@ @RTMIDI_API@ @RTMIDI_API_CFLAGS@"
+
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/rtmidi@rtmidi_suffix@
 
 if (test "x$1" = "x--libs") ; then
-  echo "$LIBRARY -lrtmidi"
+  echo "$LIBRARY -L${libdir} -lrtmidi@rtmidi_suffix@"
 elif (test "x$1" = "x--cxxflags") ; then
-  echo "$CXXFLAGS"
+  echo "$CXXFLAGS -I${includedir}"
 elif (test "x$1" = "x--cppflags") ; then
-  echo "$CPPFLAGS"
+  echo "$CPPFLAGS -I${includedir}"
 else
   echo "Unknown option: $1"
 fi

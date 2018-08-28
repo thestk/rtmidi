@@ -1,0 +1,11 @@
+2018-01-07  gettextize  <bug-gnu-gettext@gnu.org>
+
+	* gettext.m4: Upgrade to gettext-0.19.8.1.
+	* iconv.m4: Upgrade to gettext-0.19.8.1.
+	* lib-ld.m4: Upgrade to gettext-0.19.8.1.
+	* lib-link.m4: Upgrade to gettext-0.19.8.1.
+	* lib-prefix.m4: Upgrade to gettext-0.19.8.1.
+	* nls.m4: Upgrade to gettext-0.19.8.1.
+	* po.m4: Upgrade to gettext-0.19.8.1.
+	* progtest.m4: Upgrade to gettext-0.19.8.1.
+

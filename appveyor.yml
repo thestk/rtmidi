@@ -1,0 +1,65 @@
+environment:
+  matrix:
+    ###
+    - TOOLCHAIN: "default"
+      CONFIG: Release
+      _CC: MINGW
+
+    - TOOLCHAIN: "default"
+      CONFIG: Debug
+      _CC: MINGW
+
+# example see: https://github.com/wang-bin/avbuild/blob/master/appveyor.yml
+init:
+  - echo NUMBER_OF_PROCESSORS=%NUMBER_OF_PROCESSORS%
+  - echo PROCESSOR_IDENTIFIER=%PROCESSOR_IDENTIFIER%
+  - set MSYS2_PATH_TYPE=inherit
+  - set MSYS2_DIR=C:\msys64
+
+install:
+# can not starts with %
+#  - git submodule update --init
+  - if /i %_CC%==MinGW (
+      C:\msys64\usr\bin\pacman -Syyuu --noconfirm &&
+      C:\msys64\usr\bin\pacman -Suu --noconfirm   &&
+      C:\msys64\usr\bin\pacman -S --noconfirm --needed mingw-w64-i686-gcc mingw-w64-x86_64-gcc &&
+      C:\msys64\usr\bin\pacman -Sc --noconfirm
+    )
+  - C:\msys64\usr\bin\pacman -Ss --noconfirm boost
+  - C:\msys64\usr\bin\pacman -Ss --noconfirm autoconf
+  - C:\msys64\usr\bin\pacman -Ss --noconfirm automake
+  - C:\msys64\usr\bin\pacman -Ss --noconfirm libtool
+  - C:\msys64\usr\bin\pacman -Ss --noconfirm gettext
+  - C:\msys64\usr\bin\pacman -S --noconfirm --needed
+      mingw-w64-x86_64-boost autoconf mingw-w64-x86_64-libtool automake1.15 mingw-w64-x86_64-gettext
+
+build_script:
+  - dir C:\
+  - dir C:\msys64
+  - dir C:\msys64\usr\bin
+  - dir C:\msys64\opt
+  - dir C:\msys64\mingw64
+  - dir c:\msys64\mingw64\bin
+  - dir C:\msys64\mingw64\x86_64-w64-mingw32
+  - dir C:\msys64\mingw64\x86_64-w64-mingw32\bin
+  - dir C:\mingw-w64
+  - dir C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin
+  - dir C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\opt\bin
+  - SET PATH=C:\mingw-w64\bin;C:\msys64\mingw64\bin;C:\msys64\usr\bin;%PATH%	
+  - echo "%PATH%"
+  - path
+  - bash -c "env"
+  - bash -c pwd
+  - bash -c ls
+  - bash -c "#aclocal -I m4 --install"
+  - bash -c "#automake --add-missing -f"
+  - bash -c "#autopoint -f"
+  - bash -c "#libtoolize -i -f"
+  - bash -c "#autoconf --add-missing"
+  - bash -c "mkdir -p config"
+  - bash -c "touch config/config.rpath"
+  - bash -c "autoreconf -i -f"
+  - bash -c "./configure"
+  - bash -c make
+  - bash -c "make check"
+  - bash -c "make distcheck"

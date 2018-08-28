@@ -24,7 +24,7 @@
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidiOut *rtmidi );
 
-int main( void )
+int main( int /* argc*/, char */*argv*/[] )
 {
   RtMidiOut *midiout = 0;
   std::vector<unsigned char> message;

@@ -2,6 +2,17 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2017 (with help from many others!)
 
+Fork by Tobias Schlemmer: (August 2018)
+- see git history for complete list of changes
+- The old API has been deprecated as there is no way to rely on
+  consecutive port numbers. Currently, it is still available, but a 
+  compiler warning is generated if applicable
+- `__MACOSX_CORE__` has been renamed to `__MACOSX_COREMIDI__`
+- The classes of RtMidi now reside in the namespace rtmidi.
+- The beginning letters “Rt” are dropped from the names
+- For easy adoption of the new interface wrappers for the old API are provided.
+- The library uses backend provided port descriptors, now. This provides a more reliable port handling for changing environments.
+
 v.3.0.0: (31 August 2017)
 - see git history for complete list of changes
 - new sendMessage() function that does not use std::vector

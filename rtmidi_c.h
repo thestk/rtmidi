@@ -26,15 +26,27 @@ struct RtMidiWrapper {
     //! If an error occured (ok != true), set to an error message.
     const char* msg;
 };
+struct RtMidiInWrapper {
+    void* ptr;
+    void* data;
+    bool  ok;
+    const char* msg;
+};
+struct RtMidiOutWrapper {
+    void* ptr;
+    void* data;
+    bool  ok;
+    const char* msg;
+};
 
 //! Typedef for a generic RtMidi pointer.
 typedef struct RtMidiWrapper* RtMidiPtr;
 
 //! Typedef for a generic RtMidiIn pointer.
-typedef struct RtMidiWrapper* RtMidiInPtr;
+typedef struct RtMidiInWrapper* RtMidiInPtr;
 
 //! Typedef for a generic RtMidiOut pointer.
-typedef struct RtMidiWrapper* RtMidiOutPtr;
+typedef struct RtMidiOutWrapper* RtMidiOutPtr;
 
 
 enum RtMidiApi {
@@ -43,7 +55,9 @@ enum RtMidiApi {
     RT_MIDI_API_LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     RT_MIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
     RT_MIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    RT_MIDI_API_RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
+    RT_MIDI_API_WINDOWS_KS,     /*!< The Microsoft Kernel Streaming MIDI API. */
+    RT_MIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    RT_MIDI_API_ALL_API         /*!< Use all available APIs for port selection. */
   };
 
 enum RtMidiErrorType {

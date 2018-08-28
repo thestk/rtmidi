@@ -2,10 +2,12 @@
 
 int main() {
   try {
-    RtMidiIn midiin;
-  } catch (RtMidiError &error) {
+    rtmidi::MidiIn midiin;
+  } catch (const rtmidi::Error &error) {
     // Handle the exception here
     error.printMessage();
+    // opitionally rethrow:
+    // throw;
   }
   return 0;
 }

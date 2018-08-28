@@ -3,6 +3,8 @@
 #include "rtmidi_c.h"
 #include "RtMidi.h"
 
+#define RTMIDI_CLASSNAME "C interface"
+
 /* Compile-time assertions that will break if the enums are changed in
  * the future without synchronizing them properly.  If you get (g++)
  * "error: ‘StaticAssert<b>::StaticAssert() [with bool b = false]’ is
@@ -45,9 +47,9 @@ class CallbackProxyUserData
 /* RtMidi API */
 int rtmidi_get_compiled_api (enum RtMidiApi *apis, unsigned int apis_size)
 {
-    std::vector<RtMidi::Api> v;
+    std::vector<rtmidi::ApiType> v;
     try {
-        RtMidi::getCompiledApi(v);
+        rtmidi::Midi::getCompiledApi(v);
     } catch (...) {
         return -1;
     }
@@ -61,17 +63,17 @@ int rtmidi_get_compiled_api (enum RtMidiApi *apis, unsigned int apis_size)
     return v.size();
 }
 
-void rtmidi_error (MidiApi *api, enum RtMidiErrorType type, const char* errorString)
+void rtmidi_error (rtmidi::MidiApi *api, enum RtMidiErrorType type, const char* errorString)
 {
-	std::string msg = errorString;
-	api->error ((RtMidiError::Type) type, msg);
+	// std::string msg = errorString;
+	api->error (RTMIDI_ERROR(errorString,(rtmidi::Error::Type)type)); /* (RtMidiError::Type) type, msg); */
 }
 
 void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName)
 {
     std::string name = portName;
     try {
-        ((RtMidi*) device->ptr)->openPort (portNumber, name);
+	((rtmidi::Midi*)device->ptr)->openPort (portNumber, name);
     
     } catch (const RtMidiError & err) {
         device->ok  = false;
@@ -83,7 +85,7 @@ void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
 {
     std::string name = portName;
     try {
-        ((RtMidi*) device->ptr)->openVirtualPort (name);
+	((rtmidi::Midi*)device->ptr)->openVirtualPort (name);
     
     } catch (const RtMidiError & err) {
         device->ok  = false;
@@ -95,7 +97,7 @@ void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
 void rtmidi_close_port (RtMidiPtr device)
 {
     try { 
-        ((RtMidi*) device->ptr)->closePort ();
+	((rtmidi::Midi*)device->ptr)->closePort ();
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
@@ -106,7 +108,7 @@ void rtmidi_close_port (RtMidiPtr device)
 unsigned int rtmidi_get_port_count (RtMidiPtr device)
 {
     try {
-        return ((RtMidi*) device->ptr)->getPortCount ();
+	return ((rtmidi::Midi *)device->ptr)->getPortCount ();
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
@@ -118,7 +120,7 @@ unsigned int rtmidi_get_port_count (RtMidiPtr device)
 const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber)
 {
     try {
-        std::string name = ((RtMidi*) device->ptr)->getPortName (portNumber);
+	std::string name = ((rtmidi::Midi*)device->ptr)->getPortName (portNumber);
         return strdup (name.c_str ());
     
     } catch (const RtMidiError & err) {
@@ -128,13 +130,13 @@ const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber)
     }
 }
 
-/* RtMidiIn API */
+/* MidiIn API */
 RtMidiInPtr rtmidi_in_create_default ()
 {
-    RtMidiWrapper* wrp = new RtMidiWrapper;
+    RtMidiInWrapper* wrp = new RtMidiInWrapper;
     
     try {
-        RtMidiIn* rIn = new RtMidiIn ();
+	rtmidi::MidiIn* rIn = new rtmidi::MidiIn ();
         
         wrp->ptr = (void*) rIn;
         wrp->data = 0;
@@ -154,10 +156,10 @@ RtMidiInPtr rtmidi_in_create_default ()
 RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsigned int queueSizeLimit)
 {
     std::string name = clientName;
-    RtMidiWrapper* wrp = new RtMidiWrapper;
+    RtMidiInWrapper* wrp = new RtMidiInWrapper;
     
     try {
-        RtMidiIn* rIn = new RtMidiIn ((RtMidi::Api) api, name, queueSizeLimit);
+        rtmidi::MidiIn* rIn = new rtmidi::MidiIn ((rtmidi::ApiType) api, name, queueSizeLimit);
         
         wrp->ptr = (void*) rIn;
         wrp->data = 0;
@@ -178,14 +180,14 @@ void rtmidi_in_free (RtMidiInPtr device)
 {
     if (device->data)
       delete (CallbackProxyUserData*) device->data;
-    delete (RtMidiIn*) device->ptr;
+    delete (rtmidi::MidiIn*) device->ptr;
     delete device;
 }
 
-enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
+enum RtMidiApi rtmidi_in_get_current_api (RtMidiInPtr device)
 {
     try {
-        return (RtMidiApi) ((RtMidiIn*) device->ptr)->getCurrentApi ();
+	return (RtMidiApi) ((rtmidi::MidiIn*)device->ptr)->getCurrentApi ();
     
     } catch (const RtMidiError & err) {
         device->ok  = false;
@@ -206,7 +208,7 @@ void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void 
 {
     device->data = (void*) new CallbackProxyUserData (callback, userData);
     try {
-        ((RtMidiIn*) device->ptr)->setCallback (callback_proxy, device->data);
+	((rtmidi::MidiIn*)device->ptr)->setCallback (callback_proxy, device->data);
     } catch (const RtMidiError & err) {
         device->ok  = false;
         device->msg = err.what ();
@@ -218,7 +220,7 @@ void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void 
 void rtmidi_in_cancel_callback (RtMidiInPtr device)
 {
     try {
-        ((RtMidiIn*) device->ptr)->cancelCallback ();
+	((rtmidi::MidiIn*)device->ptr)->cancelCallback ();
         delete (CallbackProxyUserData*) device->data;
         device->data = 0;
     } catch (const RtMidiError & err) {
@@ -229,7 +231,7 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
 
 void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense)
 {
-	((RtMidiIn*) device->ptr)->ignoreTypes (midiSysex, midiTime, midiSense);
+	((rtmidi::MidiIn*)device->ptr)->ignoreTypes (midiSysex, midiTime, midiSense);
 }
 
 double rtmidi_in_get_message (RtMidiInPtr device, 
@@ -239,7 +241,7 @@ double rtmidi_in_get_message (RtMidiInPtr device,
     try {
         // FIXME: use allocator to achieve efficient buffering
         std::vector<unsigned char> v;
-        double ret = ((RtMidiIn*) device->ptr)->getMessage (&v);
+	double ret = ((rtmidi::MidiIn*)device->ptr)->getMessage (v);
 
         if (v.size () > 0 && v.size() <= *size) {
             memcpy (message, v.data (), (int) v.size ());
@@ -263,10 +265,10 @@ double rtmidi_in_get_message (RtMidiInPtr device,
 /* RtMidiOut API */
 RtMidiOutPtr rtmidi_out_create_default ()
 {
-    RtMidiWrapper* wrp = new RtMidiWrapper;
+    RtMidiOutWrapper* wrp = new RtMidiOutWrapper;
 
     try {
-        RtMidiOut* rOut = new RtMidiOut ();
+	rtmidi::MidiOut* rOut = new rtmidi::MidiOut ();
         
         wrp->ptr = (void*) rOut;
         wrp->data = 0;
@@ -285,11 +287,11 @@ RtMidiOutPtr rtmidi_out_create_default ()
 
 RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
 {
-    RtMidiWrapper* wrp = new RtMidiWrapper;
+    RtMidiOutWrapper* wrp = new RtMidiOutWrapper;
     std::string name = clientName;
 
     try {
-        RtMidiOut* rOut = new RtMidiOut ((RtMidi::Api) api, name);
+        rtmidi::MidiOut* rOut = new rtmidi::MidiOut ((rtmidi::ApiType) api, name);
         
         wrp->ptr = (void*) rOut;
         wrp->data = 0;
@@ -309,14 +311,14 @@ RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
 
 void rtmidi_out_free (RtMidiOutPtr device)
 {
-    delete (RtMidiOut*) device->ptr;
+    delete ((rtmidi::MidiOut*)device->ptr);
     delete device;
 }
 
 enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 {
     try {
-        return (RtMidiApi) ((RtMidiOut*) device->ptr)->getCurrentApi ();
+        return (RtMidiApi) ((rtmidi::MidiOut*)device->ptr)->getCurrentApi ();
 
     } catch (const RtMidiError & err) {
         device->ok  = false;

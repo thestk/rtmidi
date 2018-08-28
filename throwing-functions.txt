@@ -1,0 +1,66 @@
+-*- Org -*-
+* throw
+|------------------------------------+-------------------+--------------------------------|
+| Function                           | Type              | Should be caught inside RtMidi |
+|------------------------------------+-------------------+--------------------------------|
+| Midi::error                        | all               | n                              |
+| MidiApi :: error(Error e)          | all               | n                              |
+| MidiIn :: MidiIn                   | INVALID_PARAMETER | impossible                     |
+|                                    | NO_DEVICES_FOUND  |                                |
+| MidiOut :: MidiOut                 | INVALID_PARAMETER | impossible                     |
+|                                    | NO_DEVICES_FOUND  |                                |
+| CoreSequencer::getPortCapabilities | WARNING           | y                              |
+| CoreSequencer::createPort          | INVALID_PARAMETER | y                              |
+|                                    | DRIVER_ERROR      |                                |
+| CoreSequencer::createVirtualPort   | INVALID_PARAMETER | y                              |
+|                                    | DRIVER_ERROR      |                                |
+| CoreSequencer::init                | DRIVER_ERROR      | y                              |
+| AlsaSequencer::connectPorts        | DRIVER_ERROR      | y                              |
+| AlsaSequencer::init                | DRIVER_ERROR      | y                              |
+| WinMMSequencer::getPortName        | INVALID_PARAMETER | Y                              |
+| JackSequencer::init                | NO_DEVICES_FOUND  | y                              |
+| JackMidiData::openPort             | DRIVER_ERROR      |                                |
+|------------------------------------+-------------------+--------------------------------|
+* error
+|----------------------------+-----------------+-----------------------------|
+| Function                   | Type            | Can be caught inside RtMidi |
+|----------------------------+-----------------+-----------------------------|
+| MidiIn :: openMidiApi      | vom Konstructor |                             |
+| MidiInWinMM :: initialize  | WARNING         | yes                         |
+| MidiOutWinMM :: initialize | WARNING         | yes                         |
+|                            |                 |                             |
+|                            |                 |                             |
+|----------------------------+-----------------+-----------------------------|
+
+* backtrace
+** CoreSequencer::getPortCapabilities
+|-------------------------------------+-------------------|
+| Function                            | Type              |
+|-------------------------------------+-------------------|
+| CorePortDescriptor::getCapabilities | WARNING           |
+| CorePortDescriptor::getPortList     | --                |
+| CoreMidiData::openPort              | INVALID_PARAMETER |
+|                                     | DRIVER_ERROR      |
+| CoreSequencer::CoreSequencer        | DRIVER_ERROR      |
+| AlsaSequencer::GetPortName          | DRIVER_ERROR      |
+| AlsaSequencer::getPortCapabilities  | DRIVER_ERROR      |
+| AlsaSequencer::getNextClient        | DRIVER_ERROR      |
+| AlsaSequencer::getNextPort          | DRIVER_ERROR      |
+| AlsaSequencer::DRIVER_ERROR         | DRIVER_ERROR      |
+| AlsaSequencer::deletePort           | DRIVER_ERROR      |
+| AlsaSequencer::connectPorts         | DRIVER_ERROR      |
+| AlsaSequencer::closePort            | DRIVER_ERROR      |
+| AlsaSequencer::startQueue           | DRIVER_ERROR      |
+| AlsaSequencer::GetClient            | DRIVER_ERROR      |
+| AlsaMidiData::connectPorts          | DRIVER_ERROR      |
+| JackSequencer::getPortList          | NO_DEVICES_FOUND  |
+| JackSequencer::getPort              | NO_DEVICES_FOUND  |
+| JackSequencer::getPortName          | NO_DEVICES_FOUND  |
+| JackSequencer::createPort           | NO_DEVICES_FOUND  |
+| JackSequencer::deletePort           | NO_DEVICES_FOUND  |
+| JackSequencer::connectPorts         | NO_DEVICES_FOUND  |
+| JackSequencer::closePort            | NO_DEVICES_FOUND  |
+| JackMidiData::init                  | NO_DEVICES_FOUND  |
+| JackMidiData::connectPorts          | NO_DEVICES_FOUND  |
+| MidiOutJack :: initialize           | NO_DEVICES_FOUND  |
+|                                     |                   |

@@ -38,7 +38,7 @@ type API C.enum_RtMidiApi
 const (
 	// APIUnspecified searches for a working compiled API.
 	APIUnspecified API = C.RT_MIDI_API_UNSPECIFIED
-	// APIMacOSXCore uses Macintosh OS-X Core Midi API.
+	// APIMacOSXCore uses Macintosh OS-X CoreMIDI API.
 	APIMacOSXCore = C.RT_MIDI_API_MACOSX_CORE
 	// APILinuxALSA uses the Advanced Linux Sound Architecture API.
 	APILinuxALSA = C.RT_MIDI_API_LINUX_ALSA

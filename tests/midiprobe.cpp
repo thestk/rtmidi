@@ -13,7 +13,7 @@ int main()
 {
   // Create an api map.
   std::map<int, std::string> apiMap;
-  apiMap[RtMidi::MACOSX_CORE] = "OS-X CoreMidi";
+  apiMap[RtMidi::MACOSX_CORE] = "OS-X CoreMIDI";
   apiMap[RtMidi::WINDOWS_MM] = "Windows MultiMedia";
   apiMap[RtMidi::UNIX_JACK] = "Jack Client";
   apiMap[RtMidi::LINUX_ALSA] = "Linux ALSA";

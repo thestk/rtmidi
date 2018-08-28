@@ -2591,7 +2591,7 @@ PortList MidiOutCore :: getPortList(int capabilities)
 void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
 {
   // We use the MIDISendSysex() function to asynchronously send sysex
-  // messages.  Otherwise, we use a single CoreMidi MIDIPacket.
+  // messages.  Otherwise, we use a single CoreMIDI MIDIPacket.
   if ( size == 0 ) {
     error(RTMIDI_ERROR(gettext_noopt("No data in message argument."),
 		       Error::WARNING));

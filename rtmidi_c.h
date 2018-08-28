@@ -51,7 +51,7 @@ typedef struct RtMidiOutWrapper* RtMidiOutPtr;
 
 enum RtMidiApi {
     RT_MIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */
-    RT_MIDI_API_MACOSX_CORE,    /*!< Macintosh OS-X Core Midi API. */
+    RT_MIDI_API_MACOSX_CORE,    /*!< Macintosh OS-X CoreMIDI API. */
     RT_MIDI_API_LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     RT_MIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
     RT_MIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */

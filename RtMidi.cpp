@@ -1600,27 +1600,13 @@ static void *alsaMidiHandler( void *ptr )
           // Method 2: Use the ALSA sequencer event time data.
           // (thanks to Pedro Lopez-Cabanillas!).
 
-          // Using method from:
-          // https://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
-
-          // Perform the carry for the later subtraction by updating y.
-          snd_seq_real_time_t &x(ev->time.time);
-          snd_seq_real_time_t &y(apiData->lastTime);
-          if (x.tv_nsec < y.tv_nsec) {
-              int nsec = (y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
-              y.tv_nsec -= 1000000000 * nsec;
-              y.tv_sec += nsec;
-          }
-          if (x.tv_nsec - y.tv_nsec > 1000000000) {
-              int nsec = (x.tv_nsec - y.tv_nsec) / 1000000000;
-              y.tv_nsec += 1000000000 * nsec;
-              y.tv_sec -= nsec;
-          }
+          snd_seq_real_time_t x = ev->time.time;
+          snd_seq_real_time_t y = apiData->lastTime;
 
           // Compute the time difference.
-          time = x.tv_sec - y.tv_sec + (x.tv_nsec - y.tv_nsec)*1e-9;
+          time = (x.tv_sec + 1e-9 * x.tv_nsec) - (y.tv_sec + 1e-9 * y.tv_nsec);
 
-          apiData->lastTime = ev->time.time;
+          apiData->lastTime = x;
 
           if ( data->firstMessage == true )
             data->firstMessage = false;

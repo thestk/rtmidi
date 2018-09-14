@@ -1611,18 +1611,18 @@ static void *alsaMidiHandler( void *ptr )
           y.tv_nsec = apiData->lastTime.tv_nsec;
           y.tv_sec = apiData->lastTime.tv_sec;
           if (x.tv_nsec < y.tv_nsec) {
-              int nsec = (y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
+              int nsec = (y.tv_nsec - (int)x.tv_nsec) / 1000000000 + 1;
               y.tv_nsec -= 1000000000 * nsec;
               y.tv_sec += nsec;
           }
           if (x.tv_nsec - y.tv_nsec > 1000000000) {
-              int nsec = (x.tv_nsec - y.tv_nsec) / 1000000000;
+              int nsec = ((int)x.tv_nsec - y.tv_nsec) / 1000000000;
               y.tv_nsec += 1000000000 * nsec;
               y.tv_sec -= nsec;
           }
 
           // Compute the time difference.
-          time = x.tv_sec - y.tv_sec + (x.tv_nsec - y.tv_nsec)*1e-9;
+          time = (int)x.tv_sec - y.tv_sec + ((int)x.tv_nsec - y.tv_nsec)*1e-9;
 
           apiData->lastTime = ev->time.time;
 

@@ -194,6 +194,10 @@ if(BUILD_TESTING)
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})
+  target_compile_definitions(midiclock PRIVATE ${API_DEFS})
+  target_compile_definitions(midiout PRIVATE ${API_DEFS})
+  target_compile_definitions(qmidiin PRIVATE ${API_DEFS})
+  target_compile_definitions(sysextest PRIVATE ${API_DEFS})
 endif()
 
 # Set standard installation directories.

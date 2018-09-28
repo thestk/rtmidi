@@ -107,7 +107,7 @@ RTMIDIAPI const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portN
 /* RtMidiIn API */
 
 //! Create a default RtMidiInPtr value, with no initialization.
-RTMIDIAPI RtMidiInPtr rtmidi_in_create_default ();
+RTMIDIAPI RtMidiInPtr rtmidi_in_create_default (void);
 
 /*! Create a  RtMidiInPtr value, with given api, clientName and queueSizeLimit.
  *
@@ -149,7 +149,7 @@ RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char *messa
 /* RtMidiOut API */
 
 //! Create a default RtMidiInPtr value, with no initialization.
-RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default ();
+RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default (void);
 
 /*! Create a RtMidiOutPtr value, with given and clientName.
  *

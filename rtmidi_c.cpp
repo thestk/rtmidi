@@ -34,12 +34,12 @@ class StaticAssertions { StaticAssertions() {
 class CallbackProxyUserData
 {
   public:
-	CallbackProxyUserData (RtMidiCCallback cCallback, void *userData)
-		: c_callback (cCallback), user_data (userData)
-	{
-	}
-	RtMidiCCallback c_callback;
-	void *user_data;
+  CallbackProxyUserData (RtMidiCCallback cCallback, void *userData)
+    : c_callback (cCallback), user_data (userData)
+  {
+  }
+  RtMidiCCallback c_callback;
+  void *user_data;
 };
 
 extern "C" const enum RtMidiApi rtmidi_compiled_apis[]; // casting from RtMidi::Api[]
@@ -80,8 +80,8 @@ enum RtMidiApi rtmidi_compiled_api_by_name(const char *name) {
 
 void rtmidi_error (MidiApi *api, enum RtMidiErrorType type, const char* errorString)
 {
-	std::string msg = errorString;
-	api->error ((RtMidiError::Type) type, msg);
+  std::string msg = errorString;
+  api->error ((RtMidiError::Type) type, msg);
 }
 
 void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName)
@@ -215,8 +215,8 @@ enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
 static
 void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void *userData)
 {
-	CallbackProxyUserData* data = reinterpret_cast<CallbackProxyUserData*> (userData);
-	data->c_callback (timeStamp, message->data (), message->size (), data->user_data);
+  CallbackProxyUserData* data = reinterpret_cast<CallbackProxyUserData*> (userData);
+  data->c_callback (timeStamp, message->data (), message->size (), data->user_data);
 }
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)
@@ -246,7 +246,7 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
 
 void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool midiTime, bool midiSense)
 {
-	((RtMidiIn*) device->ptr)->ignoreTypes (midiSysex, midiTime, midiSense);
+  ((RtMidiIn*) device->ptr)->ignoreTypes (midiSysex, midiTime, midiSense);
 }
 
 double rtmidi_in_get_message (RtMidiInPtr device, 

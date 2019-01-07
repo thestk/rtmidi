@@ -397,7 +397,7 @@ The RtMidi JACK support can be compiled on Macintosh OS-X systems, as well as in
 
 The \c configure script provides support for the MinGW compiler.
 
-The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.   Incoming system exclusive messages read by RtMidiIn are limited to a length as defined by the preprocessor definition RT_SYSEX_BUFFER_SIZE (set in RtMidi.cpp).  The default value is 1024.  There is no such limit for outgoing sysex messages via RtMidiOut.
+The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.   Incoming system exclusive messages read by RtMidiIn are limited to a length which can be selected for each port.  The default value is 1024.  There is no such limit for outgoing sysex messages via RtMidiOut.
 
 RtMidi was originally developed with Visual C++ version 6.0 but has been tested with Virtual Studio 2010.
 

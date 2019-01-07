@@ -598,6 +598,16 @@ class RTMIDI_DLL_PUBLIC MidiOutApi : public MidiApi
 
 // **************************************************************** //
 //
+// On Windows with the WinMM API, set the size of input buffers
+// created by subsequent calls to openPort(). The default is 1024.
+//
+// **************************************************************** //
+#if defined(__WINDOWS_MM__)
+void setRTSysExBufferSize( size_t size );
+#endif
+
+// **************************************************************** //
+//
 // Inline RtMidiIn and RtMidiOut definitions.
 //
 // **************************************************************** //

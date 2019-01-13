@@ -2914,29 +2914,64 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
 
   // Is port created?
   if ( jData->port == NULL ) return 0;
+
   void *buff = jack_port_get_buffer( jData->port, nframes );
+  bool& continueSysex = rtData->continueSysex;
+  unsigned char& ignoreFlags = rtData->ignoreFlags;
 
   // We have midi events in buffer
   int evCount = jack_midi_get_event_count( buff );
   for (int j = 0; j < evCount; j++) {
-    MidiInApi::MidiMessage message;
-    message.bytes.clear();
-
+    MidiInApi::MidiMessage& message = rtData->message;
     jack_midi_event_get( &event, buff, j );
-
-    for ( unsigned int i = 0; i < event.size; i++ )
-      message.bytes.push_back( event.buffer[i] );
 
     // Compute the delta time.
     time = jack_get_time();
-    if ( rtData->firstMessage == true )
+    if ( rtData->firstMessage == true ) {
+      message.timeStamp = 0.0;
       rtData->firstMessage = false;
-    else
+    } else
       message.timeStamp = ( time - jData->lastTime ) * 0.000001;
 
     jData->lastTime = time;
 
-    if ( !rtData->continueSysex ) {
+    if ( !continueSysex )
+      message.bytes.clear();
+
+    if ( !( ( continueSysex || event.buffer[0] == 0xF0 ) && ( ignoreFlags & 0x01 ) ) ) {
+      // Unless this is a (possibly continued) SysEx message and we're ignoring SysEx,
+      // copy the event buffer into the MIDI message struct.
+      for ( unsigned int i = 0; i < event.size; i++ )
+        message.bytes.push_back( event.buffer[i] );
+    }
+
+    switch ( event.buffer[0] ) {
+      case 0xF0:
+        // Start of a SysEx message
+        continueSysex = event.buffer[event.size - 1] != 0xF7;
+        if ( ignoreFlags & 0x01 ) continue;
+        break;
+      case 0xF1:
+      case 0xF8:
+        // MIDI Time Code or Timing Clock message
+        if ( ignoreFlags & 0x02 ) continue;
+        break;
+      case 0xFE:
+        // Active Sensing message
+        if ( ignoreFlags & 0x04 ) continue;
+        break;
+      default:
+        if ( continueSysex ) {
+          // Continuation of a SysEx message
+          continueSysex = event.buffer[event.size - 1] != 0xF7;
+          if ( ignoreFlags & 0x01 ) continue;
+        }
+        // All other MIDI messages
+    }
+
+    if ( !continueSysex ) {
+      // If not a continuation of a SysEx message,
+      // invoke the user callback function or queue the message.
       if ( rtData->usingCallback ) {
         RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) rtData->userCallback;
         callback( message.timeStamp, &message.bytes, rtData->userData );

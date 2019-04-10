@@ -119,6 +119,7 @@ endif()
 # CoreMIDI
 if(RTMIDI_API_CORE)
   list(APPEND API_DEFS "-D__MACOSX_CORE__")
+  list(APPEND API_LIST "coremidi")
   list(APPEND LINKLIBS "-framework CoreServices")
   list(APPEND LINKLIBS "-framework CoreAudio")
   list(APPEND LINKLIBS "-framework CoreMIDI")

@@ -93,8 +93,9 @@ class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
   };
 
   //! The constructor.
-  RtMidiError( const std::string& message, Type type = RtMidiError::UNSPECIFIED ) throw() : message_(message), type_(type) {}
- 
+  RtMidiError( const std::string& message, Type type = RtMidiError::UNSPECIFIED ) throw()
+    : message_(message), type_(type) {}
+
   //! The destructor.
   virtual ~RtMidiError( void ) throw() {}
 
@@ -102,10 +103,10 @@ class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
   virtual void printMessage( void ) const throw() { std::cerr << '\n' << message_ << "\n\n"; }
 
   //! Returns the thrown error message type.
-  virtual const Type& getType(void) const throw() { return type_; }
+  virtual const Type& getType( void ) const throw() { return type_; }
 
   //! Returns the thrown error message string.
-  virtual const std::string& getMessage(void) const throw() { return message_; }
+  virtual const std::string& getMessage( void ) const throw() { return message_; }
 
   //! Returns the thrown error message as a c-style string.
   virtual const char* what( void ) const throw() { return message_.c_str(); }
@@ -130,7 +131,6 @@ class MidiApi;
 class RTMIDI_DLL_PUBLIC RtMidi
 {
  public:
-
   //! MIDI API specifier arguments.
   enum Api {
     UNSPECIFIED,    /*!< Search for a working compiled API. */
@@ -209,10 +209,8 @@ class RTMIDI_DLL_PUBLIC RtMidi
   virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 ) = 0;
 
  protected:
-
   RtMidi();
   virtual ~RtMidi();
-
   MidiApi *rtapi_;
 };
 
@@ -253,7 +251,7 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
  public:
 
   //! User callback function type definition.
-  typedef void (*RtMidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData);
+  typedef void (*RtMidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData );
 
   //! Default constructor that allows an optional api, client name and queue size.
   /*!
@@ -376,7 +374,6 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
 
  protected:
   void openMidiApi( RtMidi::Api api, const std::string &clientName, unsigned int queueSizeLimit );
-
 };
 
 /**********************************************************************/
@@ -398,7 +395,6 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
 class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
 {
  public:
-
   //! Default constructor that allows an optional client name.
   /*!
     An exception will be thrown if a MIDI system initialization error occurs.
@@ -545,15 +541,15 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
 
   // A MIDI structure used internally by the class to store incoming
   // messages.  Each message represents one and only one MIDI message.
-  struct MidiMessage { 
-    std::vector<unsigned char> bytes; 
+  struct MidiMessage {
+    std::vector<unsigned char> bytes;
 
     //! Time in seconds elapsed since the previous message
     double timeStamp;
 
     // Default constructor.
-  MidiMessage()
-  :bytes(0), timeStamp(0.0) {}
+    MidiMessage()
+      : bytes(0), timeStamp(0.0) {}
   };
 
   struct MidiQueue {
@@ -563,12 +559,11 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     MidiMessage *ring;
 
     // Default constructor.
-  MidiQueue()
-  :front(0), back(0), ringSize(0), ring(0) {}
-    bool push(const MidiMessage&);
-    bool pop(std::vector<unsigned char>*, double*);
-    unsigned int size(unsigned int *back=0,
-		      unsigned int *front=0);
+    MidiQueue()
+      : front(0), back(0), ringSize(0), ring(0) {}
+    bool push( const MidiMessage& );
+    bool pop( std::vector<unsigned char>*, double* );
+    unsigned int size( unsigned int *back=0, unsigned int *front=0 );
   };
 
   // The RtMidiInData structure is used to pass private class data to
@@ -586,10 +581,9 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     bool continueSysex;
 
     // Default constructor.
-  RtMidiInData()
-  : ignoreFlags(7), doInput(false), firstMessage(true),
-      apiData(0), usingCallback(false), userCallback(0), userData(0),
-      continueSysex(false) {}
+    RtMidiInData()
+      : ignoreFlags(7), doInput(false), firstMessage(true), apiData(0), usingCallback(false),
+        userCallback(0), userData(0), continueSysex(false) {}
   };
 
  protected:

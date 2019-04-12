@@ -34,7 +34,6 @@ In some cases, for example to use RtMidi with GS Synth, it may be necessary for 
 
 For complete documentation on RtMidi, see the `doc` directory of the distribution or surf to http://www.music.mcgill.ca/~gary/rtmidi/.
 
-
 ## Legal and ethical
 
 The RtMidi license is similar to the MIT License, with the added *feature* that modifications be sent to the developer.

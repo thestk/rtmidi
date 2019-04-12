@@ -44,7 +44,11 @@
 #define RTMIDI_H
 
 #if defined _WIN32 || defined __CYGWIN__
-  #define RTMIDI_DLL_PUBLIC
+  #if defined(RTMIDI_EXPORT)
+    #define RTMIDI_DLL_PUBLIC __declspec(dllexport)
+  #else
+    #define RTMIDI_DLL_PUBLIC
+  #endif
 #else
   #if __GNUC__ >= 4
     #define RTMIDI_DLL_PUBLIC __attribute__( (visibility( "default" )) )
@@ -134,7 +138,8 @@ class RTMIDI_DLL_PUBLIC RtMidi
     LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
+    RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    NUM_APIS        /*!< Number of values in this enum. */
   };
 
   //! A static function to determine the current RtMidi version.
@@ -147,6 +152,29 @@ class RTMIDI_DLL_PUBLIC RtMidi
     API compiled for certain operating systems.
   */
   static void getCompiledApi( std::vector<RtMidi::Api> &apis ) throw();
+
+  //! Return the name of a specified compiled MIDI API.
+  /*!
+    This obtains a short lower-case name used for identification purposes.
+    This value is guaranteed to remain identical across library versions.
+    If the API is unknown, this function will return the empty string.
+  */
+  static std::string getApiName( RtMidi::Api api );
+
+  //! Return the display name of a specified compiled MIDI API.
+  /*!
+    This obtains a long name used for display purposes.
+    If the API is unknown, this function will return the empty string.
+  */
+  static std::string getApiDisplayName( RtMidi::Api api );
+
+  //! Return the compiled MIDI API having the given name.
+  /*!
+    A case insensitive comparison will check the specified name
+    against the list of compiled APIs, and return the one which
+    matches. On failure, the function returns UNSPECIFIED.
+  */
+  static RtMidi::Api getCompiledApiByName( const std::string &name );
 
   //! Pure virtual openPort() function.
   virtual void openPort( unsigned int portNumber = 0, const std::string &portName = std::string( "RtMidi" ) ) = 0;

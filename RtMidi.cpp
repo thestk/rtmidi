@@ -289,27 +289,79 @@ std::string RtMidi :: getVersion( void ) throw()
   return std::string( RTMIDI_VERSION );
 }
 
-void RtMidi :: getCompiledApi( std::vector<RtMidi::Api> &apis ) throw()
-{
-  apis.clear();
+// Define API names and display names.
+// Must be in same order as API enum.
+extern "C" {
+const char* rtmidi_api_names[][2] = {
+  { "unspecified" , "Unknown" },
+  { "core"        , "CoreMidi" },
+  { "alsa"        , "ALSA" },
+  { "jack"        , "Jack" },
+  { "winmm"       , "Windows MultiMedia" },
+  { "dummy"       , "Dummy" },
+};
+const unsigned int rtmidi_num_api_names =
+  sizeof(rtmidi_api_names)/sizeof(rtmidi_api_names[0]);
 
-  // The order here will control the order of RtMidi's API search in
-  // the constructor.
+// The order here will control the order of RtMidi's API search in
+// the constructor.
+extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #if defined(__MACOSX_CORE__)
-  apis.push_back( MACOSX_CORE );
+  RtMidi::MACOSX_CORE,
 #endif
 #if defined(__LINUX_ALSA__)
-  apis.push_back( LINUX_ALSA );
+  RtMidi::LINUX_ALSA,
 #endif
 #if defined(__UNIX_JACK__)
-  apis.push_back( UNIX_JACK );
+  RtMidi::UNIX_JACK,
 #endif
 #if defined(__WINDOWS_MM__)
-  apis.push_back( WINDOWS_MM );
+  RtMidi::WINDOWS_MM,
 #endif
 #if defined(__RTMIDI_DUMMY__)
-  apis.push_back( RTMIDI_DUMMY );
+  RtMidi::RTMIDI_DUMMY,
 #endif
+  RtMidi::UNSPECIFIED,
+};
+extern "C" const unsigned int rtmidi_num_compiled_apis =
+  sizeof(rtmidi_compiled_apis)/sizeof(rtmidi_compiled_apis[0])-1;
+}
+
+// This is a compile-time check that rtmidi_num_api_names == RtMidi::NUM_APIS.
+// If the build breaks here, check that they match.
+template<bool b> class StaticAssert { private: StaticAssert() {} };
+template<> class StaticAssert<true>{ public: StaticAssert() {} };
+class StaticAssertions { StaticAssertions() {
+  StaticAssert<rtmidi_num_api_names == RtMidi::NUM_APIS>();
+}};
+
+void RtMidi :: getCompiledApi( std::vector<RtMidi::Api> &apis ) throw()
+{
+  apis = std::vector<RtMidi::Api>(rtmidi_compiled_apis,
+                                  rtmidi_compiled_apis + rtmidi_num_compiled_apis);
+}
+
+std::string RtMidi :: getApiName( RtMidi::Api api )
+{
+  if (api < 0 || api >= RtMidi::NUM_APIS)
+    return "";
+  return rtmidi_api_names[api][0];
+}
+
+std::string RtMidi :: getApiDisplayName( RtMidi::Api api )
+{
+  if (api < 0 || api >= RtMidi::NUM_APIS)
+    return "Unknown";
+  return rtmidi_api_names[api][1];
+}
+
+RtMidi::Api RtMidi :: getCompiledApiByName( const std::string &name )
+{
+  unsigned int i=0;
+  for (i = 0; i < rtmidi_num_compiled_apis; ++i)
+    if (name == rtmidi_api_names[rtmidi_compiled_apis[i]][0])
+      return rtmidi_compiled_apis[i];
+  return RtMidi::UNSPECIFIED;
 }
 
 void RtMidi :: setClientName( const std::string &clientName )
@@ -2914,29 +2966,64 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
 
   // Is port created?
   if ( jData->port == NULL ) return 0;
+
   void *buff = jack_port_get_buffer( jData->port, nframes );
+  bool& continueSysex = rtData->continueSysex;
+  unsigned char& ignoreFlags = rtData->ignoreFlags;
 
   // We have midi events in buffer
   int evCount = jack_midi_get_event_count( buff );
   for (int j = 0; j < evCount; j++) {
-    MidiInApi::MidiMessage message;
-    message.bytes.clear();
-
+    MidiInApi::MidiMessage& message = rtData->message;
     jack_midi_event_get( &event, buff, j );
-
-    for ( unsigned int i = 0; i < event.size; i++ )
-      message.bytes.push_back( event.buffer[i] );
 
     // Compute the delta time.
     time = jack_get_time();
-    if ( rtData->firstMessage == true )
+    if ( rtData->firstMessage == true ) {
+      message.timeStamp = 0.0;
       rtData->firstMessage = false;
-    else
+    } else
       message.timeStamp = ( time - jData->lastTime ) * 0.000001;
 
     jData->lastTime = time;
 
-    if ( !rtData->continueSysex ) {
+    if ( !continueSysex )
+      message.bytes.clear();
+
+    if ( !( ( continueSysex || event.buffer[0] == 0xF0 ) && ( ignoreFlags & 0x01 ) ) ) {
+      // Unless this is a (possibly continued) SysEx message and we're ignoring SysEx,
+      // copy the event buffer into the MIDI message struct.
+      for ( unsigned int i = 0; i < event.size; i++ )
+        message.bytes.push_back( event.buffer[i] );
+    }
+
+    switch ( event.buffer[0] ) {
+      case 0xF0:
+        // Start of a SysEx message
+        continueSysex = event.buffer[event.size - 1] != 0xF7;
+        if ( ignoreFlags & 0x01 ) continue;
+        break;
+      case 0xF1:
+      case 0xF8:
+        // MIDI Time Code or Timing Clock message
+        if ( ignoreFlags & 0x02 ) continue;
+        break;
+      case 0xFE:
+        // Active Sensing message
+        if ( ignoreFlags & 0x04 ) continue;
+        break;
+      default:
+        if ( continueSysex ) {
+          // Continuation of a SysEx message
+          continueSysex = event.buffer[event.size - 1] != 0xF7;
+          if ( ignoreFlags & 0x01 ) continue;
+        }
+        // All other MIDI messages
+    }
+
+    if ( !continueSysex ) {
+      // If not a continuation of a SysEx message,
+      // invoke the user callback function or queue the message.
       if ( rtData->usingCallback ) {
         RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) rtData->userCallback;
         callback( message.timeStamp, &message.bytes, rtData->userData );

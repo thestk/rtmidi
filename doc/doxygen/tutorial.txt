@@ -55,7 +55,7 @@ associated with caught exceptions can be displayed with, for example,
 the RtMidiError::printMessage() function.
 
 
-\section probing Probing Ports
+\section probing Probing Ports / Devices
 
 A client generally must query the available MIDI ports before deciding which to use.  The following example outlines how this can be done.
 
@@ -127,6 +127,8 @@ int main()
   return 0;
 }
 \endcode
+
+Note that the port enumeration is system specific and will change if any devices are unplugged or plugged (or a new virtual port opened or closed) by the user. Thus, the port numbers should be verified immediately before opening a stream. As well, if a user unplugs a device (or closes a virtual port) while a port connection exists to that device/port, a MIDI system error will be generated.
 
 \section output MIDI Output
 

@@ -5,7 +5,11 @@
 #define RTMIDI_C_H
 
 #if defined(RTMIDI_EXPORT)
+#if defined _WIN32 || defined __CYGWIN__
 #define RTMIDIAPI __declspec(dllexport)
+#else
+#define RTMIDIAPI __attribute__((visibility("default")))
+#endif
 #else
 #define RTMIDIAPI //__declspec(dllimport)
 #endif
@@ -43,7 +47,8 @@ enum RtMidiApi {
     RT_MIDI_API_LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     RT_MIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
     RT_MIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    RT_MIDI_API_RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
+    RT_MIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    RT_MIDI_API_NUM             /*!< Number of values in this enum. */
   };
 
 enum RtMidiErrorType {
@@ -74,6 +79,15 @@ typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
  *         return value indicates an error.
 */
 RTMIDIAPI int rtmidi_get_compiled_api (enum RtMidiApi *apis, unsigned int apis_size);
+
+//! Return the name of a specified compiled MIDI API.
+RTMIDIAPI const char *rtmidi_api_name(enum RtMidiApi api);
+
+//! Return the display name of a specified compiled MIDI API.
+RTMIDIAPI const char *rtmidi_api_display_name(enum RtMidiApi api);
+
+//! Return the compiled MIDI API having the given name.
+RTMIDIAPI enum RtMidiApi rtmidi_compiled_api_by_name(const char *name);
 
 //! Report an error.
 RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);
@@ -107,7 +121,7 @@ RTMIDIAPI const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portN
 /* RtMidiIn API */
 
 //! Create a default RtMidiInPtr value, with no initialization.
-RTMIDIAPI RtMidiInPtr rtmidi_in_create_default ();
+RTMIDIAPI RtMidiInPtr rtmidi_in_create_default (void);
 
 /*! Create a  RtMidiInPtr value, with given api, clientName and queueSizeLimit.
  *
@@ -149,7 +163,7 @@ RTMIDIAPI double rtmidi_in_get_message (RtMidiInPtr device, unsigned char *messa
 /* RtMidiOut API */
 
 //! Create a default RtMidiInPtr value, with no initialization.
-RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default ();
+RTMIDIAPI RtMidiOutPtr rtmidi_out_create_default (void);
 
 /*! Create a RtMidiOutPtr value, with given and clientName.
  *

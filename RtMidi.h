@@ -44,7 +44,11 @@
 #define RTMIDI_H
 
 #if defined _WIN32 || defined __CYGWIN__
-  #define RTMIDI_DLL_PUBLIC
+  #if defined(RTMIDI_EXPORT)
+    #define RTMIDI_DLL_PUBLIC __declspec(dllexport)
+  #else
+    #define RTMIDI_DLL_PUBLIC
+  #endif
 #else
   #if __GNUC__ >= 4
     #define RTMIDI_DLL_PUBLIC __attribute__( (visibility( "default" )) )
@@ -134,7 +138,8 @@ class RTMIDI_DLL_PUBLIC RtMidi
     LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    RTMIDI_DUMMY    /*!< A compilable but non-functional API. */
+    RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    NUM_APIS        /*!< Number of values in this enum. */
   };
 
   //! A static function to determine the current RtMidi version.
@@ -147,6 +152,29 @@ class RTMIDI_DLL_PUBLIC RtMidi
     API compiled for certain operating systems.
   */
   static void getCompiledApi( std::vector<RtMidi::Api> &apis ) throw();
+
+  //! Return the name of a specified compiled MIDI API.
+  /*!
+    This obtains a short lower-case name used for identification purposes.
+    This value is guaranteed to remain identical across library versions.
+    If the API is unknown, this function will return the empty string.
+  */
+  static std::string getApiName( RtMidi::Api api );
+
+  //! Return the display name of a specified compiled MIDI API.
+  /*!
+    This obtains a long name used for display purposes.
+    If the API is unknown, this function will return the empty string.
+  */
+  static std::string getApiDisplayName( RtMidi::Api api );
+
+  //! Return the compiled MIDI API having the given name.
+  /*!
+    A case insensitive comparison will check the specified name
+    against the list of compiled APIs, and return the one which
+    matches. On failure, the function returns UNSPECIFIED.
+  */
+  static RtMidi::Api getCompiledApiByName( const std::string &name );
 
   //! Pure virtual openPort() function.
   virtual void openPort( unsigned int portNumber = 0, const std::string &portName = std::string( "RtMidi" ) ) = 0;
@@ -582,13 +610,13 @@ inline void RtMidiIn :: openPort( unsigned int portNumber, const std::string &po
 inline void RtMidiIn :: openVirtualPort( const std::string &portName ) { rtapi_->openVirtualPort( portName ); }
 inline void RtMidiIn :: closePort( void ) { rtapi_->closePort(); }
 inline bool RtMidiIn :: isPortOpen() const { return rtapi_->isPortOpen(); }
-inline void RtMidiIn :: setCallback( RtMidiCallback callback, void *userData ) { ((MidiInApi *)rtapi_)->setCallback( callback, userData ); }
-inline void RtMidiIn :: cancelCallback( void ) { ((MidiInApi *)rtapi_)->cancelCallback(); }
+inline void RtMidiIn :: setCallback( RtMidiCallback callback, void *userData ) { static_cast<MidiInApi *>(rtapi_)->setCallback( callback, userData ); }
+inline void RtMidiIn :: cancelCallback( void ) { static_cast<MidiInApi *>(rtapi_)->cancelCallback(); }
 inline unsigned int RtMidiIn :: getPortCount( void ) { return rtapi_->getPortCount(); }
 inline std::string RtMidiIn :: getPortName( unsigned int portNumber ) { return rtapi_->getPortName( portNumber ); }
-inline void RtMidiIn :: ignoreTypes( bool midiSysex, bool midiTime, bool midiSense ) { ((MidiInApi *)rtapi_)->ignoreTypes( midiSysex, midiTime, midiSense ); }
-inline double RtMidiIn :: getMessage( std::vector<unsigned char> *message ) { return ((MidiInApi *)rtapi_)->getMessage( message ); }
-inline void RtMidiIn :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback( errorCallback, userData ); }
+inline void RtMidiIn :: ignoreTypes( bool midiSysex, bool midiTime, bool midiSense ) { static_cast<MidiInApi *>(rtapi_)->ignoreTypes( midiSysex, midiTime, midiSense ); }
+inline double RtMidiIn :: getMessage( std::vector<unsigned char> *message ) { return static_cast<MidiInApi *>(rtapi_)->getMessage( message ); }
+inline void RtMidiIn :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
 inline RtMidi::Api RtMidiOut :: getCurrentApi( void ) throw() { return rtapi_->getCurrentApi(); }
 inline void RtMidiOut :: openPort( unsigned int portNumber, const std::string &portName ) { rtapi_->openPort( portNumber, portName ); }
@@ -597,8 +625,8 @@ inline void RtMidiOut :: closePort( void ) { rtapi_->closePort(); }
 inline bool RtMidiOut :: isPortOpen() const { return rtapi_->isPortOpen(); }
 inline unsigned int RtMidiOut :: getPortCount( void ) { return rtapi_->getPortCount(); }
 inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return rtapi_->getPortName( portNumber ); }
-inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { ((MidiOutApi *)rtapi_)->sendMessage( &message->at(0), message->size() ); }
-inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { ((MidiOutApi *)rtapi_)->sendMessage( message, size ); }
-inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback( errorCallback, userData ); }
+inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( &message->at(0), message->size() ); }
+inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
+inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
 #endif

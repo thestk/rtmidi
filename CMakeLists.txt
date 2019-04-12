@@ -22,10 +22,11 @@ if(WIN32)
 endif()
 
 # Build Options
-option(BUILD_SHARED_LIBS "Compile library shared lib." TRUE)
-option(BUILD_STATIC_LIBS "Compile library static lib." TRUE)
-option(BUILD_TESTING "Compile test programs." TRUE)
+option(RTMIDI_BUILD_SHARED_LIBS "Compile library shared lib." TRUE)
+option(RTMIDI_BUILD_STATIC_LIBS "Compile library static lib." TRUE)
+option(RTMIDI_BUILD_TESTING "Compile test programs." TRUE)
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type (Release,Debug)")
+set(RTMIDI_TARGETNAME_UNINSTALL "uninstall" CACHE STRING "Name of 'uninstall' build target")
 
 # API Options
 option(RTMIDI_API_JACK "Compile with JACK support." ${HAVE_JACK})
@@ -136,7 +137,7 @@ endif()
 # Create library targets.
 cmake_policy(SET CMP0042 OLD)
 set(LIB_TARGETS)
-if(BUILD_SHARED_LIBS)
+if(RTMIDI_BUILD_SHARED_LIBS)
   add_library(rtmidi SHARED ${rtmidi_SOURCES})
   list(APPEND LIB_TARGETS rtmidi)
 
@@ -153,11 +154,12 @@ if(BUILD_SHARED_LIBS)
 
   # Set compile-time definitions
   target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
+  target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
 
   target_link_libraries(rtmidi ${LINKLIBS})
 endif()
 
-if(BUILD_STATIC_LIBS)
+if(RTMIDI_BUILD_STATIC_LIBS)
   add_library(rtmidi_static STATIC ${rtmidi_SOURCES})
   list(APPEND LIB_TARGETS rtmidi_static)
 
@@ -182,15 +184,16 @@ endif()
 include(GNUInstallDirs)
 
 # Add tests if requested.
-if(BUILD_TESTING)
+if(RTMIDI_BUILD_TESTING)
   add_executable(cmidiin    tests/cmidiin.cpp)
   add_executable(midiclock  tests/midiclock.cpp)
   add_executable(midiout    tests/midiout.cpp)
   add_executable(midiprobe  tests/midiprobe.cpp)
   add_executable(qmidiin    tests/qmidiin.cpp)
   add_executable(sysextest  tests/sysextest.cpp)
+  add_executable(apinames   tests/apinames.cpp)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})
@@ -206,7 +209,7 @@ message(STATUS "Compiling with support for: ${apilist}")
 # PkgConfig file
 string(REPLACE ";" " " req "${PKGCONFIG_REQUIRES}")
 string(REPLACE ";" " " api "${API_DEFS}")
-configure_file("rtmidi.pc.in" "rtmidi.pc" @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/rtmidi.pc.in" "rtmidi.pc" @ONLY)
 
 # Add install rule.
 install(TARGETS ${LIB_TARGETS}
@@ -248,7 +251,7 @@ configure_file(
     "${CMAKE_BINARY_DIR}/RtMidiConfigUninstall.cmake" @ONLY)
 
 # Create uninstall target.
-add_custom_target(uninstall
+add_custom_target(${RTMIDI_TARGETNAME_UNINSTALL}
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/RtMidiConfigUninstall.cmake)
 
 install(

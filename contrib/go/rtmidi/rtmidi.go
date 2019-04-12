@@ -72,7 +72,7 @@ func (api API) String() string {
 func CompiledAPI() (apis []API) {
 	n := C.rtmidi_get_compiled_api(nil, 0)
 	capis := make([]C.enum_RtMidiApi, n, n)
-	C.rtmidi_get_compiled_api(&capis[0], _Ctype_uint(n))
+	C.rtmidi_get_compiled_api(&capis[0], C.uint(n))
 	for _, capi := range capis {
 		apis = append(apis, API(capi))
 	}

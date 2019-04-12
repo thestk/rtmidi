@@ -154,6 +154,7 @@ if(RTMIDI_BUILD_SHARED_LIBS)
 
   # Set compile-time definitions
   target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
+  target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
 
   target_link_libraries(rtmidi ${LINKLIBS})
 endif()
@@ -190,8 +191,9 @@ if(RTMIDI_BUILD_TESTING)
   add_executable(midiprobe  tests/midiprobe.cpp)
   add_executable(qmidiin    tests/qmidiin.cpp)
   add_executable(sysextest  tests/sysextest.cpp)
+  add_executable(apinames   tests/apinames.cpp)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})

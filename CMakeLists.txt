@@ -143,7 +143,24 @@ endif()
 # Create library targets.
 cmake_policy(SET CMP0042 OLD)
 set(LIB_TARGETS)
-add_library(rtmidi ${rtmidi_SOURCES})
+
+# Use RTMIDI_BUILD_SHARED_LIBS / RTMIDI_BUILD_STATIC_LIBS if they
+# are defined, otherwise default to standard BUILD_SHARED_LIBS.
+if (DEFINED RTMIDI_BUILD_SHARED_LIBS AND NOT RTMIDI_BUILD_SHARED_LIBS STREQUAL "")
+  if (RTMIDI_BUILD_SHARED_LIBS)
+    add_library(rtmidi SHARED ${rtmidi_SOURCES})
+  else()
+    add_library(rtmidi STATIC ${rtmidi_SOURCES})
+  endif()
+elseif (DEFINED RTMIDI_BUILD_STATIC_LIBS AND NOT RTMIDI_BUILD_STATIC_LIBS STREQUAL "")
+  if (RTMIDI_BUILD_STATIC_LIBS)
+    add_library(rtmidi STATIC ${rtmidi_SOURCES})
+  else()
+    add_library(rtmidi SHARED ${rtmidi_SOURCES})
+  endif()
+else()
+  add_library(rtmidi ${rtmidi_SOURCES})
+endif()
 list(APPEND LIB_TARGETS rtmidi)
 
 # Add headers destination for install rule.
@@ -167,7 +184,10 @@ include(GNUInstallDirs)
 
 # Add tests if requested.
 include(CTest)
-if (BUILD_TESTING)
+if (NOT DEFINED RTMIDI_BUILD_TESTING OR RTMIDI_BUILD_TESTING STREQUAL "")
+  set(RTMIDI_BUILD_TESTING ${BUILD_TESTING})
+endif()
+if (RTMIDI_BUILD_TESTING)
   add_executable(cmidiin    tests/cmidiin.cpp)
   add_executable(midiclock  tests/midiclock.cpp)
   add_executable(midiout    tests/midiout.cpp)

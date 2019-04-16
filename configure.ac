@@ -139,10 +139,12 @@ required=" $systems "
 # User must specified with-* options for any unknown OS.
 AS_IF([test "x$systems" = "x"],
   AS_CASE([$host],
-    [*-*-linux*],    [systems="alsa jack"],
-    [*-apple*],      [systems="core jack"],
-    [*-mingw32*],    [systems="winmm winks jack"],
-    [*-mingw64*],    [systems="winmm winks jack"]
+    [*-*-linux*],         [systems="alsa jack"],
+    [*-*-gnu],            [systems="jack"],
+    [*-*-kfreebsd*-gnu],  [systems="jack"],
+    [*-apple*],           [systems="core jack"],
+    [*-mingw32*],         [systems="winmm winks jack"],
+    [*-mingw64*],         [systems="winmm winks jack"]
   ))
 
 # If any were specifically requested disabled, do it.

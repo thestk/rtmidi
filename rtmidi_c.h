@@ -1,3 +1,16 @@
+/************************************************************************/
+/*! \defgroup C-interface
+    @{
+
+    \brief C interface to realtime MIDI input/output C++ classes.
+
+    RtMidi offers a C-style interface, principally for use in binding
+    RtMidi to other programming languages.  All structs, enums, and
+    functions listed here have direct analogs (and simply call to)
+    items in the C++ RtMidi class and its supporting classes and
+    types
+*/
+/************************************************************************/
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -188,3 +201,5 @@ RTMIDIAPI int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char 
 }
 #endif
 #endif
+
+/*! }@ */

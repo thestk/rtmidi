@@ -133,7 +133,7 @@ int test_c() {
         for ( size_t j = 0; j < name.size(); ++j )
             name[j] = (j & 1) ? toupper(name[j]) : tolower(name[j]);
         RtMidiApi api = rtmidi_compiled_api_by_name(name.c_str());
-        if ( api != RT_MIDI_API_UNSPECIFIED ) {
+        if ( api != RTMIDI_API_UNSPECIFIED ) {
             std::cout << "Identifier " << (int)api << " for invalid API '" << name << "'\n";
             exit( 1 );
         }
@@ -143,7 +143,7 @@ int test_c() {
     {
         RtMidiApi api;
         api = rtmidi_compiled_api_by_name("");
-        if ( api != RT_MIDI_API_UNSPECIFIED ) {
+        if ( api != RTMIDI_API_UNSPECIFIED ) {
             std::cout << "Bad identifier for unknown API name\n";
             exit( 1 );
         }

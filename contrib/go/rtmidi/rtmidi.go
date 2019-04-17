@@ -37,17 +37,17 @@ type API C.enum_RtMidiApi
 
 const (
 	// APIUnspecified searches for a working compiled API.
-	APIUnspecified API = C.RT_MIDI_API_UNSPECIFIED
+	APIUnspecified API = C.RTMIDI_API_UNSPECIFIED
 	// APIMacOSXCore uses Macintosh OS-X CoreMIDI API.
-	APIMacOSXCore = C.RT_MIDI_API_MACOSX_CORE
+	APIMacOSXCore = C.RTMIDI_API_MACOSX_CORE
 	// APILinuxALSA uses the Advanced Linux Sound Architecture API.
-	APILinuxALSA = C.RT_MIDI_API_LINUX_ALSA
+	APILinuxALSA = C.RTMIDI_API_LINUX_ALSA
 	// APIUnixJack uses the JACK Low-Latency MIDI Server API.
-	APIUnixJack = C.RT_MIDI_API_UNIX_JACK
+	APIUnixJack = C.RTMIDI_API_UNIX_JACK
 	// APIWindowsMM uses the Microsoft Multimedia MIDI API.
-	APIWindowsMM = C.RT_MIDI_API_WINDOWS_MM
+	APIWindowsMM = C.RTMIDI_API_WINDOWS_MM
 	// APIDummy is a compilable but non-functional API.
-	APIDummy = C.RT_MIDI_API_RTMIDI_DUMMY
+	APIDummy = C.RTMIDI_API_RTMIDI_DUMMY
 )
 
 func (api API) String() string {

@@ -59,19 +59,27 @@ typedef struct RtMidiWrapper* RtMidiOutPtr;
 
 
 enum RtMidiApi {
-    RT_MIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */
-    RT_MIDI_API_MACOSX_CORE,    /*!< Macintosh OS-X CoreMIDI API. */
-    RT_MIDI_API_LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
-    RT_MIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
-    RT_MIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    RT_MIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
-    RT_MIDI_API_NUM             /*!< Number of values in this enum. */
+    RTMIDI_API_UNSPECIFIED,    /*!< Search for a working compiled API. */
+    RTMIDI_API_MACOSX_CORE,    /*!< Macintosh OS-X CoreMIDI API. */
+    RTMIDI_API_LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
+    RTMIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
+    RTMIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
+    RTMIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    RTMIDI_API_NUM             /*!< Number of values in this enum. */
   };
 
 enum RtMidiErrorType {
-  RT_ERROR_WARNING, RT_ERROR_DEBUG_WARNING, RT_ERROR_UNSPECIFIED, RT_ERROR_NO_DEVICES_FOUND,
-  RT_ERROR_INVALID_DEVICE, RT_ERROR_MEMORY_ERROR, RT_ERROR_INVALID_PARAMETER, RT_ERROR_INVALID_USE,
-  RT_ERROR_DRIVER_ERROR, RT_ERROR_SYSTEM_ERROR, RT_ERROR_THREAD_ERROR
+  RTMIDI_ERROR_WARNING,
+  RTMIDI_ERROR_DEBUG_WARNING,
+  RTMIDI_ERROR_UNSPECIFIED,
+  RTMIDI_ERROR_NO_DEVICES_FOUND,
+  RTMIDI_ERROR_INVALID_DEVICE,
+  RTMIDI_ERROR_MEMORY_ERROR,
+  RTMIDI_ERROR_INVALID_PARAMETER,
+  RTMIDI_ERROR_INVALID_USE,
+  RTMIDI_ERROR_DRIVER_ERROR,
+  RTMIDI_ERROR_SYSTEM_ERROR,
+  RTMIDI_ERROR_THREAD_ERROR
 };
 
 /*! The type of a RtMidi callback function.

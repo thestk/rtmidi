@@ -98,6 +98,16 @@ if(RTMIDI_API_JACK)
   else()
     list(APPEND LINKLIBS ${JACK_LIB})
   endif()
+
+  # Check for jack_port_rename
+  include(CheckSymbolExists)
+  set(tmp_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+  list(APPEND CMAKE_REQUIRED_LIBRARIES jack)
+  check_symbol_exists(jack_port_rename ${jack_INCLUDEDIR}/jack/jack.h JACK_HAS_PORT_RENAME)
+  set(CMAKE_REQUIRED_LIBRARIES ${tmp_CMAKE_REQUIRED_LIBRARIES})
+  if(JACK_HAS_PORT_RENAME)
+    list(APPEND API_DEFS "JACK_HAS_PORT_RENAME")
+  endif()
 endif()
 
 # ALSA

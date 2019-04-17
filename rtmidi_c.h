@@ -12,6 +12,10 @@
 */
 /************************************************************************/
 
+/*!
+  \file rtmidi_c.h
+ */
+
 #include <stdbool.h>
 #include <stddef.h>
 #ifndef RTMIDI_C_H

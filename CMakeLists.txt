@@ -210,6 +210,7 @@ if (RTMIDI_BUILD_TESTING)
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})
+  add_test(NAME apinames COMMAND apinames)
 endif()
 
 # Set standard installation directories.

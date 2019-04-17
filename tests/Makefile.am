@@ -29,3 +29,5 @@ apinames_LDADD = $(top_builddir)/librtmidi.la
 
 EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
 	sysextest.dsp RtMidi.dsw
+
+TESTS = apinames

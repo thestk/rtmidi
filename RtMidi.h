@@ -228,8 +228,6 @@ class RTMIDI_DLL_PUBLIC RtMidi
     time.  With the OS-X, Linux ALSA, and JACK MIDI APIs, it is also
     possible to open a virtual input port to which other MIDI software
     clients can connect.
-
-    by Gary P. Scavone, 2003-2017.
 */
 /**********************************************************************/
 
@@ -388,8 +386,6 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     connect to more than one MIDI device at the same time.  With the
     OS-X, Linux ALSA and JACK MIDI APIs, it is also possible to open a
     virtual port to which other MIDI software clients can connect.
-
-    by Gary P. Scavone, 2003-2017.
 */
 /**********************************************************************/
 

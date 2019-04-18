@@ -5,10 +5,11 @@
     This class implements some common functionality for the realtime
     MIDI input/output subclasses RtMidiIn and RtMidiOut.
 
-    RtMidi WWW site: http://music.mcgill.ca/~gary/rtmidi/
+    RtMidi GitHub site: https://github.com/thestk/rtmidi
+    RtMidi WWW site: http://www.music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
-    Copyright (c) 2003-2017 Gary P. Scavone
+    Copyright (c) 2003-2019 Gary P. Scavone
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files

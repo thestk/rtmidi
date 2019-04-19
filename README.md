@@ -24,7 +24,7 @@ RtMidi is a set of C++ classes (`RtMidiIn`, `RtMidiOut`, and API specific classe
   - only one header and one source file for easy inclusion in programming projects
   - MIDI device enumeration
 
-MIDI input and output functionality are separated into two classes, `RtMidiIn` and `RtMidiOut`.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a `double` floating point type).  MIDI data is passed to the user as raw bytes using an `std::vector&lt;unsigned char&gt;`.
+MIDI input and output functionality are separated into two classes, `RtMidiIn` and `RtMidiOut`.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a `double` floating point type).  MIDI data is passed to the user as raw bytes using an `std::vector<unsigned char>`.
 
 ## Windows
 

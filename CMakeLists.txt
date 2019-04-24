@@ -193,11 +193,11 @@ target_link_libraries(rtmidi ${LINKLIBS})
 include(GNUInstallDirs)
 
 # Add tests if requested.
-include(CTest)
 if (NOT DEFINED RTMIDI_BUILD_TESTING OR RTMIDI_BUILD_TESTING STREQUAL "")
   set(RTMIDI_BUILD_TESTING ${BUILD_TESTING})
 endif()
 if (RTMIDI_BUILD_TESTING)
+  include(CTest)
   add_executable(cmidiin    tests/cmidiin.cpp)
   add_executable(midiclock  tests/midiclock.cpp)
   add_executable(midiout    tests/midiout.cpp)

@@ -2936,6 +2936,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 #include <jack/jack.h>
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
+#include <pthread.h>
 #ifdef HAVE_SEMAPHORE
   #include <semaphore.h>
 #endif
@@ -2945,8 +2946,8 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 struct JackMidiData {
   jack_client_t *client;
   jack_port_t *port;
-  jack_ringbuffer_t *buffSize;
-  jack_ringbuffer_t *buffMessage;
+  jack_ringbuffer_t *buff;
+  int buffMaxWrite; // actual writable size, usually 1 less than ringbuffer
   jack_time_t lastTime;
 #ifdef HAVE_SEMAPHORE
   sem_t sem_cleanup;
@@ -3226,11 +3227,15 @@ static int jackProcessOut( jack_nframes_t nframes, void *arg )
   void *buff = jack_port_get_buffer( data->port, nframes );
   jack_midi_clear_buffer( buff );
 
-  while ( jack_ringbuffer_read_space( data->buffSize ) > 0 ) {
-    jack_ringbuffer_read( data->buffSize, (char *) &space, (size_t) sizeof( space ) );
-    midiData = jack_midi_event_reserve( buff, 0, space );
+  while ( jack_ringbuffer_peek( data->buff, (char *) &space, sizeof( space ) ) == sizeof(space) &&
+          jack_ringbuffer_read_space( data->buff ) >= sizeof(space) + space ) {
+    jack_ringbuffer_read_advance( data->buff, sizeof(space) );
 
-    jack_ringbuffer_read( data->buffMessage, (char *) midiData, (size_t) space );
+    midiData = jack_midi_event_reserve( buff, 0, space );
+    if ( midiData )
+        jack_ringbuffer_read( data->buff, (char *) midiData, (size_t) space );
+    else
+        jack_ringbuffer_read_advance( data->buff, (size_t) space );
   }
 
 #ifdef HAVE_SEMAPHORE
@@ -3269,8 +3274,8 @@ void MidiOutJack :: connect()
     return;
 
   // Initialize output ringbuffers
-  data->buffSize = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
-  data->buffMessage = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
+  data->buff = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
+  data->buffMaxWrite = (int) jack_ringbuffer_write_space( data->buff );
 
   // Initialize JACK client
   if ( ( data->client = jack_client_open( clientName.c_str(), JackNoStartServer, NULL ) ) == 0 ) {
@@ -3289,8 +3294,7 @@ MidiOutJack :: ~MidiOutJack()
   MidiOutJack::closePort();
 
   // Cleanup
-  jack_ringbuffer_free( data->buffSize );
-  jack_ringbuffer_free( data->buffMessage );
+  jack_ringbuffer_free( data->buff );
   if ( data->client ) {
     jack_client_close( data->client );
   }
@@ -3437,9 +3441,15 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
   int nBytes = static_cast<int>(size);
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
+  if ( size + sizeof(nBytes) > (size_t) data->buffMaxWrite )
+      return;
+
+  while ( jack_ringbuffer_write_space(data->buff) < sizeof(nBytes) + size )
+      pthread_yield();
+
   // Write full message to buffer
-  jack_ringbuffer_write( data->buffMessage, ( const char * ) message, nBytes );
-  jack_ringbuffer_write( data->buffSize, ( char * ) &nBytes, sizeof( nBytes ) );
+  jack_ringbuffer_write( data->buff, ( char * ) &nBytes, sizeof( nBytes ) );
+  jack_ringbuffer_write( data->buff, ( const char * ) message, nBytes );
 }
 
 #endif  // __UNIX_JACK__

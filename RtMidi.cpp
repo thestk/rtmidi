@@ -47,6 +47,33 @@
   #endif
 #endif
 
+#if defined(__MACOSX_CORE__)
+#if TARGET_OS_IPHONE
+// spq
+#include <mach/mach_time.h>
+class CTime2nsFactor
+{
+public:
+    CTime2nsFactor()
+    {
+        mach_timebase_info_data_t tinfo;
+        mach_timebase_info(&tinfo);
+        Factor = (double)tinfo.numer / tinfo.denom;
+    }
+    static double Factor;
+};
+double CTime2nsFactor::Factor;
+static CTime2nsFactor InitTime2nsFactor;
+#undef AudioGetCurrentHostTime
+#undef AudioConvertHostTimeToNanos
+#define AudioGetCurrentHostTime         (uint64_t)mach_absolute_time
+#define AudioConvertHostTimeToNanos(t)  t*CTime2nsFactor::Factor
+#define EndianS32_BtoN(n)               n
+#endif
+#endif
+
+
+
 // Default for Windows is to add an identifier to the port names; this
 // flag can be defined (e.g. in your project file) to disable this behaviour.
 //#define RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
@@ -718,8 +745,11 @@ MidiOutApi :: ~MidiOutApi( void )
 
 // OS-X CoreMIDI header files.
 #include <CoreMIDI/CoreMIDI.h>
+#if (TARGET_OS_IPHONE == 0)
+//spq
 #include <CoreAudio/HostTime.h>
 #include <CoreServices/CoreServices.h>
+#endif
 
 // A structure to hold variables related to the CoreMIDI API
 // implementation.

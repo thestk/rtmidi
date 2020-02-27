@@ -57,7 +57,7 @@
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WEB_MIDI_API__)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -231,6 +231,57 @@ class MidiOutWinMM: public MidiOutApi
 
 #endif
 
+#if defined(__WEB_MIDI_API__)
+
+class MidiInWeb : public MidiInApi
+{
+  std::string client_name{};
+  std::string web_midi_id{};
+  int open_port_number{-1};
+
+ public:
+  MidiInWeb(const std::string &/*clientName*/, unsigned int queueSizeLimit );
+  ~MidiInWeb( void );
+  RtMidi::Api getCurrentApi( void ) { return RtMidi::WEB_MIDI_API; };
+  void openPort( unsigned int portNumber, const std::string &portName );
+  void openVirtualPort( const std::string &portName );
+  void closePort( void );
+  void setClientName( const std::string &clientName );
+  void setPortName( const std::string &portName );
+  unsigned int getPortCount( void );
+  std::string getPortName( unsigned int portNumber );
+
+  void onMidiMessage( uint8_t* data, double domHishResTimeStamp );
+
+ protected:
+  void initialize( const std::string& clientName );
+};
+
+class MidiOutWeb: public MidiOutApi
+{
+  std::string client_name{};
+  std::string web_midi_id{};
+  int open_port_number{-1};
+
+ public:
+  MidiOutWeb( const std::string &clientName );
+  ~MidiOutWeb( void );
+  RtMidi::Api getCurrentApi( void ) { return RtMidi::WEB_MIDI_API; };
+  void openPort( unsigned int portNumber, const std::string &portName );
+  void openVirtualPort( const std::string &portName );
+  void closePort( void );
+  void setClientName( const std::string &clientName );
+  void setPortName( const std::string &portName );
+  unsigned int getPortCount( void );
+  std::string getPortName( unsigned int portNumber );
+  void sendMessage( const unsigned char *message, size_t size );
+
+ protected:
+  void initialize( const std::string& clientName );
+};
+
+#endif
+
 #if defined(__RTMIDI_DUMMY__)
 
 class MidiInDummy: public MidiInApi
@@ -299,6 +350,7 @@ const char* rtmidi_api_names[][2] = {
   { "alsa"        , "ALSA" },
   { "jack"        , "Jack" },
   { "winmm"       , "Windows MultiMedia" },
+  { "web"         , "Web MIDI API" },
   { "dummy"       , "Dummy" },
 };
 const unsigned int rtmidi_num_api_names =
@@ -318,6 +370,9 @@ extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #endif
 #if defined(__WINDOWS_MM__)
   RtMidi::WINDOWS_MM,
+#endif
+#if defined(__WEB_MIDI_API__)
+  RtMidi::WEB_MIDI_API,
 #endif
 #if defined(__RTMIDI_DUMMY__)
   RtMidi::RTMIDI_DUMMY,
@@ -401,6 +456,10 @@ void RtMidiIn :: openMidiApi( RtMidi::Api api, const std::string &clientName, un
   if ( api == MACOSX_CORE )
     rtapi_ = new MidiInCore( clientName, queueSizeLimit );
 #endif
+#if defined(__WEB_MIDI_API__)
+    if ( api == WEB_MIDI_API )
+    rtapi_ = new MidiInWeb( clientName, queueSizeLimit );
+#endif
 #if defined(__RTMIDI_DUMMY__)
   if ( api == RTMIDI_DUMMY )
     rtapi_ = new MidiInDummy( clientName, queueSizeLimit );
@@ -468,6 +527,10 @@ void RtMidiOut :: openMidiApi( RtMidi::Api api, const std::string &clientName )
 #if defined(__MACOSX_CORE__)
   if ( api == MACOSX_CORE )
     rtapi_ = new MidiOutCore( clientName );
+#endif
+#if defined(__WEB_MIDI_API__)
+    if ( api == WEB_MIDI_API )
+    rtapi_ = new MidiOutWeb( clientName );
 #endif
 #if defined(__RTMIDI_DUMMY__)
   if ( api == RTMIDI_DUMMY )
@@ -3443,3 +3506,317 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
 }
 
 #endif  // __UNIX_JACK__
+
+//*********************************************************************//
+//  API: Web MIDI
+//
+//  Written primarily by Atsushi Eno, February 2020.
+//
+//  *********************************************************************//
+
+#if defined(__WEB_MIDI_API__)
+
+//*********************************************************************//
+//  API: WEB MIDI
+//  Class Definitions: WebMidiAccessShim
+//*********************************************************************//
+
+class WebMidiAccessShim
+{
+public:
+  WebMidiAccessShim();
+  ~WebMidiAccessShim();
+  std::string getPortName( unsigned int portNumber, bool isInput );
+};
+
+std::unique_ptr<WebMidiAccessShim> shim{nullptr};
+
+void ensureShim()
+{
+  if ( shim.get() != nullptr )
+    return;
+  shim.reset( new WebMidiAccessShim() );
+}
+
+bool checkWebMidiAvailability()
+{
+  ensureShim();
+
+  return MAIN_THREAD_EM_ASM_INT( {
+    if ( typeof window._rtmidi_internals_waiting === "undefined" ) {
+      console.log ( "Attempted to use Web MIDI API without trying to open it." );
+      return false;
+    }
+    if ( window._rtmidi_internals_waiting ) {
+      console.log ( "Attempted to use Web MIDI API while it is being queried." );
+      return false;
+    }
+    if ( _rtmidi_internals_midi_access == null ) {
+      console.log ( "Attempted to use Web MIDI API while it already turned out to be unavailable." );
+      return false;
+    }
+    return true;
+  } );
+}
+
+WebMidiAccessShim::WebMidiAccessShim()
+{
+  MAIN_THREAD_ASYNC_EM_ASM( {
+    if( typeof window._rtmidi_internals_midi_access !== "undefined" )
+      return;
+    if( typeof window._rtmidi_internals_waiting !== "undefined" ) {
+       console.log( "MIDI Access was requested while another request is in progress." );
+       return;
+    }
+
+    // define functions
+    window._rtmidi_internals_get_port_by_number = function( portNumber, isInput ) {
+      var midi = window._rtmidi_internals_midi_access;
+      var devices = isInput ? midi.inputs : midi.outputs;
+      var i = 0;
+      for (var device of devices.values()) {
+        if ( i == portNumber )
+          return device;
+        i++;
+      }
+      console.log( "MIDI " + (isInput ? "input" : "output") + " device of portNumber " + portNumber + " is not found.");
+      return null;
+    };
+
+    window._rtmidi_internals_waiting = true;
+    window.navigator.requestMIDIAccess( {"sysex": true} ).then( (midiAccess) => {
+      window._rtmidi_internals_midi_access = midiAccess;
+      window._rtmidi_internals_latest_message_timestamp = 0.0;
+      window._rtmidi_internals_waiting = false;
+      if( midiAccess == null ) {
+        console.log ( "Could not get access to MIDI API" );
+      }
+    } );
+  } );
+}
+
+WebMidiAccessShim::~WebMidiAccessShim()
+{
+}
+
+std::string WebMidiAccessShim::getPortName( unsigned int portNumber, bool isInput )
+{
+  if( !checkWebMidiAvailability() )
+    return "";
+  char *ret = (char*) MAIN_THREAD_EM_ASM_INT( {
+    var port = window._rtmidi_internals_get_port_by_number($0, $1);
+    if( port == null)
+      return null;
+    var length = lengthBytesUTF8(port.name) + 1;
+    var ret = _malloc(length);
+    stringToUTF8(port.name, ret, length);
+    return ret;
+  }, portNumber, isInput, &ret );
+  if (ret == nullptr)
+      return "";
+  std::string s = ret;
+  free(ret);
+  return s;
+}
+
+//*********************************************************************//
+//  API: WEB MIDI
+//  Class Definitions: MidiInWeb
+//*********************************************************************//
+
+MidiInWeb::MidiInWeb( const std::string &clientName, unsigned int queueSizeLimit )
+  : MidiInApi( queueSizeLimit )
+{
+  initialize( clientName );
+}
+
+MidiInWeb::~MidiInWeb( void )
+{
+  closePort();
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE rtmidi_onMidiMessageProc( MidiInApi::RtMidiInData* data, uint8_t* inputBytes, int32_t length, double domHighResTimeStamp )
+{
+  auto &message = data->message;
+  message.bytes.resize(message.bytes.size() + length);
+  memcpy(message.bytes.data(), inputBytes, length);
+  // FIXME: handle timestamp
+  if ( data->usingCallback ) {
+    RtMidiIn::RtMidiCallback callback = (RtMidiIn::RtMidiCallback) data->userCallback;
+    callback( message.timeStamp, &message.bytes, data->userData );
+  }
+}
+
+void MidiInWeb::openPort( unsigned int portNumber, const std::string &portName )
+{
+  if( !checkWebMidiAvailability() )
+    return;
+  if (open_port_number >= 0)
+    return;
+
+  MAIN_THREAD_EM_ASM( {
+    // In Web MIDI API world, there is no step to open a port, but we have to register the input callback instead.
+    var input = window._rtmidi_internals_get_port_by_number($0, true);
+    input.onmidimessage = function(e) {
+      // In RtMidi world, timestamps are delta time from previous message, while in Web MIDI world
+      // timestamps are relative to window creation time (i.e. kind of absolute time with window "epoch" time).
+      var rtmidiTimestamp = window._rtmidi_internals_latest_message_timestamp == 0.0 ? 0.0 : e.timeStamp - window._rtmidi_internals_latest_message_timestamp;
+      window._rtmidi_internals_latest_message_timestamp = e.timeStamp;
+      Module.ccall( 'rtmidi_onMidiMessageProc', 'void', ['number', 'array', 'number', 'number'], [$1, e.data, e.data.length, rtmidiTimestamp] );
+    };
+  }, portNumber, &inputData_ );
+  open_port_number = portNumber;
+}
+
+void MidiInWeb::openVirtualPort( const std::string &portName )
+{
+
+  errorString_ = "MidiInWeb::openVirtualPort: this function is not implemented for the Web MIDI API!";
+  error( RtMidiError::WARNING, errorString_ );
+
+}
+
+void MidiInWeb::closePort( void )
+{
+  if( open_port_number < 0 )
+    return;
+
+  MAIN_THREAD_EM_ASM( {
+    var input = _rtmidi_internals_get_port_by_number($0, true);
+    if( input == null ) {
+      console.log( "Port #" + $0 + " could not be found.");
+      return;
+    }
+    // unregister event handler
+    input.onmidimessage = null;
+  }, open_port_number );
+  open_port_number = -1;
+}
+
+void MidiInWeb::setClientName( const std::string &clientName )
+{
+  client_name = clientName;
+}
+
+void MidiInWeb::setPortName( const std::string &portName )
+{
+
+  errorString_ = "MidiInWeb::setPortName: this function is not implemented for the Web MIDI API!";
+  error( RtMidiError::WARNING, errorString_ );
+
+}
+
+unsigned int MidiInWeb::getPortCount( void )
+{
+  if( !checkWebMidiAvailability() )
+    return 0;
+  return MAIN_THREAD_EM_ASM_INT( { return _rtmidi_internals_midi_access.inputs.size; } );
+}
+
+std::string MidiInWeb::getPortName( unsigned int portNumber )
+{
+  if( !checkWebMidiAvailability() )
+    return "";
+  return shim->getPortName( portNumber, true );
+}
+
+void MidiInWeb::initialize( const std::string& clientName )
+{
+  ensureShim();
+  setClientName( clientName );
+}
+
+//*********************************************************************//
+//  API: WEB MIDI
+//  Class Definitions: MidiOutWeb
+//*********************************************************************//
+
+MidiOutWeb::MidiOutWeb( const std::string &clientName )
+{
+  initialize( clientName );
+}
+
+MidiOutWeb::~MidiOutWeb( void )
+{
+  closePort();
+}
+
+void MidiOutWeb::openPort( unsigned int portNumber, const std::string &portName )
+{
+  if( !checkWebMidiAvailability() )
+    return;
+  if (open_port_number >= 0)
+    return;
+  // In Web MIDI API world, there is no step to open a port.
+
+  open_port_number = portNumber;
+}
+
+void MidiOutWeb::openVirtualPort( const std::string &portName )
+{
+
+  errorString_ = "MidiOutWeb::openVirtualPort: this function is not implemented for the Web MIDI API!";
+  error( RtMidiError::WARNING, errorString_ );
+
+}
+
+void MidiOutWeb::closePort( void )
+{
+  // there is really nothing to do for output at JS side.
+  open_port_number = -1;
+}
+
+void MidiOutWeb::setClientName( const std::string &clientName )
+{
+  client_name = clientName;
+}
+
+void MidiOutWeb::setPortName( const std::string &portName )
+{
+
+  errorString_ = "MidiOutWeb::setPortName: this function is not implemented for the Web MIDI API!";
+  error( RtMidiError::WARNING, errorString_ );
+
+}
+
+unsigned int MidiOutWeb::getPortCount( void )
+{
+  if( !checkWebMidiAvailability() )
+    return 0;
+  return MAIN_THREAD_EM_ASM_INT( { return _rtmidi_internals_midi_access.outputs.size; } );
+}
+
+std::string MidiOutWeb::getPortName( unsigned int portNumber )
+{
+  if( !checkWebMidiAvailability() )
+    return "";
+  return shim->getPortName( portNumber, false );
+}
+
+void MidiOutWeb::sendMessage( const unsigned char *message, size_t size )
+{
+  if( open_port_number < 0 )
+    return;
+
+  MAIN_THREAD_EM_ASM( {
+    var output = _rtmidi_internals_get_port_by_number( $0, false );
+    if( output == null ) {
+      console.log( "Port #" + $0 + " could not be found.");
+      return;
+    }
+    var buf = new ArrayBuffer ($2);
+    var msg = new Uint8Array( buf );
+    msg.set( new Uint8Array( Module.HEAPU8.buffer.slice( $1, $1 + $2 ) ) );
+    output.send( msg );
+  }, open_port_number, message, size );
+}
+
+void MidiOutWeb::initialize( const std::string& clientName )
+{
+  if ( shim.get() != nullptr )
+    return;
+  shim.reset( new WebMidiAccessShim() );
+  setClientName( clientName );
+}
+
+#endif  // __WEB_MIDI_API__

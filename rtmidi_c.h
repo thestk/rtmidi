@@ -205,6 +205,7 @@ RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool 
  *                  allocated array could
  *                  be sufficient.
  * \param size      Is used to return the size of the message obtained.
+ *                  Must be set to the size of \ref message when calling.
  *
  * See RtMidiIn::getMessage().
  */

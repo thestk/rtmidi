@@ -65,6 +65,13 @@
 #include <string>
 #include <vector>
 
+
+#if defined(__MACOSX_CORE__)
+
+#include <CoreMIDI/CoreMIDI.h>
+
+#endif /* __MACOSX_CORE__ */
+
 /************************************************************************/
 /*! \class RtMidiError
     \brief Exception handling class for RtMidi.
@@ -523,6 +530,19 @@ protected:
   RtMidiErrorCallback errorCallback_;
   bool firstErrorOccurred_;
   void *errorCallbackUserData_;
+
+#if defined(__MACOSX_CORE__)
+
+protected:
+  static MIDIClientRef CoreMidiClientSingleton;
+  MIDIClientRef getCoreMidiClientSingleton(const std::string& clientName) throw();
+
+public:
+  static void setCoreMidiClientSingleton(MIDIClientRef client);
+  static void disposeCoreMidiClientSingleton();
+
+#endif /* __MACOSX_CORE__ */
+
 };
 
 class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi

@@ -66,12 +66,6 @@
 #include <vector>
 
 
-#if defined(__MACOSX_CORE__)
-
-#include <CoreMIDI/CoreMIDI.h>
-
-#endif /* __MACOSX_CORE__ */
-
 /************************************************************************/
 /*! \class RtMidiError
     \brief Exception handling class for RtMidi.
@@ -531,18 +525,6 @@ protected:
   bool firstErrorOccurred_;
   void *errorCallbackUserData_;
 
-#if defined(__MACOSX_CORE__)
-
-protected:
-  static MIDIClientRef CoreMidiClientSingleton;
-  MIDIClientRef getCoreMidiClientSingleton(const std::string& clientName) throw();
-
-public:
-  static void setCoreMidiClientSingleton(MIDIClientRef client);
-  static void disposeCoreMidiClientSingleton();
-
-#endif /* __MACOSX_CORE__ */
-
 };
 
 class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
@@ -645,5 +627,14 @@ inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return 
 inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( &message->at(0), message->size() ); }
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
+
+#if defined(__MACOSX_CORE__)
+
+#include <CoreMIDI/CoreMIDI.h>
+
+void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client);
+void RtMidi_disposeCoreMidiClientSingleton();
+
+#endif /* __MACOSX_CORE__ */
 
 #endif

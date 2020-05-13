@@ -344,14 +344,14 @@ void RtMidi :: getCompiledApi( std::vector<RtMidi::Api> &apis ) throw()
 
 std::string RtMidi :: getApiName( RtMidi::Api api )
 {
-  if (api < 0 || api >= RtMidi::NUM_APIS)
+  if (api < RtMidi::UNSPECIFIED || api >= RtMidi::NUM_APIS)
     return "";
   return rtmidi_api_names[api][0];
 }
 
 std::string RtMidi :: getApiDisplayName( RtMidi::Api api )
 {
-  if (api < 0 || api >= RtMidi::NUM_APIS)
+  if (api < RtMidi::UNSPECIFIED || api >= RtMidi::NUM_APIS)
     return "Unknown";
   return rtmidi_api_names[api][1];
 }

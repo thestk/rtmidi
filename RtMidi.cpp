@@ -40,15 +40,11 @@
 #include "RtMidi.h"
 #include <sstream>
 
-#if defined(__MACOSX_CORE__)
-  #if TARGET_OS_IPHONE
+#if defined(TARGET_OS_IPHONE)
+
     #define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
     #define AudioConvertHostTimeToNanos CAHostTimeBase::ConvertToNanos
-  #endif
-#endif
 
-#if defined(__MACOSX_CORE__)
-  #if TARGET_OS_IPHONE
     #include <mach/mach_time.h>
     class CTime2nsFactor
     {
@@ -65,12 +61,11 @@
     static CTime2nsFactor InitTime2nsFactor;
     #undef AudioGetCurrentHostTime
     #undef AudioConvertHostTimeToNanos
-    #define AudioGetCurrentHostTime         (uint64_t)mach_absolute_time
-    #define AudioConvertHostTimeToNanos(t)  t*CTime2nsFactor::Factor
-    #define EndianS32_BtoN(n)               n
-  #endif
-#endif
+  #define AudioGetCurrentHostTime (uint64_t) mach_absolute_time
+  #define AudioConvertHostTimeToNanos(t) t *CTime2nsFactor::Factor
+  #define EndianS32_BtoN(n) n
 
+#endif
 
 // Default for Windows is to add an identifier to the port names; this
 // flag can be defined (e.g. in your project file) to disable this behaviour.
@@ -82,7 +77,7 @@
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(TARGET_IPHONE_OS)
   #define __RTMIDI_DUMMY__
 #endif
 

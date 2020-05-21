@@ -40,11 +40,31 @@
 #include "RtMidi.h"
 #include <sstream>
 
-#if defined(__MACOSX_CORE__)
-  #if TARGET_OS_IPHONE
+#if defined(TARGET_OS_IPHONE)
+
     #define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
     #define AudioConvertHostTimeToNanos CAHostTimeBase::ConvertToNanos
-  #endif
+
+    #include <mach/mach_time.h>
+    class CTime2nsFactor
+    {
+    public:
+        CTime2nsFactor()
+        {
+            mach_timebase_info_data_t tinfo;
+            mach_timebase_info(&tinfo);
+            Factor = (double)tinfo.numer / tinfo.denom;
+        }
+        static double Factor;
+    };
+    double CTime2nsFactor::Factor;
+    static CTime2nsFactor InitTime2nsFactor;
+    #undef AudioGetCurrentHostTime
+    #undef AudioConvertHostTimeToNanos
+  #define AudioGetCurrentHostTime (uint64_t) mach_absolute_time
+  #define AudioConvertHostTimeToNanos(t) t *CTime2nsFactor::Factor
+  #define EndianS32_BtoN(n) n
+
 #endif
 
 // Default for Windows is to add an identifier to the port names; this
@@ -57,7 +77,7 @@
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(TARGET_IPHONE_OS)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -718,8 +738,12 @@ MidiOutApi :: ~MidiOutApi( void )
 
 // OS-X CoreMIDI header files.
 #include <CoreMIDI/CoreMIDI.h>
-#include <CoreAudio/HostTime.h>
-#include <CoreServices/CoreServices.h>
+
+// these are not available on iOS. 
+#if (TARGET_OS_IPHONE == 0)
+  #include <CoreAudio/HostTime.h>
+  #include <CoreServices/CoreServices.h>
+#endif
 
 // A structure to hold variables related to the CoreMIDI API
 // implementation.

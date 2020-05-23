@@ -742,6 +742,9 @@ void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client){
 }
 
 void RtMidi_disposeCoreMidiClientSingleton(){
+  if (CoreMidiClientSingleton == 0){
+    return;
+  }
   MIDIClientDispose( CoreMidiClientSingleton );
   CoreMidiClientSingleton = 0;
 }

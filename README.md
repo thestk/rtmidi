@@ -32,9 +32,9 @@ In some cases, for example to use RtMidi with GS Synth, it may be necessary for 
 
 ## OSX / macOS
 
-- An essential component of the macOS MIDI subsystem (`MIDIClient`) can exhibit buggy behaviour (also see https://github.com/thestk/rtmidi/issues/155). As the relevant API is not directly exposed, the two following functions are declared (if and only if `__APPLE__` is defined) if access to this part is needed (but typically is not): 
- - `void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client)`
- - `void RtMidi_disposeCoreMidiClientSingleton()`
+- An essential component of the macOS MIDI subsystem (`MIDIClient`) can exhibit buggy behaviour (also see https://github.com/thestk/rtmidi/issues/155). As the relevant API is not directly exposed, the two following functions are declared (if and only if `__APPLE__` is defined) if access to this part is needed (but typically is not):
+  - `void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client)`
+  - `void RtMidi_disposeCoreMidiClientSingleton()`
 
 ## Further reading
 

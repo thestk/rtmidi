@@ -205,11 +205,13 @@ if (RTMIDI_BUILD_TESTING)
   add_executable(qmidiin    tests/qmidiin.cpp)
   add_executable(sysextest  tests/sysextest.cpp)
   add_executable(apinames   tests/apinames.cpp)
+  add_executable(backgroundscanner   tests/backgroundscanner.cpp)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames backgroundscanner
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})
+  target_compile_options(backgroundscanner PUBLIC "-std=c++11")
   add_test(NAME apinames COMMAND apinames)
 endif()
 

@@ -732,6 +732,10 @@ struct CoreMidiData {
   MIDISysexSendRequest sysexreq;
 };
 
+void RtMidi_multithreadRunLoop(){
+  CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
+}
+
 //*********************************************************************//
 //  API: OS-X
 //  Class Definitions: MidiInCore

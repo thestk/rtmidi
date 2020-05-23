@@ -30,6 +30,10 @@ MIDI input and output functionality are separated into two classes, `RtMidiIn` a
 
 In some cases, for example to use RtMidi with GS Synth, it may be necessary for your program to call `CoInitializeEx` and `CoUninitialize` on entry to and exit from the thread that uses RtMidi.
 
+## OSX / macOS
+
+- In *multithreaded* setups port enumeration might not properly update which is due to the macOS system processing loops not being called. To resolve make sure to call `RtMidi_multithreadRunLoop()` (declared only when `__APPLE__` is defined which should be automatically) in relevant threads (other threads (the first thread) in which RtMidi objects have been instantiated). Also see example `tests/backgroundscanner.cpp`.
+
 ## Further reading
 
 For complete documentation on RtMidi, see the `doc` directory of the distribution or surf to http://www.music.mcgill.ca/~gary/rtmidi/.

@@ -628,13 +628,13 @@ inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message 
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
-#if defined(__MACOSX_CORE__)
+#if defined(__APPLE__)
 
 #include <CoreMIDI/CoreMIDI.h>
 
 void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client);
 void RtMidi_disposeCoreMidiClientSingleton();
 
-#endif /* __MACOSX_CORE__ */
+#endif /* __APPLE__ */
 
 #endif

@@ -40,7 +40,7 @@
 #include "RtMidi.h"
 #include <sstream>
 
-#if defined(TARGET_OS_IPHONE)
+#if (TARGET_OS_IPHONE == 1)
 
     #define AudioGetCurrentHostTime CAHostTimeBase::GetCurrentTime
     #define AudioConvertHostTimeToNanos CAHostTimeBase::ConvertToNanos
@@ -740,7 +740,7 @@ MidiOutApi :: ~MidiOutApi( void )
 
 // OS-X CoreMIDI header files. (<CoreMIDI/CoreMIDI.h> moved to RtMidi.h)
 
-// these are not available on iOS. 
+// these are not available on iOS.
 #if (TARGET_OS_IPHONE == 0)
   #include <CoreAudio/HostTime.h>
   #include <CoreServices/CoreServices.h>

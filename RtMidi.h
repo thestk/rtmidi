@@ -628,7 +628,7 @@ inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message 
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__MACOSX_CORE__)
 
 #include <CoreMIDI/CoreMIDI.h>
 

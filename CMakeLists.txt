@@ -76,6 +76,7 @@ string(REGEX REPLACE ${R} "\\1" PACKAGE_VERSION ${CONFIGAC})
 # Init variables
 set(rtmidi_SOURCES RtMidi.cpp RtMidi.h rtmidi_c.cpp rtmidi_c.h)
 set(LINKLIBS)
+set(PUBLICLINKLIBS)
 set(INCDIRS)
 set(PKGCONFIG_REQUIRES)
 set(API_DEFS)
@@ -147,7 +148,7 @@ if (NEED_PTHREAD)
   find_package(Threads REQUIRED
     CMAKE_THREAD_PREFER_PTHREAD
     THREADS_PREFER_PTHREAD_FLAG)
-  list(APPEND LINKLIBS Threads::Threads)
+  list(APPEND PUBLICLINKLIBS Threads::Threads)
 endif()
 
 # Create library targets.
@@ -179,15 +180,16 @@ set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
   VERSION ${FULL_VER})
 
 # Set include paths, populate target interface.
-target_include_directories(rtmidi PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  ${INCDIRS})
+target_include_directories(rtmidi PRIVATE ${INCDIRS}
+                                  PUBLIC
+                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
-target_link_libraries(rtmidi ${LINKLIBS})
+target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS} 
+                             PRIVATE ${LINKLIBS})
 
 # Set standard installation directories.
 include(GNUInstallDirs)
@@ -239,17 +241,6 @@ export(PACKAGE RtMidi)
 # Set installation path for CMake files.
 set(RTMIDI_CMAKE_DESTINATION share/rtmidi)
 
-# Create CMake configuration export file.
-if(NEED_PTHREAD)
-  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake "find_package(Threads REQUIRED)\n")
-endif()
-
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake "include(\${CMAKE_CURRENT_LIST_DIR}/RtMidiTargets.cmake)")
-
-# Install CMake configuration export file.
-install(FILES ${CMAKE_BINARY_DIR}/RtMidiConfig.cmake
-        DESTINATION ${RTMIDI_CMAKE_DESTINATION})
-
 # Export library target (build-tree).
 export(EXPORT RtMidiTargets
        NAMESPACE RtMidi::)
@@ -271,3 +262,28 @@ add_custom_target(${RTMIDI_TARGETNAME_UNINSTALL}
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/rtmidi.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+# Set up CMake package
+include(CMakePackageConfigHelpers)
+
+# Write cmake package version file
+write_basic_package_version_file(
+    RtMidi-config-version.cmake
+    VERSION ${FULL_VER}
+    COMPATIBILITY SameMajorVersion
+)
+
+# Write cmake package config file
+configure_package_config_file (RtMidi-config.cmake.in
+    RtMidi-config.cmake
+    INSTALL_DESTINATION "${RTMIDI_CMAKE_DESTINATION}"
+)
+
+# Install package files
+install (
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/RtMidi-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/RtMidi-config-version.cmake"
+    DESTINATION
+        "${RTMIDI_CMAKE_DESTINATION}"
+)

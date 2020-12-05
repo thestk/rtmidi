@@ -500,7 +500,7 @@ class RTMIDI_DLL_PUBLIC MidiApi
   /*!
       \param print True to print error messages to the error stream when no callback setup, false to not do so.
    */
-  static void printErrorIfNoCallback(bool print);;
+  static void printErrorIfNoCallback( bool print );
 
   MidiApi();
   virtual ~MidiApi();

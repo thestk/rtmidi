@@ -535,7 +535,7 @@ RtMidiOut :: ~RtMidiOut() throw()
 //*********************************************************************//
 bool MidiApi :: printErrorIfNoCallback_ = false;
 
-void MidiApi:: printErrorIfNoCallback(bool print)
+void MidiApi :: printErrorIfNoCallback( bool print )
 {
     printErrorIfNoCallback_ = print;
 };

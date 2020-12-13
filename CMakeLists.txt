@@ -106,7 +106,7 @@ if(RTMIDI_API_JACK)
   check_symbol_exists(jack_port_rename ${jack_INCLUDEDIR}/jack/jack.h JACK_HAS_PORT_RENAME)
   set(CMAKE_REQUIRED_LIBRARIES ${tmp_CMAKE_REQUIRED_LIBRARIES})
   if(JACK_HAS_PORT_RENAME)
-    list(APPEND API_DEFS "JACK_HAS_PORT_RENAME")
+    list(APPEND API_DEFS "-DJACK_HAS_PORT_RENAME")
   endif()
 endif()
 

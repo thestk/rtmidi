@@ -174,7 +174,8 @@ endif()
 list(APPEND LIB_TARGETS rtmidi)
 
 # Add headers destination for install rule.
-set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
+set_property(TARGET rtmidi PROPERTY PUBLIC_HEADER RtMidi.h rtmidi_c.h)
+set_target_properties(rtmidi PROPERTIES
   SOVERSION ${SO_VER}
   VERSION ${FULL_VER})
 
@@ -232,7 +233,7 @@ install(TARGETS ${LIB_TARGETS}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtmidi)
 
 # Store the package in the user registry.
 export(PACKAGE RtMidi)

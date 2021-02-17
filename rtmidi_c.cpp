@@ -148,7 +148,7 @@ int rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber, char * bufO
     }
 
     if (bufOut == nullptr) {
-        *bufLen = static_cast<int>(name.size());
+        *bufLen = static_cast<int>(name.size()) + 1;
         return 0;
     }
 

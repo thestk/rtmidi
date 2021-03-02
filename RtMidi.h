@@ -213,6 +213,10 @@ class RTMIDI_DLL_PUBLIC RtMidi
   RtMidi();
   virtual ~RtMidi();
   MidiApi *rtapi_;
+
+  /* Make the class non-copyable */
+  RtMidi(RtMidi& other) = delete;
+  RtMidi& operator=(RtMidi& other) = delete;
 };
 
 /**********************************************************************/

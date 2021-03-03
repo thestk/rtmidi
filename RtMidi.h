@@ -132,6 +132,8 @@ class MidiApi;
 class RTMIDI_DLL_PUBLIC RtMidi
 {
  public:
+
+     RtMidi(RtMidi&& other) noexcept;
   //! MIDI API specifier arguments.
   enum Api {
     UNSPECIFIED,    /*!< Search for a working compiled API. */
@@ -252,7 +254,6 @@ class RTMIDI_DLL_PUBLIC RtMidi
 class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
 {
  public:
-
   //! User callback function type definition.
   typedef void (*RtMidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData );
 
@@ -277,6 +278,8 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
   RtMidiIn( RtMidi::Api api=UNSPECIFIED,
             const std::string& clientName = "RtMidi Input Client",
             unsigned int queueSizeLimit = 100 );
+
+  RtMidiIn(RtMidiIn&& other) noexcept : RtMidi(std::move(other)) { }
 
   //! If a MIDI connection is still open, it will be closed by the destructor.
   ~RtMidiIn ( void ) throw();
@@ -406,6 +409,8 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
   */
   RtMidiOut( RtMidi::Api api=UNSPECIFIED,
              const std::string& clientName = "RtMidi Output Client" );
+
+  RtMidiOut(RtMidiOut&& other) noexcept : RtMidi(std::move(other)) { }
 
   //! The destructor closes any open MIDI connections.
   ~RtMidiOut( void ) throw();

@@ -305,6 +305,11 @@ RtMidi :: ~RtMidi()
   rtapi_ = 0;
 }
 
+RtMidi::RtMidi(RtMidi&& other) noexcept { 
+    rtapi_ = other.rtapi_; 
+    other.rtapi_ = nullptr; 
+}
+
 std::string RtMidi :: getVersion( void ) throw()
 {
   return std::string( RTMIDI_VERSION );

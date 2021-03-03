@@ -305,7 +305,7 @@ RtMidi :: ~RtMidi()
   rtapi_ = 0;
 }
 
-RtMidi::RtMidi(RtMidi&& other) noexcept { 
+RtMidi::RtMidi(RtMidi&& other) RTMIDI_NOEXCEPT { 
     rtapi_ = other.rtapi_; 
     other.rtapi_ = nullptr; 
 }

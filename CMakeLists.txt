@@ -179,9 +179,10 @@ set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
   VERSION ${FULL_VER})
 
 # Set include paths, populate target interface.
-target_include_directories(rtmidi PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_include_directories(rtmidi PUBLIC
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+  PRIVATE
   ${INCDIRS})
 
 # Set compile-time definitions

@@ -1117,6 +1117,11 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
     CFRelease( str );
   }
 
+  // some MIDI devices have a leading space in endpoint name. trim
+  CFStringRef space = CFStringCreateWithCString(NULL, " ", kCFStringEncodingUTF8);
+  CFStringTrim(result, space);
+  CFRelease(space);
+
   MIDIEntityRef entity = 0;
   MIDIEndpointGetEntity( endpoint, &entity );
   if ( entity == 0 )

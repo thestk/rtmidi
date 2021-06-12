@@ -535,6 +535,12 @@ RtMidiOut :: ~RtMidiOut() throw()
 //*********************************************************************//
 //  Common MidiApi Definitions
 //*********************************************************************//
+bool MidiApi :: printErrorIfNoCallback_ = false;
+
+void MidiApi :: printErrorIfNoCallback( bool print )
+{
+  printErrorIfNoCallback_ = print;
+}
 
 MidiApi :: MidiApi( void )
   : apiData_( 0 ), connected_( false ), errorCallback_(0), firstErrorOccurred_(false), errorCallbackUserData_(0)
@@ -567,7 +573,8 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
   }
 
   if ( type == RtMidiError::WARNING ) {
-    std::cerr << '\n' << errorString << "\n\n";
+    if ( printErrorIfNoCallback_ )
+      std::cerr << '\n' << errorString << "\n\n";
   }
   else if ( type == RtMidiError::DEBUG_WARNING ) {
 #if defined(__RTMIDI_DEBUG__)
@@ -575,7 +582,8 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
 #endif
   }
   else {
-    std::cerr << '\n' << errorString << "\n\n";
+    if ( printErrorIfNoCallback_ )
+      std::cerr << '\n' << errorString << "\n\n";
     throw RtMidiError( errorString, type );
   }
 }

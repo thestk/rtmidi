@@ -248,7 +248,7 @@ endif()
 file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake "include(\${CMAKE_CURRENT_LIST_DIR}/RtMidiTargets.cmake)")
 
 # Install CMake configuration export file.
-install(FILES ${CMAKE_BINARY_DIR}/RtMidiConfig.cmake
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake
         DESTINATION ${RTMIDI_CMAKE_DESTINATION})
 
 # Export library target (build-tree).

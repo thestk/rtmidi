@@ -273,7 +273,8 @@ write_basic_package_version_file(
 )
 
 # Write cmake package config file
-configure_package_config_file (RtMidi-config.cmake.in
+configure_package_config_file (
+    cmake/RtMidi-config.cmake.in
     RtMidi-config.cmake
     INSTALL_DESTINATION "${RTMIDI_CMAKE_DESTINATION}"
 )

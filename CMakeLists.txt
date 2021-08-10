@@ -107,7 +107,7 @@ if(RTMIDI_API_JACK)
   check_symbol_exists(jack_port_rename ${jack_INCLUDEDIR}/jack/jack.h JACK_HAS_PORT_RENAME)
   set(CMAKE_REQUIRED_LIBRARIES ${tmp_CMAKE_REQUIRED_LIBRARIES})
   if(JACK_HAS_PORT_RENAME)
-    list(APPEND API_DEFS "JACK_HAS_PORT_RENAME")
+    list(APPEND API_DEFS "-DJACK_HAS_PORT_RENAME")
   endif()
 endif()
 
@@ -174,7 +174,8 @@ endif()
 list(APPEND LIB_TARGETS rtmidi)
 
 # Add headers destination for install rule.
-set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
+set_property(TARGET rtmidi PROPERTY PUBLIC_HEADER RtMidi.h rtmidi_c.h)
+set_target_properties(rtmidi PROPERTIES
   SOVERSION ${SO_VER}
   VERSION ${FULL_VER})
 
@@ -224,6 +225,7 @@ message(STATUS "Compiling with support for: ${apilist}")
 # PkgConfig file
 string(REPLACE ";" " " req "${PKGCONFIG_REQUIRES}")
 string(REPLACE ";" " " api "${API_DEFS}")
+set(prefix ${CMAKE_INSTALL_PREFIX})
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/rtmidi.pc.in" "rtmidi.pc" @ONLY)
 
 # Add install rule.
@@ -232,7 +234,7 @@ install(TARGETS ${LIB_TARGETS}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtmidi)
 
 # Store the package in the user registry.
 export(PACKAGE RtMidi)

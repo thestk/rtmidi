@@ -152,7 +152,6 @@ if (NEED_PTHREAD)
 endif()
 
 # Create library targets.
-cmake_policy(SET CMP0042 OLD)
 set(LIB_TARGETS)
 
 # Use RTMIDI_BUILD_SHARED_LIBS / RTMIDI_BUILD_STATIC_LIBS if they
@@ -195,11 +194,11 @@ target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS}
 include(GNUInstallDirs)
 
 # Add tests if requested.
-include(CTest)
 if (NOT DEFINED RTMIDI_BUILD_TESTING OR RTMIDI_BUILD_TESTING STREQUAL "")
   set(RTMIDI_BUILD_TESTING ${BUILD_TESTING})
 endif()
 if (RTMIDI_BUILD_TESTING)
+  include(CTest)
   add_executable(cmidiin    tests/cmidiin.cpp)
   add_executable(midiclock  tests/midiclock.cpp)
   add_executable(midiout    tests/midiout.cpp)

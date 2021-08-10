@@ -76,6 +76,7 @@ string(REGEX REPLACE ${R} "\\1" PACKAGE_VERSION ${CONFIGAC})
 # Init variables
 set(rtmidi_SOURCES RtMidi.cpp RtMidi.h rtmidi_c.cpp rtmidi_c.h)
 set(LINKLIBS)
+set(PUBLICLINKLIBS)
 set(INCDIRS)
 set(PKGCONFIG_REQUIRES)
 set(API_DEFS)
@@ -106,7 +107,7 @@ if(RTMIDI_API_JACK)
   check_symbol_exists(jack_port_rename ${jack_INCLUDEDIR}/jack/jack.h JACK_HAS_PORT_RENAME)
   set(CMAKE_REQUIRED_LIBRARIES ${tmp_CMAKE_REQUIRED_LIBRARIES})
   if(JACK_HAS_PORT_RENAME)
-    list(APPEND API_DEFS "JACK_HAS_PORT_RENAME")
+    list(APPEND API_DEFS "-DJACK_HAS_PORT_RENAME")
   endif()
 endif()
 
@@ -147,7 +148,7 @@ if (NEED_PTHREAD)
   find_package(Threads REQUIRED
     CMAKE_THREAD_PREFER_PTHREAD
     THREADS_PREFER_PTHREAD_FLAG)
-  list(APPEND LINKLIBS Threads::Threads)
+  list(APPEND PUBLICLINKLIBS Threads::Threads)
 endif()
 
 # Create library targets.
@@ -173,21 +174,22 @@ endif()
 list(APPEND LIB_TARGETS rtmidi)
 
 # Add headers destination for install rule.
-set_target_properties(rtmidi PROPERTIES PUBLIC_HEADER RtMidi.h
+set_property(TARGET rtmidi PROPERTY PUBLIC_HEADER RtMidi.h rtmidi_c.h)
+set_target_properties(rtmidi PROPERTIES
   SOVERSION ${SO_VER}
   VERSION ${FULL_VER})
 
 # Set include paths, populate target interface.
-target_include_directories(rtmidi PUBLIC
-  $<INSTALL_INTERFACE:include>
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-  PRIVATE
-  ${INCDIRS})
+target_include_directories(rtmidi PRIVATE ${INCDIRS}
+                                  PUBLIC
+                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
-target_link_libraries(rtmidi ${LINKLIBS})
+target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS} 
+                             PRIVATE ${LINKLIBS})
 
 # Set standard installation directories.
 include(GNUInstallDirs)
@@ -223,6 +225,7 @@ message(STATUS "Compiling with support for: ${apilist}")
 # PkgConfig file
 string(REPLACE ";" " " req "${PKGCONFIG_REQUIRES}")
 string(REPLACE ";" " " api "${API_DEFS}")
+set(prefix ${CMAKE_INSTALL_PREFIX})
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/rtmidi.pc.in" "rtmidi.pc" @ONLY)
 
 # Add install rule.
@@ -231,24 +234,13 @@ install(TARGETS ${LIB_TARGETS}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtmidi)
 
 # Store the package in the user registry.
 export(PACKAGE RtMidi)
 
 # Set installation path for CMake files.
 set(RTMIDI_CMAKE_DESTINATION share/rtmidi)
-
-# Create CMake configuration export file.
-if(NEED_PTHREAD)
-  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake "find_package(Threads REQUIRED)\n")
-endif()
-
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake "include(\${CMAKE_CURRENT_LIST_DIR}/RtMidiTargets.cmake)")
-
-# Install CMake configuration export file.
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/RtMidiConfig.cmake
-        DESTINATION ${RTMIDI_CMAKE_DESTINATION})
 
 # Export library target (build-tree).
 export(EXPORT RtMidiTargets
@@ -271,3 +263,29 @@ add_custom_target(${RTMIDI_TARGETNAME_UNINSTALL}
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/rtmidi.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+# Set up CMake package
+include(CMakePackageConfigHelpers)
+
+# Write cmake package version file
+write_basic_package_version_file(
+    RtMidi-config-version.cmake
+    VERSION ${FULL_VER}
+    COMPATIBILITY SameMajorVersion
+)
+
+# Write cmake package config file
+configure_package_config_file (
+    cmake/RtMidi-config.cmake.in
+    RtMidi-config.cmake
+    INSTALL_DESTINATION "${RTMIDI_CMAKE_DESTINATION}"
+)
+
+# Install package files
+install (
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/RtMidi-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/RtMidi-config-version.cmake"
+    DESTINATION
+        "${RTMIDI_CMAKE_DESTINATION}"
+)

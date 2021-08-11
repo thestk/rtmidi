@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 # Define a C++ project.
-project(RtMidi LANGUAGES CXX)
+project(RtMidi LANGUAGES CXX C)
 
 # standards version
 set(CMAKE_CXX_STANDARD 11)
@@ -200,6 +200,7 @@ target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS}
 include(GNUInstallDirs)
 
 # Add tests if requested.
+option(RTMIDI_BUILD_TESTING "Build test programs" ON)
 if (NOT DEFINED RTMIDI_BUILD_TESTING OR RTMIDI_BUILD_TESTING STREQUAL "")
   set(RTMIDI_BUILD_TESTING ${BUILD_TESTING})
 endif()
@@ -212,8 +213,9 @@ if (RTMIDI_BUILD_TESTING)
   add_executable(qmidiin    tests/qmidiin.cpp)
   add_executable(sysextest  tests/sysextest.cpp)
   add_executable(apinames   tests/apinames.cpp)
+  add_executable(testcapi   tests/testcapi.c)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames testcapi
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})

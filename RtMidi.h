@@ -62,6 +62,7 @@
 
 #include <exception>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -565,6 +566,7 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     unsigned int back;
     unsigned int ringSize;
     MidiMessage *ring;
+    std::mutex lock;
 
     // Default constructor.
     MidiQueue()

@@ -30,9 +30,11 @@ AC_SUBST(SO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(api)
 AC_SUBST(req)
+AC_SUBST(req_libs)
 
 api=""
 req=""
+req_libs=""
 
 # Fill GXX with something before test.
 GXX="no"
@@ -191,6 +193,7 @@ AS_CASE(["$systems"], [*" alsa "*], [
 AS_CASE(["$systems"], [*" core "*], [
   AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
     [api="$api -D__MACOSX_CORE__"
+     req_libs="$req_libs -framework CoreMIDI -framework CoreAudio -framework CoreFoundation"
      need_pthread=yes
      found="$found CoreMIDI",
      LIBS="$LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio"],

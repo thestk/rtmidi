@@ -1471,50 +1471,54 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
     return;
   }
 
-  MIDITimeStamp timeStamp = AudioGetCurrentHostTime();
-  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-  OSStatus result;
-
   if ( message[0] != 0xF0 && nBytes > 3 ) {
     errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
     error( RtMidiError::WARNING, errorString_ );
     return;
   }
 
-  Byte buffer[nBytes+(sizeof( MIDIPacketList ))];
+  MIDITimeStamp timeStamp = AudioGetCurrentHostTime();
+  CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+  OSStatus result;
+
+  ByteCount bufsize = nBytes > 65535 ? 65535 : nBytes;
+  Byte buffer[bufsize+16]; // pad for other struct members
   ByteCount listSize = sizeof( buffer );
   MIDIPacketList *packetList = (MIDIPacketList*)buffer;
-  MIDIPacket *packet = MIDIPacketListInit( packetList );
 
   ByteCount remainingBytes = nBytes;
-  while ( remainingBytes && packet ) {
-    ByteCount bytesForPacket = remainingBytes > 65535 ? 65535 : remainingBytes; // 65535 = maximum size of a MIDIPacket
+  while ( remainingBytes ) {
+    MIDIPacket *packet = MIDIPacketListInit( packetList );
+    // A MIDIPacketList can only contain a maximum of 64K of data, so if our message is longer,
+    // break it up into chunks of 64K or less and send out as a MIDIPacketList with only one
+    // MIDIPacket. Here, we reuse the memory allocated above on the stack for all.
+    ByteCount bytesForPacket = remainingBytes > 65535 ? 65535 : remainingBytes;
     const Byte* dataStartPtr = (const Byte *) &message[nBytes - remainingBytes];
     packet = MIDIPacketListAdd( packetList, listSize, packet, timeStamp, bytesForPacket, dataStartPtr );
     remainingBytes -= bytesForPacket;
-  }
 
-  if ( !packet ) {
-    errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";
-    error( RtMidiError::DRIVER_ERROR, errorString_ );
-    return;
-  }
-
-  // Send to any destinations that may have connected to us.
-  if ( data->endpoint ) {
-    result = MIDIReceived( data->endpoint, packetList );
-    if ( result != noErr ) {
-      errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
-      error( RtMidiError::WARNING, errorString_ );
+    if ( !packet ) {
+      errorString_ = "MidiOutCore::sendMessage: could not allocate packet list";
+      error( RtMidiError::DRIVER_ERROR, errorString_ );
+      return;
     }
-  }
 
-  // And send to an explicit destination port if we're connected.
-  if ( connected_ ) {
-    result = MIDISend( data->port, data->destinationId, packetList );
-    if ( result != noErr ) {
-      errorString_ = "MidiOutCore::sendMessage: error sending MIDI message to port.";
-      error( RtMidiError::WARNING, errorString_ );
+    // Send to any destinations that may have connected to us.
+    if ( data->endpoint ) {
+      result = MIDIReceived( data->endpoint, packetList );
+      if ( result != noErr ) {
+        errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
+        error( RtMidiError::WARNING, errorString_ );
+      }
+    }
+
+    // And send to an explicit destination port if we're connected.
+    if ( connected_ ) {
+      result = MIDISend( data->port, data->destinationId, packetList );
+      if ( result != noErr ) {
+        errorString_ = "MidiOutCore::sendMessage: error sending MIDI message to port.";
+        error( RtMidiError::WARNING, errorString_ );
+      }
     }
   }
 }

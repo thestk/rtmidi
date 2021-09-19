@@ -132,17 +132,27 @@ unsigned int rtmidi_get_port_count (RtMidiPtr device)
     }
 }
 
-const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber)
+int rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber, char * bufOut, int * bufLen)
 {
-    try {
-        std::string name = ((RtMidi*) device->ptr)->getPortName (portNumber);
-        return strdup (name.c_str ());
+    if (bufOut == nullptr && bufLen == nullptr) {
+        return -1;
+    }
 
+    std::string name;
+    try {
+        name = ((RtMidi*) device->ptr)->getPortName (portNumber);
     } catch (const RtMidiError & err) {
         device->ok  = false;
         device->msg = err.what ();
-        return "";
+        return -1;
     }
+
+    if (bufOut == nullptr) {
+        *bufLen = static_cast<int>(name.size()) + 1;
+        return 0;
+    }
+
+    return snprintf(bufOut, static_cast<size_t>(*bufLen), "%s", name.c_str());
 }
 
 /* RtMidiIn API */

@@ -65,6 +65,7 @@
 #include <string>
 #include <vector>
 
+
 /************************************************************************/
 /*! \class RtMidiError
     \brief Exception handling class for RtMidi.
@@ -132,6 +133,8 @@ class MidiApi;
 class RTMIDI_DLL_PUBLIC RtMidi
 {
  public:
+
+     RtMidi(RtMidi&& other) noexcept;
   //! MIDI API specifier arguments.
   enum Api {
     UNSPECIFIED,    /*!< Search for a working compiled API. */
@@ -214,6 +217,10 @@ class RTMIDI_DLL_PUBLIC RtMidi
   RtMidi();
   virtual ~RtMidi();
   MidiApi *rtapi_;
+
+  /* Make the class non-copyable */
+  RtMidi(RtMidi& other) = delete;
+  RtMidi& operator=(RtMidi& other) = delete;
 };
 
 /**********************************************************************/
@@ -249,7 +256,6 @@ class RTMIDI_DLL_PUBLIC RtMidi
 class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
 {
  public:
-
   //! User callback function type definition.
   typedef void (*RtMidiCallback)( double timeStamp, std::vector<unsigned char> *message, void *userData );
 
@@ -274,6 +280,8 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
   RtMidiIn( RtMidi::Api api=UNSPECIFIED,
             const std::string& clientName = "RtMidi Input Client",
             unsigned int queueSizeLimit = 100 );
+
+  RtMidiIn(RtMidiIn&& other) noexcept : RtMidi(std::move(other)) { }
 
   //! If a MIDI connection is still open, it will be closed by the destructor.
   ~RtMidiIn ( void ) throw();
@@ -404,6 +412,8 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
   RtMidiOut( RtMidi::Api api=UNSPECIFIED,
              const std::string& clientName = "RtMidi Output Client" );
 
+  RtMidiOut(RtMidiOut&& other) noexcept : RtMidi(std::move(other)) { }
+
   //! The destructor closes any open MIDI connections.
   ~RtMidiOut( void ) throw();
 
@@ -524,6 +534,7 @@ protected:
   RtMidiErrorCallback errorCallback_;
   bool firstErrorOccurred_;
   void *errorCallbackUserData_;
+
 };
 
 class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
@@ -626,5 +637,14 @@ inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return 
 inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( &message->at(0), message->size() ); }
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
+
+#if defined(__APPLE__) || defined(__MACOSX_CORE__)
+
+#include <CoreMIDI/CoreMIDI.h>
+
+void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client);
+void RtMidi_disposeCoreMidiClientSingleton();
+
+#endif /* __APPLE__ */
 
 #endif

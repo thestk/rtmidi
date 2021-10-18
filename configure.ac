@@ -30,9 +30,11 @@ AC_SUBST(SO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(api)
 AC_SUBST(req)
+AC_SUBST(req_libs)
 
 api=""
 req=""
+req_libs=""
 
 # Fill GXX with something before test.
 GXX="no"
@@ -51,6 +53,10 @@ AS_IF(
 # Enable some nice automake features if they are available
 m4_ifdef([AM_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+# standards version
+m4_include([m4/ax_cxx_compile_stdcxx.m4])
+AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
 
 # configure flags
 AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [enable various debugging output])])
@@ -190,6 +196,7 @@ AS_CASE(["$systems"], [*" alsa "*], [
 AS_CASE(["$systems"], [*" core "*], [
   AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
     [api="$api -D__MACOSX_CORE__"
+     req_libs="$req_libs -framework CoreMIDI -framework CoreAudio -framework CoreFoundation"
      need_pthread=yes
      found="$found CoreMIDI",
      LIBS="$LIBS -framework CoreMIDI -framework CoreFoundation -framework CoreAudio"],

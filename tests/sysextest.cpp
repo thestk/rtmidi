@@ -13,7 +13,7 @@
 
 void usage( void ) {
   std::cout << "\nuseage: sysextest N\n";
-  std::cout << "    where N = length of sysex message to send / receive.\n\n";
+  std::cout << "    where N = length of sysex data to send / receive.\n\n";
   exit( 0 );
 }
 
@@ -37,7 +37,7 @@ void mycallback( double deltatime, std::vector< unsigned char > *message, void *
   for ( unsigned int i=0; i<nBytes; i++ )
     std::cout << "Byte " << i << " = " << (int)message->at(i) << ", ";
   if ( nBytes > 0 )
-    std::cout << "stamp = " << deltatime << std::endl;
+    std::cout << "# of bytes = " << nBytes << ", stamp = " << deltatime << std::endl;
 }
 
 int main( int argc, char *argv[] )
@@ -67,28 +67,28 @@ int main( int argc, char *argv[] )
   try {
     if ( chooseMidiPort( midiin ) == false ) goto cleanup;
     if ( chooseMidiPort( midiout ) == false ) goto cleanup;
+
+    midiin->setCallback( &mycallback );
+
+    message.push_back( 0xF6 );
+    midiout->sendMessage( &message );
+    SLEEP( 500 ); // pause a little
+
+    // Create a long sysex message of numbered bytes and send it out ... twice.
+    for ( int n=0; n<2; n++ ) {
+      message.clear();
+      message.push_back( 240 );
+      for ( i=0; i<nBytes; i++ )
+        message.push_back( i % 128 );
+      message.push_back( 247 );
+      midiout->sendMessage( &message );
+
+      SLEEP( 500 ); // pause a little
+    }
   }
   catch ( RtMidiError &error ) {
     error.printMessage();
     goto cleanup;
-  }
-
-  midiin->setCallback( &mycallback );
-
-  message.push_back( 0xF6 );
-  midiout->sendMessage( &message );
-  SLEEP( 500 ); // pause a little
-
-  // Create a long sysex message of numbered bytes and send it out ... twice.
-  for ( int n=0; n<2; n++ ) {
-    message.clear();
-    message.push_back( 240 );
-    for ( i=0; i<nBytes; i++ )
-      message.push_back( i % 128 );
-    message.push_back( 247 );
-    midiout->sendMessage( &message );
-
-    SLEEP( 500 ); // pause a little
   }
 
   // Clean up

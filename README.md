@@ -1,6 +1,6 @@
 # RtMidi
 
-[![Build Status](https://travis-ci.org/thestk/rtmidi.svg?branch=master)](https://travis-ci.org/thestk/rtmidi)
+![Build Status](https://github.com/thestk/rtmidi/actions/workflows/ci.yml/badge.svg)
 
 A set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK) and Windows (Multimedia).
 
@@ -29,6 +29,12 @@ MIDI input and output functionality are separated into two classes, `RtMidiIn` a
 ## Windows
 
 In some cases, for example to use RtMidi with GS Synth, it may be necessary for your program to call `CoInitializeEx` and `CoUninitialize` on entry to and exit from the thread that uses RtMidi.
+
+## OSX / macOS
+
+- An essential component of the macOS MIDI subsystem (`MIDIClient`) can exhibit buggy behaviour (also see https://github.com/thestk/rtmidi/issues/155). As the relevant API is not directly exposed, the two following functions are declared (if and only if `__APPLE__` is defined) if access to this part is needed (but typically is not):
+  - `void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client)`
+  - `void RtMidi_disposeCoreMidiClientSingleton()`
 
 ## Further reading
 

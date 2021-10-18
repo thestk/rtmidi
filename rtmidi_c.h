@@ -155,10 +155,14 @@ RTMIDIAPI void rtmidi_close_port (RtMidiPtr device);
  */
 RTMIDIAPI unsigned int rtmidi_get_port_count (RtMidiPtr device);
 
-/*! \brief Return a string identifier for the specified MIDI input port number.
+/*! \brief Access a string identifier for the specified MIDI input port number.
+ * 
+ * To prevent memory leaks a char buffer must be passed to this function.
+ * NULL can be passed as bufOut parameter, and that will write the required buffer length in the bufLen.
+ * 
  * See RtMidi::getPortName().
  */
-RTMIDIAPI const char* rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber);
+RTMIDIAPI int rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber, char * bufOut, int * bufLen);
 
 /* RtMidiIn API */
 
@@ -205,6 +209,7 @@ RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool 
  *                  allocated array could
  *                  be sufficient.
  * \param size      Is used to return the size of the message obtained.
+ *                  Must be set to the size of \ref message when calling.
  *
  * See RtMidiIn::getMessage().
  */

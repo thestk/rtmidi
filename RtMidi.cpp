@@ -3516,6 +3516,8 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
 
 #if defined(__WEB_MIDI_API__)
 
+#include <emscripten.h>
+
 //*********************************************************************//
 //  API: WEB MIDI
 //  Class Definitions: WebMidiAccessShim

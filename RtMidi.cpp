@@ -3188,6 +3188,8 @@ void MidiInJack :: openPort( unsigned int portNumber, const std::string &portNam
 
   if ( data->port == NULL ) {
     errorString_ = "MidiInJack::openPort: JACK error creating port";
+    if (portName.size() >= (size_t)jack_port_name_size())
+        errorString_ += " (port name too long?)";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
@@ -3210,6 +3212,8 @@ void MidiInJack :: openVirtualPort( const std::string &portName )
 
   if ( data->port == NULL ) {
     errorString_ = "MidiInJack::openVirtualPort: JACK error creating virtual port";
+    if (portName.size() >= (size_t)jack_port_name_size())
+        errorString_ += " (port name too long?)";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
   }
 }
@@ -3406,6 +3410,8 @@ void MidiOutJack :: openPort( unsigned int portNumber, const std::string &portNa
 
   if ( data->port == NULL ) {
     errorString_ = "MidiOutJack::openPort: JACK error creating port";
+    if (portName.size() >= (size_t)jack_port_name_size())
+        errorString_ += " (port name too long?)";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
@@ -3428,6 +3434,8 @@ void MidiOutJack :: openVirtualPort( const std::string &portName )
 
   if ( data->port == NULL ) {
     errorString_ = "MidiOutJack::openVirtualPort: JACK error creating virtual port";
+    if (portName.size() >= (size_t)jack_port_name_size())
+        errorString_ += " (port name too long?)";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
   }
 }

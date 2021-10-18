@@ -2897,7 +2897,10 @@ void MidiOutWinMM :: closePort( void )
 {
   if ( connected_ ) {
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-    midiOutReset( data->outHandle );
+    // Disabled because midiOutReset triggers 0x7b (if any note was ON) and 0x79 "Reset All
+    // Controllers" (to all 16 channels) CC messages which is undesirable (see issue #222)
+    // midiOutReset( data->outHandle );
+
     midiOutClose( data->outHandle );
     data->outHandle = 0;
     connected_ = false;

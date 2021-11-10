@@ -661,6 +661,12 @@ double MidiInApi :: getMessage( std::vector<unsigned char> *message )
   return timeStamp;
 }
 
+void MidiInApi :: setBufferSize( unsigned int size, unsigned int count )
+{
+    inputData_.bufferSize = size;
+    inputData_.bufferCount = count;
+}
+
 unsigned int MidiInApi::MidiQueue::size( unsigned int *__back,
                                          unsigned int *__front )
 {
@@ -1560,6 +1566,7 @@ struct AlsaMidiData {
   snd_seq_port_subscribe_t *subscription;
   snd_midi_event_t *coder;
   unsigned int bufferSize;
+  unsigned int requestedBufferSize;
   unsigned char *buffer;
   pthread_t thread;
   pthread_t dummy_thread_id;
@@ -1590,7 +1597,6 @@ static void *alsaMidiHandler( void *ptr )
 
   snd_seq_event_t *ev;
   int result;
-  apiData->bufferSize = 32;
   result = snd_midi_event_new( 0, &apiData->coder );
   if ( result < 0 ) {
     data->doInput = false;
@@ -1842,6 +1848,7 @@ void MidiInAlsa :: initialize( const std::string& clientName )
   data->thread = data->dummy_thread_id;
   data->trigger_fds[0] = -1;
   data->trigger_fds[1] = -1;
+  data->bufferSize = inputData_.bufferSize;
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
 
@@ -2472,9 +2479,6 @@ static std::string ConvertToUTF8(const TCHAR *str)
   return u8str;
 }
 
-#define  RT_SYSEX_BUFFER_SIZE 1024
-#define  RT_SYSEX_BUFFER_COUNT 4
-
 // A structure to hold variables related to the CoreMIDI API
 // implementation.
 struct WinMidiData {
@@ -2482,7 +2486,7 @@ struct WinMidiData {
   HMIDIOUT outHandle;  // Handle to Midi Output Device
   DWORD lastTime;
   MidiInApi::MidiMessage message;
-  LPMIDIHDR sysexBuffer[RT_SYSEX_BUFFER_COUNT];
+  std::vector<LPMIDIHDR> sysexBuffer;
   CRITICAL_SECTION _mutex; // [Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
 };
 
@@ -2662,10 +2666,11 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string &/*port
   }
 
   // Allocate and init the sysex buffers.
-  for ( int i=0; i<RT_SYSEX_BUFFER_COUNT; ++i ) {
+  data->sysexBuffer.resize( inputData_.bufferCount );
+  for ( int i=0; i < inputData_.bufferCount; ++i ) {
     data->sysexBuffer[i] = (MIDIHDR*) new char[ sizeof(MIDIHDR) ];
-    data->sysexBuffer[i]->lpData = new char[ RT_SYSEX_BUFFER_SIZE ];
-    data->sysexBuffer[i]->dwBufferLength = RT_SYSEX_BUFFER_SIZE;
+    data->sysexBuffer[i]->lpData = new char[ inputData_.bufferSize ];
+    data->sysexBuffer[i]->dwBufferLength = inputData_.bufferSize;
     data->sysexBuffer[i]->dwUser = i; // We use the dwUser parameter as buffer indicator
     data->sysexBuffer[i]->dwFlags = 0;
 
@@ -2716,7 +2721,7 @@ void MidiInWinMM :: closePort( void )
     midiInReset( data->inHandle );
     midiInStop( data->inHandle );
 
-    for ( int i=0; i<RT_SYSEX_BUFFER_COUNT; ++i ) {
+    for ( int i=0; i < data->sysexBuffer.size(); ++i ) {
       int result = midiInUnprepareHeader(data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR));
       delete [] data->sysexBuffer[i]->lpData;
       delete [] data->sysexBuffer[i];

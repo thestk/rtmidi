@@ -813,9 +813,6 @@ MidiOutApi :: ~MidiOutApi( void )
 // MIDI input.  We convert the system specific time stamps to delta
 // time values.
 
-void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client);
-void RtMidi_disposeCoreMidiClientSingleton();
-
 // These are not available on iOS.
 #if (TARGET_OS_IPHONE == 0)
   #include <CoreAudio/HostTime.h>

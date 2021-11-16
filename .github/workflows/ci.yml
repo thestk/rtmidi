@@ -20,7 +20,8 @@ jobs:
         fetch-depth: 0
     - name: install dependencies
       run:
-        sudo apt-get install g++-8 autoconf-archive cmake ${{matrix.deps}}
+        sudo apt-get update
+        && sudo apt-get install g++-8 autoconf-archive cmake ${{matrix.deps}}
     - name: automake
       run:
         env NOCONFIGURE=1 ./autogen.sh && mkdir bld-automake && cd bld-automake
@@ -62,7 +63,9 @@ jobs:
       with:
         fetch-depth: 0
     - name: install dependencies
-      run: sudo apt-get install g++-mingw-w64 autoconf-archive
+      run:
+        sudo apt-get update
+        && sudo apt-get install g++-mingw-w64 autoconf-archive
     - name: automake
       run:
         env NOCONFIGURE=1 ./autogen.sh

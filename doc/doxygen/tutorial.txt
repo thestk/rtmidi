@@ -15,22 +15,24 @@ Where applicable, multiple API support can be compiled and a particular API spec
 
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
 
-\section whatsnew What's New (Version 4.0.0)
+\section whatsnew What's New (Version 5.0.0)
 
-The version number has been bumped to 4.0.0 because of some new functions added to the API and because some private class definitions were moved out of the header file.  Changes in this release include:
+The version number has been bumped to 5.0.0 because a new API (Web MIDI) was added, as well as at least one new function.  Changes in this release include:
 
 - see git history for complete list of changes
-- updates to test programs to clarify port numbering
-- new C API wrapper
-- new functions to get API names
-- miscellaneous sysex fixes in Jack and ALSA
-- new setPortName() method (for Jack and ALSA)
-- new setClientName() method (for ALSA)
+- new Web MIDI API
+- iOS support
+- new setBufferSize() function
+- fixes for WinMM, Jack
+- added C API test program
+- now requiring C++11
+- build system updates
+- midiprobe probes all compiled APIs
 - various build system updates and code efficiencies
 
 \section download Download
 
-Latest Release (17 April 2019): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-4.0.0.tar.gz">Version 4.0.0</A>
+Latest Release (16 November 2021): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-5.0.0.tar.gz">Version 5.0.0</A>
 
 \section start Getting Started
 

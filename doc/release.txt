@@ -1,6 +1,18 @@
 RtMidi - a set of C++ classes that provides a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK), and Windows (Multimedia Library).
 
-By Gary P. Scavone, 2003-2019 (with help from many others!)
+By Gary P. Scavone, 2003-2021 (with help from many others, especially Stephen Sinclair!)
+
+v.5.0.0: (16 November 2021)
+- see git history for complete list of changes
+- new Web MIDI API
+- iOS support
+- new setBufferSize() function
+- fixes for WinMM, Jack
+- added C API test program
+- now requiring C++11
+- build system updates
+- midiprobe probes all compiled APIs
+- various build system updates and code efficiencies
 
 v.4.0.0: (17 April 2019)
 - see git history for complete list of changes

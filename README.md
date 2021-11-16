@@ -4,7 +4,7 @@
 
 A set of C++ classes that provide a common API for realtime MIDI input/output across Linux (ALSA & JACK), Macintosh OS X (CoreMIDI & JACK) and Windows (Multimedia).
 
-By Gary P. Scavone, 2003-2019.
+By Gary P. Scavone, 2003-2021.
 
 This distribution of RtMidi contains the following:
 

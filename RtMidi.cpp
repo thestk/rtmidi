@@ -82,6 +82,7 @@
 #endif
 
 #if defined(__MACOSX_CORE__)
+#include <CoreMIDI/CoreMIDI.h>
 
 class MidiInCore: public MidiInApi
 {
@@ -812,9 +813,10 @@ MidiOutApi :: ~MidiOutApi( void )
 // MIDI input.  We convert the system specific time stamps to delta
 // time values.
 
-// OS-X CoreMIDI header files. (<CoreMIDI/CoreMIDI.h> moved to RtMidi.h)
+void RtMidi_setCoreMidiClientSingleton(MIDIClientRef client);
+void RtMidi_disposeCoreMidiClientSingleton();
 
-// these are not available on iOS.
+// These are not available on iOS.
 #if (TARGET_OS_IPHONE == 0)
   #include <CoreAudio/HostTime.h>
   #include <CoreServices/CoreServices.h>
@@ -830,7 +832,6 @@ struct CoreMidiData {
   unsigned long long lastTime;
   MIDISysexSendRequest sysexreq;
 };
-
 
 static MIDIClientRef CoreMidiClientSingleton = 0;
 

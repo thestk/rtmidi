@@ -39,6 +39,9 @@
 
 #include "RtMidi.h"
 #include <sstream>
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 
 #if (TARGET_OS_IPHONE == 1)
 

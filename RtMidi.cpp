@@ -3723,7 +3723,7 @@ std::string WebMidiAccessShim::getPortName( unsigned int portNumber, bool isInpu
     var ret = _malloc(length);
     stringToUTF8(port.name, ret, length);
     return ret;
-  }, portNumber, isInput, &ret );
+  }, portNumber, isInput);
   if (ret == nullptr)
       return "";
   std::string s = ret;

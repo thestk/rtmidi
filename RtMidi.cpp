@@ -3608,7 +3608,7 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
       return;
 
   while ( jack_ringbuffer_write_space(data->buff) < sizeof(nBytes) + size )
-      pthread_yield();
+      sched_yield();
 
   // Write full message to buffer
   jack_ringbuffer_write( data->buff, ( char * ) &nBytes, sizeof( nBytes ) );

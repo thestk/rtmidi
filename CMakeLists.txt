@@ -280,23 +280,23 @@ include(CMakePackageConfigHelpers)
 
 # Write cmake package version file
 write_basic_package_version_file(
-    RtMidi-config-version.cmake
+    rtmidi-config-version.cmake
     VERSION ${FULL_VER}
     COMPATIBILITY SameMajorVersion
 )
 
 # Write cmake package config file
 configure_package_config_file (
-    cmake/RtMidi-config.cmake.in
-    RtMidi-config.cmake
+    cmake/rtmidi-config.cmake.in
+    rtmidi-config.cmake
     INSTALL_DESTINATION "${RTMIDI_CMAKE_DESTINATION}"
 )
 
 # Install package files
 install (
     FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/RtMidi-config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/RtMidi-config-version.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config-version.cmake"
     DESTINATION
         "${RTMIDI_CMAKE_DESTINATION}"
 )

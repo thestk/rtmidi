@@ -187,6 +187,9 @@ set_target_properties(rtmidi PROPERTIES
   SOVERSION ${SO_VER}
   VERSION ${FULL_VER})
 
+# Set standard installation directories.
+include(GNUInstallDirs)
+
 # Set include paths, populate target interface.
 target_include_directories(rtmidi PRIVATE ${INCDIRS}
                                   PUBLIC
@@ -198,9 +201,6 @@ target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
 target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS} 
                              PRIVATE ${LINKLIBS})
-
-# Set standard installation directories.
-include(GNUInstallDirs)
 
 # Add tests if requested.
 option(RTMIDI_BUILD_TESTING "Build test programs" ON)

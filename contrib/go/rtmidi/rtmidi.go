@@ -147,12 +147,22 @@ func (m *midi) OpenVirtualPort(name string) error {
 
 // Return a string identifier for the specified MIDI input port number.
 func (m *midi) PortName(port int) (string, error) {
-	p := C.rtmidi_get_port_name(m.midi, C.uint(port))
+	bufLen := C.int(0)
+
+	C.rtmidi_get_port_name(m.midi, C.uint(port), nil, &bufLen)
 	if !m.midi.ok {
 		return "", errors.New(C.GoString(m.midi.msg))
 	}
-	defer C.free(unsafe.Pointer(p))
-	return C.GoString(p), nil
+
+	bufOut := make([]byte, int(bufLen))
+	p := (*C.char)(unsafe.Pointer(&bufOut[0]))
+
+	C.rtmidi_get_port_name(m.midi, C.uint(port), p, &bufLen)
+	if !m.midi.ok {
+		return "", errors.New(C.GoString(m.midi.msg))
+	}
+
+	return string(bufOut), nil
 }
 
 // Return the number of available MIDI input ports.

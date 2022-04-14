@@ -1,7 +1,7 @@
 package rtmidi
 
 /*
-#cgo CXXFLAGS: -g
+#cgo CXXFLAGS: -g -std=c++11
 #cgo LDFLAGS: -g
 
 #cgo linux CXXFLAGS: -D__LINUX_ALSA__

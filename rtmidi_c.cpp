@@ -42,7 +42,9 @@ class CallbackProxyUserData
   void *user_data;
 };
 
-extern "C" const enum RtMidiApi rtmidi_compiled_apis[]; // casting from RtMidi::Api[]
+#ifndef RTMIDI_SOURCE_INCLUDED
+    extern "C" const enum RtMidiApi rtmidi_compiled_apis[]; // casting from RtMidi::Api[]
+#endif
 extern "C" const unsigned int rtmidi_num_compiled_apis;
 
 /* RtMidi API */

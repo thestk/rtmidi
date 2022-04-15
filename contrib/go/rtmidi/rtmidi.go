@@ -162,7 +162,7 @@ func (m *midi) PortName(port int) (string, error) {
 		return "", errors.New(C.GoString(m.midi.msg))
 	}
 
-	return string(bufOut), nil
+	return string(bufOut[0 : bufLen-1]), nil
 }
 
 // Return the number of available MIDI input ports.

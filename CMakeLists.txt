@@ -87,6 +87,7 @@ set(PKGCONFIG_REQUIRES)
 set(LIBS_REQUIRES)
 set(API_DEFS)
 set(API_LIST)
+set(PACKAGE_DEPENDENCIES)
 
 # Tweak API-specific configuration.
 
@@ -125,10 +126,11 @@ if(RTMIDI_API_ALSA)
     message(FATAL_ERROR "ALSA API requested but no ALSA dev libraries found")
   endif()
   list(APPEND INCDIRS ${ALSA_INCLUDE_DIR})
-  list(APPEND LINKLIBS ${ALSA_LIBRARY})
+  list(APPEND LINKLIBS ALSA::ALSA)
   list(APPEND PKGCONFIG_REQUIRES "alsa")
   list(APPEND API_DEFS "-D__LINUX_ALSA__")
   list(APPEND API_LIST "alsa")
+  list(APPEND PACKAGE_DEPENDENCIES "find_dependency(ALSA)")
 endif()
 
 # WinMM
@@ -157,6 +159,7 @@ if (NEED_PTHREAD)
     CMAKE_THREAD_PREFER_PTHREAD
     THREADS_PREFER_PTHREAD_FLAG)
   list(APPEND PUBLICLINKLIBS Threads::Threads)
+  list(APPEND PACKAGE_DEPENDENCIES "find_dependency(Threads)")
 endif()
 
 # Create library targets.
@@ -284,6 +287,8 @@ write_basic_package_version_file(
     VERSION ${FULL_VER}
     COMPATIBILITY SameMajorVersion
 )
+
+string(REPLACE ";" "\n" package_dependencies "${PACKAGE_DEPENDENCIES}")
 
 # Write cmake package config file
 configure_package_config_file (

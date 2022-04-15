@@ -154,6 +154,10 @@ func (m *midi) PortName(port int) (string, error) {
 		return "", errors.New(C.GoString(m.midi.msg))
 	}
 
+	if bufLen < 1 {
+		return "", nil
+	}
+
 	bufOut := make([]byte, int(bufLen))
 	p := (*C.char)(unsafe.Pointer(&bufOut[0]))
 

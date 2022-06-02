@@ -3782,6 +3782,7 @@ void MidiInWeb::openPort( unsigned int portNumber, const std::string &portName )
     };
   }, portNumber, &inputData_ );
   open_port_number = portNumber;
+  connected_ = true;
 }
 
 void MidiInWeb::openVirtualPort( const std::string &portName )
@@ -3807,6 +3808,7 @@ void MidiInWeb::closePort( void )
     input.onmidimessage = null;
   }, open_port_number );
   open_port_number = -1;
+  connected_ = false;
 }
 
 void MidiInWeb::setClientName( const std::string &clientName )
@@ -3866,6 +3868,7 @@ void MidiOutWeb::openPort( unsigned int portNumber, const std::string &portName 
   // In Web MIDI API world, there is no step to open a port.
 
   open_port_number = portNumber;
+  connected_ = true;
 }
 
 void MidiOutWeb::openVirtualPort( const std::string &portName )
@@ -3880,6 +3883,7 @@ void MidiOutWeb::closePort( void )
 {
   // there is really nothing to do for output at JS side.
   open_port_number = -1;
+  connected_ = false;
 }
 
 void MidiOutWeb::setClientName( const std::string &clientName )

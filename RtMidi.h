@@ -86,12 +86,12 @@ class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
     UNSPECIFIED,       /*!< The default, unspecified error type. */
     NO_DEVICES_FOUND,  /*!< No devices found on system. */
     INVALID_DEVICE,    /*!< An invalid device ID was specified. */
-    MEMORY_ERROR,      /*!< An error occured during memory allocation. */
+    MEMORY_ERROR,      /*!< An error occurred during memory allocation. */
     INVALID_PARAMETER, /*!< An invalid parameter was specified to a function. */
     INVALID_USE,       /*!< The function was called incorrectly. */
-    DRIVER_ERROR,      /*!< A system driver error occured. */
-    SYSTEM_ERROR,      /*!< A system error occured. */
-    THREAD_ERROR       /*!< A thread error occured. */
+    DRIVER_ERROR,      /*!< A system driver error occurred. */
+    SYSTEM_ERROR,      /*!< A system error occurred. */
+    THREAD_ERROR       /*!< A thread error occurred. */
   };
 
   //! The constructor.
@@ -206,9 +206,9 @@ class RTMIDI_DLL_PUBLIC RtMidi
   */
   virtual bool isPortOpen( void ) const = 0;
 
-  //! Set an error callback function to be invoked when an error has occured.
+  //! Set an error callback function to be invoked when an error has occurred.
   /*!
-    The callback function will be called whenever an error has occured. It is best
+    The callback function will be called whenever an error has occurred. It is best
     to set the error callback function before opening a port.
   */
   virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 ) = 0;
@@ -373,9 +373,9 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
   */
   double getMessage( std::vector<unsigned char> *message );
 
-  //! Set an error callback function to be invoked when an error has occured.
+  //! Set an error callback function to be invoked when an error has occurred.
   /*!
-    The callback function will be called whenever an error has occured. It is best
+    The callback function will be called whenever an error has occurred. It is best
     to set the error callback function before opening a port.
   */
   virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 );
@@ -491,9 +491,9 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
   */
   void sendMessage( const unsigned char *message, size_t size );
 
-  //! Set an error callback function to be invoked when an error has occured.
+  //! Set an error callback function to be invoked when an error has occurred.
   /*!
-    The callback function will be called whenever an error has occured. It is best
+    The callback function will be called whenever an error has occurred. It is best
     to set the error callback function before opening a port.
   */
   virtual void setErrorCallback( RtMidiErrorCallback errorCallback = NULL, void *userData = 0 );

@@ -44,7 +44,7 @@ struct RtMidiWrapper {
     //! True when the last function call was OK.
     bool  ok;
 
-    //! If an error occured (ok != true), set to an error message.
+    //! If an error occurred (ok != true), set to an error message.
     const char* msg;
 };
 
@@ -75,12 +75,12 @@ enum RtMidiErrorType {
   RTMIDI_ERROR_UNSPECIFIED,       /*!< The default, unspecified error type. */
   RTMIDI_ERROR_NO_DEVICES_FOUND,  /*!< No devices found on system. */
   RTMIDI_ERROR_INVALID_DEVICE,    /*!< An invalid device ID was specified. */
-  RTMIDI_ERROR_MEMORY_ERROR,      /*!< An error occured during memory allocation. */
+  RTMIDI_ERROR_MEMORY_ERROR,      /*!< An error occurred during memory allocation. */
   RTMIDI_ERROR_INVALID_PARAMETER, /*!< An invalid parameter was specified to a function. */
   RTMIDI_ERROR_INVALID_USE,       /*!< The function was called incorrectly. */
-  RTMIDI_ERROR_DRIVER_ERROR,      /*!< A system driver error occured. */
-  RTMIDI_ERROR_SYSTEM_ERROR,      /*!< A system error occured. */
-  RTMIDI_ERROR_THREAD_ERROR       /*!< A thread error occured. */
+  RTMIDI_ERROR_DRIVER_ERROR,      /*!< A system driver error occurred. */
+  RTMIDI_ERROR_SYSTEM_ERROR,      /*!< A system error occurred. */
+  RTMIDI_ERROR_THREAD_ERROR       /*!< A thread error occurred. */
 };
 
 /*! \brief The type of a RtMidi callback function.

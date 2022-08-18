@@ -3188,6 +3188,7 @@ public:
     void out_init()
     {
         ports_ = list_ports(MidiOutPort::GetDeviceSelector());
+        fix_display_name(list_ports(MidiInPort::GetDeviceSelector()), ports_);
     }
 
     size_t get_num_ports()
@@ -3202,6 +3203,8 @@ public:
 
 private:
     std::vector<port> list_ports(winrt::hstring device_selector);
+    void fix_display_name(const std::vector<port>& in_ports,
+        std::vector<port>& out_ports);
     std::string utf16_to_utf8(const std::wstring_view wstr);
 
     // List of MIDI ports
@@ -3250,6 +3253,27 @@ std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_s
         retval.push_back(p);
     }
     return retval;
+}
+
+// Fix MIDI OUT port names starting with `MIDI` to MIDI IN port names with similar ID strings
+void UWPMidiClass::fix_display_name(const std::vector<port>& in_ports,
+    std::vector<port>& out_ports)
+{
+    for (auto& outp : out_ports)
+    {
+        if (outp.hex_id.empty() ||
+            std::string_view{ outp.name }.substr(0, 4) != "MIDI")
+            continue;
+
+        for (const auto& inp : in_ports)
+        {
+            if (outp.hex_id == inp.hex_id)
+            {
+                outp.display_name = inp.display_name;
+                break;
+            }
+        }
+    }
 }
 
 std::string UWPMidiClass::utf16_to_utf8(const std::wstring_view wstr)

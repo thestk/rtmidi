@@ -3166,16 +3166,53 @@ using namespace Windows::Storage::Streams;
 class UWPMidiClass
 {
 public:
+    // Structure to store MIDI port name and ID
+    struct port
+    {
+        std::wstring name;
+        std::wstring id;
+    };
+
     // Initialize for MIDI IN
     void in_init()
     {
+        ports_ = list_ports(MidiInPort::GetDeviceSelector());
     }
 
     // Initialize for MIDI OUT
     void out_init()
     {
+        ports_ = list_ports(MidiOutPort::GetDeviceSelector());
     }
+
+    size_t get_num_ports()
+    {
+        return ports_.size();
+    }
+
+private:
+    std::vector<port> list_ports(winrt::hstring device_selector);
+
+    // List of MIDI ports
+    std::vector<port> ports_;
 };
+
+// Find and create a list of UWP MIDI ports
+std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_selector)
+{
+    const auto devs{ DeviceInformation::FindAllAsync(device_selector).get() };
+
+    std::vector<port> retval;
+    for (const auto& d : devs)
+    {
+        port p;
+        p.name = d.Name();
+        p.id = d.Id();
+
+        retval.push_back(p);
+    }
+    return retval;
+}
 
 //*********************************************************************//
 //  API: Windows UWP
@@ -3204,6 +3241,15 @@ void MidiInWinUWP::initialize(const std::string& /*clientName*/)
     UWPMidiClass* data{ new UWPMidiClass };
     data->in_init();
     apiData_ = static_cast<void*>(data);
+
+    // We'll issue a warning here if no devices are available but not
+    // throw an error since the user can plugin something later.
+    const auto nDevices{ data->get_num_ports() };
+    if (nDevices == 0)
+    {
+        errorString_ = "MidiInWinUWP::initialize: no MIDI input devices currently available.";
+        error(RtMidiError::WARNING, errorString_);
+    }
 }
 
 void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
@@ -3235,11 +3281,24 @@ void MidiInWinUWP::setPortName(const std::string&)
 
 unsigned int MidiInWinUWP::getPortCount()
 {
-    return 0;
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    return static_cast<unsigned int>(data->get_num_ports());
 }
 
 std::string MidiInWinUWP::getPortName(unsigned int portNumber)
 {
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+
+    const auto nDevices{ data->get_num_ports() };
+    if (portNumber >= nDevices)
+    {
+        std::ostringstream ost;
+        ost << "MidiInWinUWP::getPortName: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::WARNING, errorString_);
+        return "";
+    }
+
     return "";
 }
 
@@ -3269,15 +3328,37 @@ void MidiOutWinUWP::initialize(const std::string& /*clientName*/)
     UWPMidiClass* data{ new UWPMidiClass };
     data->out_init();
     apiData_ = static_cast<void*>(data);
+
+    // We'll issue a warning here if no devices are available but not
+    // throw an error since the user can plug something in later.
+    const auto nDevices{ data->get_num_ports() };
+    if (nDevices == 0)
+    {
+        errorString_ = "MidiOutWinUWP::initialize: no MIDI output devices currently available.";
+        error(RtMidiError::WARNING, errorString_);
+    }
 }
 
 unsigned int MidiOutWinUWP::getPortCount()
 {
-    return 0;
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    return static_cast<unsigned int>(data->get_num_ports());
 }
 
 std::string MidiOutWinUWP::getPortName(unsigned int portNumber)
 {
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+
+    const auto nDevices{ data->get_num_ports() };
+    if (portNumber >= nDevices)
+    {
+        std::ostringstream ost;
+        ost << "MidiOutWinUWP::getPortName: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::WARNING, errorString_);
+        return "";
+    }
+
     return "";
 }
 

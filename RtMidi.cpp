@@ -3148,6 +3148,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 
 #if defined(__WINDOWS_UWP__)
 
+#include <regex>
 #include <string_view>
 
 #include <windows.h>
@@ -3173,6 +3174,8 @@ public:
     {
         std::string name;
         std::wstring id;
+        std::string hex_id;
+        std::string display_name;
     };
 
     // Initialize for MIDI IN
@@ -3194,7 +3197,7 @@ public:
 
     std::string get_port_name(size_t n)
     {
-        return ports_[n].name;
+        return ports_[n].display_name;
     }
 
 private:
@@ -3203,7 +3206,12 @@ private:
 
     // List of MIDI ports
     std::vector<port> ports_;
+    // Regex pattern to extract 8 hex digits from UWP MIDI ID string
+    static const std::wregex hex_id_pattern_;
 };
+
+// Regex pattern to extract 8 hex digits from UWP MIDI ID string
+const std::wregex UWPMidiClass::hex_id_pattern_{ std::wregex(L"#MIDII_([0-9A-F]{8})\\..+#") };
 
 // Find and create a list of UWP MIDI ports
 std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_selector)
@@ -3216,6 +3224,28 @@ std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_s
         port p;
         p.name = utf16_to_utf8(d.Name());
         p.id = d.Id();
+
+        std::wsmatch m;
+        if (std::regex_search(p.id, m, hex_id_pattern_))
+        {
+            // Ordinary MIDI ports
+            // Append hex digits extracted from the UWP MIDI ID string to the port name.
+            p.hex_id = utf16_to_utf8(m[1].str());
+
+            std::ostringstream ss;
+            ss << p.name
+                << " [ "
+                << p.hex_id
+                << " ]";
+            p.display_name = ss.str();
+        }
+        else
+        {
+            // Microsoft GS Wavetable Synth etc.
+            // Unable to extract hex digits from UWP MIDI ID string.
+            // Use the device name as the port name.
+            p.display_name = p.name;
+        }
 
         retval.push_back(p);
     }

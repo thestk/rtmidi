@@ -13,7 +13,7 @@
 #include "RtMidi.h"
 
 // Platform-dependent sleep routines.
-#if defined(WIN32)
+#if defined(_WIN32)
   #include <windows.h>
   #define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
 #else // Unix variants

@@ -65,6 +65,8 @@ enum RtMidiApi {
     RTMIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
     RTMIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
     RTMIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
+    RTMIDI_API_WEB_MIDI_API,   /*!< W3C Web MIDI API. */
+    RTMIDI_API_WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
     RTMIDI_API_NUM             /*!< Number of values in this enum. */
 };
 

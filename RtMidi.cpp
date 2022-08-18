@@ -381,8 +381,9 @@ const char* rtmidi_api_names[][2] = {
   { "alsa"        , "ALSA" },
   { "jack"        , "Jack" },
   { "winmm"       , "Windows MultiMedia" },
-  { "web"         , "Web MIDI API" },
   { "dummy"       , "Dummy" },
+  { "web"         , "Web MIDI API" },
+  { "winuwp"      , "Windows UWP" },
 };
 const unsigned int rtmidi_num_api_names =
   sizeof(rtmidi_api_names)/sizeof(rtmidi_api_names[0]);

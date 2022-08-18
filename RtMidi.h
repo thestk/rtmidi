@@ -144,6 +144,7 @@ class RTMIDI_DLL_PUBLIC RtMidi
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
     RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
     WEB_MIDI_API,   /*!< W3C Web MIDI API. */
+    WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
     NUM_APIS        /*!< Number of values in this enum. */
   };
 

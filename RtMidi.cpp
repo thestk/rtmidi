@@ -3148,6 +3148,8 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 
 #if defined(__WINDOWS_UWP__)
 
+#include <string_view>
+
 #include <windows.h>
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>
@@ -3169,7 +3171,7 @@ public:
     // Structure to store MIDI port name and ID
     struct port
     {
-        std::wstring name;
+        std::string name;
         std::wstring id;
     };
 
@@ -3190,8 +3192,14 @@ public:
         return ports_.size();
     }
 
+    std::string get_port_name(size_t n)
+    {
+        return ports_[n].name;
+    }
+
 private:
     std::vector<port> list_ports(winrt::hstring device_selector);
+    std::string utf16_to_utf8(const std::wstring_view wstr);
 
     // List of MIDI ports
     std::vector<port> ports_;
@@ -3206,12 +3214,21 @@ std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_s
     for (const auto& d : devs)
     {
         port p;
-        p.name = d.Name();
+        p.name = utf16_to_utf8(d.Name());
         p.id = d.Id();
 
         retval.push_back(p);
     }
     return retval;
+}
+
+std::string UWPMidiClass::utf16_to_utf8(const std::wstring_view wstr)
+{
+    auto len{ WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr, nullptr) };
+    std::string u8str(len, '\0');
+    if (len)
+        WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), u8str.data(), len, nullptr, nullptr);
+    return u8str;
 }
 
 //*********************************************************************//
@@ -3299,7 +3316,7 @@ std::string MidiInWinUWP::getPortName(unsigned int portNumber)
         return "";
     }
 
-    return "";
+    return data->get_port_name(portNumber);
 }
 
 //*********************************************************************//
@@ -3359,7 +3376,7 @@ std::string MidiOutWinUWP::getPortName(unsigned int portNumber)
         return "";
     }
 
-    return "";
+    return data->get_port_name(portNumber);
 }
 
 void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)

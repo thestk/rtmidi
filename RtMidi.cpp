@@ -3148,6 +3148,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 
 #if defined(__WINDOWS_UWP__)
 
+#include <algorithm>
 #include <regex>
 #include <string_view>
 
@@ -3182,6 +3183,7 @@ public:
     void in_init()
     {
         ports_ = list_ports(MidiInPort::GetDeviceSelector());
+        sort_display_name(ports_);
     }
 
     // Initialize for MIDI OUT
@@ -3189,6 +3191,7 @@ public:
     {
         ports_ = list_ports(MidiOutPort::GetDeviceSelector());
         fix_display_name(list_ports(MidiInPort::GetDeviceSelector()), ports_);
+        sort_display_name(ports_);
     }
 
     size_t get_num_ports()
@@ -3205,6 +3208,7 @@ private:
     std::vector<port> list_ports(winrt::hstring device_selector);
     void fix_display_name(const std::vector<port>& in_ports,
         std::vector<port>& out_ports);
+    void sort_display_name(std::vector<port>& ports);
     std::string utf16_to_utf8(const std::wstring_view wstr);
 
     // List of MIDI ports
@@ -3274,6 +3278,15 @@ void UWPMidiClass::fix_display_name(const std::vector<port>& in_ports,
             }
         }
     }
+}
+
+void UWPMidiClass::sort_display_name(std::vector<port>& ports)
+{
+    std::sort(ports.begin(), ports.end(),
+        [](const auto& lhs, const auto& rhs)
+    {
+        return lhs.display_name < rhs.display_name;
+    });
 }
 
 std::string UWPMidiClass::utf16_to_utf8(const std::wstring_view wstr)

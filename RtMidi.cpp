@@ -80,7 +80,7 @@
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WINDOWS_UWP__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -257,6 +257,47 @@ class MidiOutWinMM: public MidiOutApi
 
 #endif
 
+#if defined(__WINDOWS_UWP__)
+
+class MidiInWinUWP : public MidiInApi
+{
+public:
+    MidiInWinUWP(const std::string& clientName, unsigned int queueSizeLimit);
+    ~MidiInWinUWP(void);
+    RtMidi::Api getCurrentApi(void) { return RtMidi::WINDOWS_UWP; };
+    void openPort(unsigned int portNumber, const std::string& portName);
+    void openVirtualPort(const std::string& portName);
+    void closePort(void);
+    void setClientName(const std::string& clientName);
+    void setPortName(const std::string& portName);
+    unsigned int getPortCount(void);
+    std::string getPortName(unsigned int portNumber);
+
+protected:
+    void initialize(const std::string& clientName);
+};
+
+class MidiOutWinUWP : public MidiOutApi
+{
+public:
+    MidiOutWinUWP(const std::string& clientName);
+    ~MidiOutWinUWP(void);
+    RtMidi::Api getCurrentApi(void) { return RtMidi::WINDOWS_UWP; };
+    void openPort(unsigned int portNumber, const std::string& portName);
+    void openVirtualPort(const std::string& portName);
+    void closePort(void);
+    void setClientName(const std::string& clientName);
+    void setPortName(const std::string& portName);
+    unsigned int getPortCount(void);
+    std::string getPortName(unsigned int portNumber);
+    void sendMessage(const unsigned char* message, size_t size);
+
+protected:
+    void initialize(const std::string& clientName);
+};
+
+#endif
+
 #if defined(__WEB_MIDI_API__)
 
 class MidiInWeb : public MidiInApi
@@ -403,6 +444,9 @@ extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #if defined(__WINDOWS_MM__)
   RtMidi::WINDOWS_MM,
 #endif
+#if defined(__WINDOWS_UWP__)
+  RtMidi::WINDOWS_UWP,
+#endif
 #if defined(__WEB_MIDI_API__)
   RtMidi::WEB_MIDI_API,
 #endif
@@ -484,6 +528,10 @@ void RtMidiIn :: openMidiApi( RtMidi::Api api, const std::string &clientName, un
   if ( api == WINDOWS_MM )
     rtapi_ = new MidiInWinMM( clientName, queueSizeLimit );
 #endif
+#if defined(__WINDOWS_UWP__)
+  if (api == WINDOWS_UWP)
+      rtapi_ = new MidiInWinUWP(clientName, queueSizeLimit);
+#endif
 #if defined(__MACOSX_CORE__)
   if ( api == MACOSX_CORE )
     rtapi_ = new MidiInCore( clientName, queueSizeLimit );
@@ -555,6 +603,10 @@ void RtMidiOut :: openMidiApi( RtMidi::Api api, const std::string &clientName )
 #if defined(__WINDOWS_MM__)
   if ( api == WINDOWS_MM )
     rtapi_ = new MidiOutWinMM( clientName );
+#endif
+#if defined(__WINDOWS_UWP__)
+  if (api == WINDOWS_UWP)
+      rtapi_ = new MidiOutWinUWP(clientName);
 #endif
 #if defined(__MACOSX_CORE__)
   if ( api == MACOSX_CORE )
@@ -3079,6 +3131,157 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 }
 
 #endif  // __WINDOWS_MM__
+
+
+//*********************************************************************//
+//  API: Universal Windows Platform (UWP)
+//*********************************************************************//
+
+// C++/WinRT
+//   https://github.com/microsoft/cppwinrt
+//
+// UWP MIDI API
+//   https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/midi
+//
+// Example implementation using UWP MIDI in C++/WinRT
+//   https://github.com/trueroad/uwp_midiio
+
+#if defined(__WINDOWS_UWP__)
+
+#include <windows.h>
+#include <winrt/base.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Devices.Enumeration.h>
+#include <winrt/Windows.Devices.Midi.h>
+#include <winrt/Windows.Storage.Streams.h>
+
+using namespace winrt;
+using namespace Windows::Foundation;
+using namespace Windows::Devices::Enumeration;
+using namespace Windows::Devices::Midi;
+using namespace Windows::Storage::Streams;
+
+//*********************************************************************//
+//  API: Windows UWP
+//  Class Definitions: MidiInWinUWP
+//*********************************************************************//
+
+MidiInWinUWP::MidiInWinUWP(const std::string& clientName, unsigned int queueSizeLimit)
+    : MidiInApi(queueSizeLimit)
+{
+    MidiInWinUWP::initialize(clientName);
+}
+
+MidiInWinUWP :: ~MidiInWinUWP()
+{
+    // Close a connection if it exists.
+    MidiInWinUWP::closePort();
+}
+
+void MidiInWinUWP::initialize(const std::string& /*clientName*/)
+{
+}
+
+void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
+{
+}
+
+void MidiInWinUWP::openVirtualPort(const std::string&/*portName*/)
+{
+    // This function cannot be implemented for the Windows UWP MIDI API.
+    errorString_ = "MidiInWinUWP::openVirtualPort: cannot be implemented in Windows UWP MIDI API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiInWinUWP::closePort(void)
+{
+}
+
+void MidiInWinUWP::setClientName(const std::string&)
+{
+    errorString_ = "MidiInWinUWP::setClientName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiInWinUWP::setPortName(const std::string&)
+{
+    errorString_ = "MidiInWinUWP::setPortName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+unsigned int MidiInWinUWP::getPortCount()
+{
+    return 0;
+}
+
+std::string MidiInWinUWP::getPortName(unsigned int portNumber)
+{
+    return "";
+}
+
+//*********************************************************************//
+//  API: Windows UWP
+//  Class Definitions: MidiOutWinUWP
+//*********************************************************************//
+
+MidiOutWinUWP::MidiOutWinUWP(const std::string& clientName) : MidiOutApi()
+{
+    MidiOutWinUWP::initialize(clientName);
+}
+
+MidiOutWinUWP :: ~MidiOutWinUWP()
+{
+    // Close a connection if it exists.
+    MidiOutWinUWP::closePort();
+}
+
+void MidiOutWinUWP::initialize(const std::string& /*clientName*/)
+{
+}
+
+unsigned int MidiOutWinUWP::getPortCount()
+{
+    return 0;
+}
+
+std::string MidiOutWinUWP::getPortName(unsigned int portNumber)
+{
+    return "";
+}
+
+void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
+{
+}
+
+void MidiOutWinUWP::closePort(void)
+{
+}
+
+void MidiOutWinUWP::setClientName(const std::string&)
+{
+    errorString_ = "MidiOutWinUWP::setClientName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiOutWinUWP::setPortName(const std::string&)
+{
+    errorString_ = "MidiOutWinUWP::setPortName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiOutWinUWP::openVirtualPort(const std::string&/*portName*/)
+{
+    // This function cannot be implemented for the Windows UWP MIDI API.
+    errorString_ = "MidiOutWinUWP::openVirtualPort: cannot be implemented in Windows UWP MIDI API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiOutWinUWP::sendMessage(const unsigned char* message, size_t size)
+{
+}
+
+#endif  // __WINDOWS_UWP__
 
 
 //*********************************************************************//

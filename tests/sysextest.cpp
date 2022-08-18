@@ -31,6 +31,8 @@ void usage( void ) {
 // It returns false if there are no ports available.
 bool chooseMidiPort( RtMidi *rtmidi );
 
+RtMidi::Api chooseMidiApi();
+
 void mycallback( double deltatime, std::vector< unsigned char > *message, void * /*userData*/ )
 {
   unsigned int nBytes = message->size();
@@ -53,8 +55,9 @@ int main( int argc, char *argv[] )
 
   // RtMidiOut and RtMidiIn constructors
   try {
-    midiout = new RtMidiOut();
-    midiin = new RtMidiIn();
+    RtMidi::Api api = chooseMidiApi();
+    midiout = new RtMidiOut( api );
+    midiin = new RtMidiIn( api );
   }
   catch ( RtMidiError &error ) {
     error.printMessage();
@@ -149,4 +152,26 @@ bool chooseMidiPort( RtMidi *rtmidi )
   rtmidi->openPort( i );
 
   return true;
+}
+
+RtMidi::Api chooseMidiApi()
+{
+  std::vector< RtMidi::Api > apis;
+  RtMidi::getCompiledApi(apis);
+
+  if (apis.size() <= 1)
+    return RtMidi::Api::UNSPECIFIED;
+
+  std::cout << "\nAPIs\n  API #0: unspecified / default\n";
+  for (size_t n = 0; n < apis.size(); n++)
+    std::cout << "  API #" << apis[n] << ": " << RtMidi::getApiDisplayName(apis[n]) << "\n";
+
+  std::cout << "\nChoose an API number: ";
+  unsigned int i;
+  std::cin >> i;
+
+  std::string dummy;
+  std::getline(std::cin, dummy);  // used to clear out stdin
+
+  return static_cast<RtMidi::Api>(i);
 }

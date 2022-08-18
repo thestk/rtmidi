@@ -3162,6 +3162,21 @@ using namespace Windows::Devices::Enumeration;
 using namespace Windows::Devices::Midi;
 using namespace Windows::Storage::Streams;
 
+// Class for handling UWP MIDI
+class UWPMidiClass
+{
+public:
+    // Initialize for MIDI IN
+    void in_init()
+    {
+    }
+
+    // Initialize for MIDI OUT
+    void out_init()
+    {
+    }
+};
+
 //*********************************************************************//
 //  API: Windows UWP
 //  Class Definitions: MidiInWinUWP
@@ -3177,10 +3192,18 @@ MidiInWinUWP :: ~MidiInWinUWP()
 {
     // Close a connection if it exists.
     MidiInWinUWP::closePort();
+
+    // Cleanup.
+    UWPMidiClass *data = static_cast<UWPMidiClass*> (apiData_);
+    delete data;
 }
 
 void MidiInWinUWP::initialize(const std::string& /*clientName*/)
 {
+    // Save our api-specific connection information.
+    UWPMidiClass* data{ new UWPMidiClass };
+    data->in_init();
+    apiData_ = static_cast<void*>(data);
 }
 
 void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
@@ -3234,10 +3257,18 @@ MidiOutWinUWP :: ~MidiOutWinUWP()
 {
     // Close a connection if it exists.
     MidiOutWinUWP::closePort();
+
+    // Cleanup.
+    UWPMidiClass* data = static_cast<UWPMidiClass*> (apiData_);
+    delete data;
 }
 
 void MidiOutWinUWP::initialize(const std::string& /*clientName*/)
 {
+    // Save our api-specific connection information.
+    UWPMidiClass* data{ new UWPMidiClass };
+    data->out_init();
+    apiData_ = static_cast<void*>(data);
 }
 
 unsigned int MidiOutWinUWP::getPortCount()

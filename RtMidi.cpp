@@ -3149,6 +3149,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 #if defined(__WINDOWS_UWP__)
 
 #include <algorithm>
+#include <chrono>
 #include <regex>
 #include <string_view>
 
@@ -3196,6 +3197,7 @@ public:
 
     ~UWPMidiClass()
     {
+        close();
     }
 
     // Initialize for MIDI IN
@@ -3237,6 +3239,10 @@ public:
         return ports_[n].display_name;
     }
 
+    bool in_open(size_t port_number);
+    bool out_open(size_t port_number);
+    void close();
+
     // Raise RtMidi error for hresult error
     void raise_hresult_error(std::string_view message, hresult_error const& ex)
     {
@@ -3254,11 +3260,18 @@ private:
     void sort_display_name(std::vector<port>& ports);
     std::string utf16_to_utf8(const std::wstring_view wstr);
 
+    template<class MidiPort_T, class IMidiPort_T>
+    IMidiPort_T open(size_t port_number);
+
     // MidiApi class
     MidiApi& midi_api_;
 
     // List of MIDI ports
     std::vector<port> ports_;
+    // MIDI IN port
+    MidiInPort in_port_{ nullptr };
+    // MIDI OUT port
+    IMidiOutPort out_port_{ nullptr };
 
     // C++/WinRT initializer
     static UWPMidiInit uwp_midi_init_;
@@ -3347,6 +3360,69 @@ std::string UWPMidiClass::utf16_to_utf8(const std::wstring_view wstr)
     if (len)
         WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), u8str.data(), len, nullptr, nullptr);
     return u8str;
+}
+
+// Open MIDI IN/OUT port
+template<class MidiPort_T, class IMidiPort_T>
+IMidiPort_T UWPMidiClass::open(size_t port_number)
+{
+    try
+    {
+        auto async{ MidiPort_T::FromIdAsync(ports_[port_number].id) };
+        // Timeout 3 seconds
+        if (async.wait_for(std::chrono::seconds(3)) == AsyncStatus::Completed)
+            return async.GetResults();
+    }
+    catch (hresult_error const& ex)
+    {
+        raise_hresult_error("UWPMidiClass::open: ", ex);
+    }
+    return nullptr;
+}
+
+// Open MIDI IN port
+bool UWPMidiClass::in_open(size_t port_number)
+{
+    if (in_port_)
+        in_port_.Close();
+
+    in_port_ = open<MidiInPort, MidiInPort>(port_number);
+    if (!in_port_)
+        return false;
+
+    // TODO: Regists MessageReceived event handler
+
+    return true;
+}
+
+// Open MIDI Out port
+bool UWPMidiClass::out_open(size_t port_number)
+{
+    if (out_port_)
+        out_port_.Close();
+
+    out_port_ = open<MidiOutPort, IMidiOutPort>(port_number);
+    if (!out_port_)
+        return false;
+
+    return true;
+}
+
+// Close MIDI IN/OUT port
+void UWPMidiClass::close()
+{
+    if (in_port_)
+    {
+        // TODO: Unregists MessageReceived event handler
+
+        in_port_.Close();
+        in_port_ = nullptr;
+    }
+    if (out_port_)
+    {
+        out_port_.Close();
+        out_port_ = nullptr;
+    }
 }
 
 //*********************************************************************//

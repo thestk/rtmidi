@@ -3166,6 +3166,16 @@ using namespace Windows::Devices::Enumeration;
 using namespace Windows::Devices::Midi;
 using namespace Windows::Storage::Streams;
 
+// Class for initializing C++/WinRT
+class UWPMidiInit
+{
+public:
+    UWPMidiInit()
+    {
+        winrt::init_apartment();
+    }
+};
+
 // Class for handling UWP MIDI
 class UWPMidiClass
 {
@@ -3213,10 +3223,15 @@ private:
 
     // List of MIDI ports
     std::vector<port> ports_;
+
+    // C++/WinRT initializer
+    static UWPMidiInit uwp_midi_init_;
     // Regex pattern to extract 8 hex digits from UWP MIDI ID string
     static const std::wregex hex_id_pattern_;
 };
 
+// C++/WinRT initializer
+UWPMidiInit UWPMidiClass::uwp_midi_init_;
 // Regex pattern to extract 8 hex digits from UWP MIDI ID string
 const std::wregex UWPMidiClass::hex_id_pattern_{ std::wregex(L"#MIDII_([0-9A-F]{8})\\..+#") };
 

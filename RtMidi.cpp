@@ -3189,18 +3189,41 @@ public:
         std::string display_name;
     };
 
+    UWPMidiClass(MidiApi& midi_api) :
+        midi_api_(midi_api)
+    {
+    }
+
+    ~UWPMidiClass()
+    {
+    }
+
     // Initialize for MIDI IN
     void in_init()
     {
-        ports_ = list_ports(MidiInPort::GetDeviceSelector());
+        try
+        {
+            ports_ = list_ports(MidiInPort::GetDeviceSelector());
+        }
+        catch (hresult_error const& ex)
+        {
+            raise_hresult_error("UWPMidiClass::in_init: ", ex);
+        }
         sort_display_name(ports_);
     }
 
     // Initialize for MIDI OUT
     void out_init()
     {
-        ports_ = list_ports(MidiOutPort::GetDeviceSelector());
-        fix_display_name(list_ports(MidiInPort::GetDeviceSelector()), ports_);
+        try
+        {
+            ports_ = list_ports(MidiOutPort::GetDeviceSelector());
+            fix_display_name(list_ports(MidiInPort::GetDeviceSelector()), ports_);
+        }
+        catch (hresult_error const& ex)
+        {
+            raise_hresult_error("UWPMidiClass::out_init: ", ex);
+        }
         sort_display_name(ports_);
     }
 
@@ -3214,12 +3237,25 @@ public:
         return ports_[n].display_name;
     }
 
+    // Raise RtMidi error for hresult error
+    void raise_hresult_error(std::string_view message, hresult_error const& ex)
+    {
+        std::ostringstream ss;
+        ss << message << "exception HRESULT 0x" << std::hex << ex.code() << ", "
+            << utf16_to_utf8(static_cast<std::wstring_view>(ex.message()))
+            << "\n";
+        midi_api_.error(RtMidiError::DRIVER_ERROR, ss.str());
+    }
+
 private:
     std::vector<port> list_ports(winrt::hstring device_selector);
     void fix_display_name(const std::vector<port>& in_ports,
         std::vector<port>& out_ports);
     void sort_display_name(std::vector<port>& ports);
     std::string utf16_to_utf8(const std::wstring_view wstr);
+
+    // MidiApi class
+    MidiApi& midi_api_;
 
     // List of MIDI ports
     std::vector<port> ports_;
@@ -3337,7 +3373,7 @@ MidiInWinUWP :: ~MidiInWinUWP()
 void MidiInWinUWP::initialize(const std::string& /*clientName*/)
 {
     // Save our api-specific connection information.
-    UWPMidiClass* data{ new UWPMidiClass };
+    UWPMidiClass* data{ new UWPMidiClass(*this) };
     data->in_init();
     apiData_ = static_cast<void*>(data);
 
@@ -3424,7 +3460,7 @@ MidiOutWinUWP :: ~MidiOutWinUWP()
 void MidiOutWinUWP::initialize(const std::string& /*clientName*/)
 {
     // Save our api-specific connection information.
-    UWPMidiClass* data{ new UWPMidiClass };
+    UWPMidiClass* data{ new UWPMidiClass(*this) };
     data->out_init();
     apiData_ = static_cast<void*>(data);
 

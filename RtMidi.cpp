@@ -3700,6 +3700,22 @@ void MidiOutWinUWP::openVirtualPort(const std::string&/*portName*/)
 
 void MidiOutWinUWP::sendMessage(const unsigned char* message, size_t size)
 {
+    if (!connected_)
+        return;
+
+    if (size == 0)
+    {
+        errorString_ = "MidiOutWinUWP::sendMessage: message argument is empty!";
+        error(RtMidiError::WARNING, errorString_);
+        return;
+    }
+
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    if (!data->send_buffer(message, size))
+    {
+        errorString_ = "MidiOutWinUWP::sendMessage: error sending message.";
+        error(RtMidiError::DRIVER_ERROR, errorString_);
+    }
 }
 
 #endif  // __WINDOWS_UWP__

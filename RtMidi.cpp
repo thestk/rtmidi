@@ -3160,12 +3160,14 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Devices.Midi.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Security.Cryptography.h>
 
 using namespace winrt;
 using namespace Windows::Foundation;
 using namespace Windows::Devices::Enumeration;
 using namespace Windows::Devices::Midi;
 using namespace Windows::Storage::Streams;
+using namespace Windows::Security::Cryptography;
 
 // Class for initializing C++/WinRT
 class UWPMidiInit
@@ -3242,6 +3244,8 @@ public:
     bool in_open(size_t port_number);
     bool out_open(size_t port_number);
     void close();
+
+    bool send_buffer(const unsigned char* buff, size_t len);
 
     // Raise RtMidi error for hresult error
     void raise_hresult_error(std::string_view message, hresult_error const& ex)
@@ -3423,6 +3427,24 @@ void UWPMidiClass::close()
         out_port_.Close();
         out_port_ = nullptr;
     }
+}
+
+// Send MIDI message
+bool UWPMidiClass::send_buffer(const unsigned char* buff, size_t len)
+{
+    if (!out_port_)
+        return false;
+
+    try
+    {
+        out_port_.SendBuffer(CryptographicBuffer::CreateFromByteArray(array_view(buff, buff + len)));
+    }
+    catch (hresult_error const& ex)
+    {
+        raise_hresult_error("UWPMidiClass::send_buffer: ", ex);
+    }
+
+    return true;
 }
 
 //*********************************************************************//

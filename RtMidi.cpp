@@ -3245,6 +3245,7 @@ public:
     bool out_open(size_t port_number);
     void close();
 
+    void midi_in_callback(const MidiInPort&, const MidiMessageReceivedEventArgs& e);
     bool send_buffer(const unsigned char* buff, size_t len);
 
     // Raise RtMidi error for hresult error
@@ -3276,6 +3277,8 @@ private:
     MidiInPort in_port_{ nullptr };
     // MIDI OUT port
     IMidiOutPort out_port_{ nullptr };
+    // Backup initial MessageReceived event token
+    winrt::event_token before_token_;
 
     // C++/WinRT initializer
     static UWPMidiInit uwp_midi_init_;
@@ -3394,7 +3397,14 @@ bool UWPMidiClass::in_open(size_t port_number)
     if (!in_port_)
         return false;
 
-    // TODO: Regists MessageReceived event handler
+    try
+    {
+        before_token_ = in_port_.MessageReceived({ this, &UWPMidiClass::midi_in_callback });
+    }
+    catch (hresult_error const& ex)
+    {
+        raise_hresult_error("UWPMidiClass::in_open: ", ex);
+    }
 
     return true;
 }
@@ -3417,7 +3427,8 @@ void UWPMidiClass::close()
 {
     if (in_port_)
     {
-        // TODO: Unregists MessageReceived event handler
+        if (before_token_)
+            in_port_.MessageReceived(before_token_);
 
         in_port_.Close();
         in_port_ = nullptr;
@@ -3427,6 +3438,11 @@ void UWPMidiClass::close()
         out_port_.Close();
         out_port_ = nullptr;
     }
+}
+
+// MessageReceived event handler
+void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceivedEventArgs& e)
+{
 }
 
 // Send MIDI message

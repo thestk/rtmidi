@@ -3465,6 +3465,38 @@ void MidiInWinUWP::initialize(const std::string& /*clientName*/)
 
 void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
 {
+    if (connected_)
+    {
+        errorString_ = "MidiInWinUWP::openPort: a valid connection already exists!";
+        error(RtMidiError::WARNING, errorString_);
+        return;
+    }
+
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    if (data->get_num_ports() == 0)
+    {
+        errorString_ = "MidiInWinUWP::openPort: no MIDI input sources found!";
+        error(RtMidiError::NO_DEVICES_FOUND, errorString_);
+        return;
+    }
+
+    if (portNumber >= data->get_num_ports())
+    {
+        std::ostringstream ost;
+        ost << "MidiInWinUWP::openPort: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::INVALID_PARAMETER, errorString_);
+        return;
+    }
+
+    if (!data->in_open(portNumber))
+    {
+        errorString_ = "MidiInWinUWP::openPort: error creating Windows UWP MIDI input port.";
+        error(RtMidiError::DRIVER_ERROR, errorString_);
+        return;
+    }
+
+    connected_ = true;
 }
 
 void MidiInWinUWP::openVirtualPort(const std::string&/*portName*/)
@@ -3476,6 +3508,12 @@ void MidiInWinUWP::openVirtualPort(const std::string&/*portName*/)
 
 void MidiInWinUWP::closePort(void)
 {
+    if (connected_)
+    {
+        UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+        data->close();
+        connected_ = false;
+    }
 }
 
 void MidiInWinUWP::setClientName(const std::string&)
@@ -3575,10 +3613,48 @@ std::string MidiOutWinUWP::getPortName(unsigned int portNumber)
 
 void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
 {
+    if (connected_)
+    {
+        errorString_ = "MidiOutWinUWP::openPort: a valid connection already exists!";
+        error(RtMidiError::WARNING, errorString_);
+        return;
+    }
+
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    if (data->get_num_ports() == 0)
+    {
+        errorString_ = "MidiOutWinUWP::openPort: no MIDI output destinations found!";
+        error(RtMidiError::NO_DEVICES_FOUND, errorString_);
+        return;
+    }
+
+    if (portNumber >= data->get_num_ports())
+    {
+        std::ostringstream ost;
+        ost << "MidiOutWinUWP::openPort: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::INVALID_PARAMETER, errorString_);
+        return;
+    }
+
+    if (!data->out_open(portNumber))
+    {
+        errorString_ = "MidiOutWinUWP::openPort: error creating Windows UWP MIDI output port.";
+        error(RtMidiError::DRIVER_ERROR, errorString_);
+        return;
+    }
+
+    connected_ = true;
 }
 
 void MidiOutWinUWP::closePort(void)
 {
+    if (connected_)
+    {
+        UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+        data->close();
+        connected_ = false;
+    }
 }
 
 void MidiOutWinUWP::setClientName(const std::string&)

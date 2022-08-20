@@ -272,6 +272,7 @@ public:
     void setPortName(const std::string& portName);
     unsigned int getPortCount(void);
     std::string getPortName(unsigned int portNumber);
+    double getMessage(std::vector<unsigned char>* message);
 
 protected:
     void initialize(const std::string& clientName);
@@ -3152,6 +3153,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 #include <chrono>
 #include <regex>
 #include <string_view>
+#include <mutex>
 
 #include <windows.h>
 #include <winrt/base.h>
@@ -3259,6 +3261,9 @@ public:
             << "\n";
         midi_api_.error(RtMidiError::DRIVER_ERROR, ss.str());
     }
+
+    // Mutex for MIDI IN message queue access
+    std::mutex mtx_queue_;
 
 private:
     std::vector<port> list_ports(winrt::hstring device_selector);
@@ -3493,6 +3498,8 @@ void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceived
     }
     else
     {
+        std::lock_guard<std::mutex> lock(mtx_queue_);
+
         if (!input_data_->queue.push(message))
         {
             std::cerr << "\nMidiInWinUWP: message queue limit reached!!\n\n";
@@ -3642,6 +3649,14 @@ std::string MidiInWinUWP::getPortName(unsigned int portNumber)
     }
 
     return data->get_port_name(portNumber);
+}
+
+double MidiInWinUWP::getMessage(std::vector<unsigned char>* message)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_queue_);
+
+    return MidiInApi::getMessage(message);
 }
 
 //*********************************************************************//

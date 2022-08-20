@@ -3262,6 +3262,8 @@ public:
         midi_api_.error(RtMidiError::DRIVER_ERROR, ss.str());
     }
 
+    // Mutex for MIDI port open/close
+    std::mutex mtx_open_close_;
     // Mutex for MIDI IN message queue access
     std::mutex mtx_queue_;
 
@@ -3565,6 +3567,9 @@ void MidiInWinUWP::initialize(const std::string& /*clientName*/)
 
 void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
 {
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
     if (connected_)
     {
         errorString_ = "MidiInWinUWP::openPort: a valid connection already exists!";
@@ -3572,7 +3577,6 @@ void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portNam
         return;
     }
 
-    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
     if (data->get_num_ports() == 0)
     {
         errorString_ = "MidiInWinUWP::openPort: no MIDI input sources found!";
@@ -3608,9 +3612,11 @@ void MidiInWinUWP::openVirtualPort(const std::string&/*portName*/)
 
 void MidiInWinUWP::closePort(void)
 {
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
     if (connected_)
     {
-        UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
         data->close();
         connected_ = false;
     }
@@ -3721,6 +3727,9 @@ std::string MidiOutWinUWP::getPortName(unsigned int portNumber)
 
 void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
 {
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
     if (connected_)
     {
         errorString_ = "MidiOutWinUWP::openPort: a valid connection already exists!";
@@ -3728,7 +3737,6 @@ void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portNa
         return;
     }
 
-    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
     if (data->get_num_ports() == 0)
     {
         errorString_ = "MidiOutWinUWP::openPort: no MIDI output destinations found!";
@@ -3757,9 +3765,11 @@ void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portNa
 
 void MidiOutWinUWP::closePort(void)
 {
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
     if (connected_)
     {
-        UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
         data->close();
         connected_ = false;
     }

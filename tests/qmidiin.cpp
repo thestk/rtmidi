@@ -58,7 +58,7 @@ int main( int argc, char *argv[] )
   // Check available ports vs. specified.
   unsigned int port = 0;
   unsigned int nPorts = midiin->getPortCount();
-  if ( argc == 2 ) port = (unsigned int) atoi( argv[1] );
+  if ( argc >= 2 ) port = (unsigned int) atoi( argv[1] );
   if ( port >= nPorts ) {
     delete midiin;
     std::cout << "Invalid port specifier!\n";
@@ -81,7 +81,7 @@ int main( int argc, char *argv[] )
   (void) signal(SIGINT, finish);
 
   // Periodically check input queue.
-  std::cout << "Reading MIDI from API " << midiin->getApiDisplayName(midiin->getCurrentApi()) << ", port " << midiin->getPortName() << " ... quit with Ctrl-C.\n";
+  std::cout << "Reading MIDI from API " << midiin->getApiDisplayName(midiin->getCurrentApi()) << ", port " << midiin->getPortName(port) << " ... quit with Ctrl-C.\n";
   while ( !done ) {
     stamp = midiin->getMessage( &message );
     nBytes = message.size();

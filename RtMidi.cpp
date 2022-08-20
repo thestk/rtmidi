@@ -3203,8 +3203,10 @@ public:
     }
 
     // Initialize for MIDI IN
-    void in_init()
+    void in_init(MidiInApi::RtMidiInData* input_data)
     {
+        input_data_ = input_data;
+
         try
         {
             ports_ = list_ports(MidiInPort::GetDeviceSelector());
@@ -3279,6 +3281,10 @@ private:
     IMidiOutPort out_port_{ nullptr };
     // Backup initial MessageReceived event token
     winrt::event_token before_token_;
+    // Input data
+    MidiInApi::RtMidiInData* input_data_{ nullptr };
+    // Last timestamp
+    std::chrono::nanoseconds last_time_{ 0 };
 
     // C++/WinRT initializer
     static UWPMidiInit uwp_midi_init_;
@@ -3443,6 +3449,55 @@ void UWPMidiClass::close()
 // MessageReceived event handler
 void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceivedEventArgs& e)
 {
+    const auto& m{ e.Message() };
+    if (!m)
+        return;
+
+    MidiInApi::MidiMessage message;
+    const std::chrono::nanoseconds duration{ m.Timestamp() };
+
+    // Calculate time stamp.
+    if (input_data_->firstMessage == true)
+    {
+        message.timeStamp = 0.0;
+        input_data_->firstMessage = false;
+        last_time_ = duration;
+    }
+    else
+    {
+        const std::chrono::duration<double> sec{ duration - last_time_ };
+        message.timeStamp = sec.count();
+    }
+
+    if (((input_data_->ignoreFlags & 0x01) &&
+            (m.Type() == MidiMessageType::SystemExclusive || m.Type() == MidiMessageType::EndSystemExclusive)) ||
+        ((input_data_->ignoreFlags & 0x02) &&
+            (m.Type() == MidiMessageType::MidiTimeCode || m.Type() == MidiMessageType::TimingClock)) ||
+        ((input_data_->ignoreFlags & 0x04) &&
+            m.Type() == MidiMessageType::ActiveSensing))
+    {
+        return;
+    }
+
+    const auto& raw_data{ m.RawData() };
+    const size_t len{ raw_data.Length() };
+
+    if (len)
+        message.bytes.assign(raw_data.data(), raw_data.data() + len);
+
+    last_time_ = duration;
+
+    if (input_data_->usingCallback)
+    {
+        (input_data_->userCallback)(message.timeStamp, &message.bytes, input_data_->userData);
+    }
+    else
+    {
+        if (!input_data_->queue.push(message))
+        {
+            std::cerr << "\nMidiInWinUWP: message queue limit reached!!\n\n";
+        }
+    }
 }
 
 // Send MIDI message
@@ -3488,7 +3543,7 @@ void MidiInWinUWP::initialize(const std::string& /*clientName*/)
 {
     // Save our api-specific connection information.
     UWPMidiClass* data{ new UWPMidiClass(*this) };
-    data->in_init();
+    data->in_init(&inputData_);
     apiData_ = static_cast<void*>(data);
 
     // We'll issue a warning here if no devices are available but not

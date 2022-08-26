@@ -263,38 +263,38 @@ class MidiInWinUWP : public MidiInApi
 {
 public:
     MidiInWinUWP(const std::string& clientName, unsigned int queueSizeLimit);
-    ~MidiInWinUWP(void);
-    RtMidi::Api getCurrentApi(void) { return RtMidi::WINDOWS_UWP; };
-    void openPort(unsigned int portNumber, const std::string& portName);
-    void openVirtualPort(const std::string& portName);
-    void closePort(void);
-    void setClientName(const std::string& clientName);
-    void setPortName(const std::string& portName);
-    unsigned int getPortCount(void);
-    std::string getPortName(unsigned int portNumber);
-    double getMessage(std::vector<unsigned char>* message);
+    ~MidiInWinUWP(void) override;
+    RtMidi::Api getCurrentApi(void) override { return RtMidi::WINDOWS_UWP; };
+    void openPort(unsigned int portNumber, const std::string& portName) override;
+    void openVirtualPort(const std::string& portName) override;
+    void closePort(void) override;
+    void setClientName(const std::string& clientName) override;
+    void setPortName(const std::string& portName) override;
+    unsigned int getPortCount(void) override;
+    std::string getPortName(unsigned int portNumber) override;
+    double getMessage(std::vector<unsigned char>* message) override;
 
 protected:
-    void initialize(const std::string& clientName);
+    void initialize(const std::string& clientName) override;
 };
 
 class MidiOutWinUWP : public MidiOutApi
 {
 public:
     MidiOutWinUWP(const std::string& clientName);
-    ~MidiOutWinUWP(void);
-    RtMidi::Api getCurrentApi(void) { return RtMidi::WINDOWS_UWP; };
-    void openPort(unsigned int portNumber, const std::string& portName);
-    void openVirtualPort(const std::string& portName);
-    void closePort(void);
-    void setClientName(const std::string& clientName);
-    void setPortName(const std::string& portName);
-    unsigned int getPortCount(void);
-    std::string getPortName(unsigned int portNumber);
-    void sendMessage(const unsigned char* message, size_t size);
+    ~MidiOutWinUWP(void) override;
+    RtMidi::Api getCurrentApi(void) override { return RtMidi::WINDOWS_UWP; };
+    void openPort(unsigned int portNumber, const std::string& portName) override;
+    void openVirtualPort(const std::string& portName) override;
+    void closePort(void) override;
+    void setClientName(const std::string& clientName) override;
+    void setPortName(const std::string& portName) override;
+    unsigned int getPortCount(void) override;
+    std::string getPortName(unsigned int portNumber) override;
+    void sendMessage(const unsigned char* message, size_t size) override;
 
 protected:
-    void initialize(const std::string& clientName);
+    void initialize(const std::string& clientName) override;
 };
 
 #endif

@@ -3291,7 +3291,7 @@ private:
     // Input data
     MidiInApi::RtMidiInData* input_data_{ nullptr };
     // Last timestamp
-    std::chrono::nanoseconds last_time_{ 0 };
+    std::chrono::duration<TimeSpan::rep, TimeSpan::period> last_time_{ 0 };
 
     // C++/WinRT initializer
     static UWPMidiInit uwp_midi_init_;
@@ -3461,7 +3461,7 @@ void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceived
         return;
 
     MidiInApi::MidiMessage message;
-    const std::chrono::nanoseconds duration{ m.Timestamp() };
+    const std::chrono::duration<TimeSpan::rep, TimeSpan::period> duration{ m.Timestamp() };
 
     // Calculate time stamp.
     if (input_data_->firstMessage == true)

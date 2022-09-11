@@ -74,6 +74,12 @@
 // flag can be defined (e.g. in your project file) to disable this behaviour.
 //#define RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
 
+// Default for Windows UWP is to enable a workaround to fix BLE-MIDI IN ports'
+// wrong timestamps that occur at least in Windows 10 21H2;
+// this flag can be defined (e.g. in your project file)
+// to disable this behavior.
+//#define RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+
 // **************************************************************** //
 //
 // MidiInApi and MidiOutApi subclass prototypes.
@@ -3297,12 +3303,34 @@ private:
     static UWPMidiInit uwp_midi_init_;
     // Regex pattern to extract 8 hex digits from UWP MIDI ID string
     static const std::wregex hex_id_pattern_;
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+    // QueryPerformanceFrequency
+    LONGLONG qpc_freq_{ 0 };
+    // Last QueryPerformanceCounter
+    LONGLONG before_qpc_;
+    // Weather overflow low occurred or not
+    bool b_overflow_low_{ false };
+
+    // BLE-MIDI timestamp periods
+    inline constexpr static std::chrono::duration<TimeSpan::rep, TimeSpan::period> ble_midi_period_low_{ std::chrono::milliseconds{128} };
+    inline constexpr static std::chrono::duration<TimeSpan::rep, TimeSpan::period> ble_midi_period_high_{ std::chrono::milliseconds{8192} };
+    // QPC threshold 4096 ms
+    inline constexpr static LONGLONG qpc_threshold_{ 4096 };
+
+    // Regex pattern to detect BLE-MIDI IN
+    static const std::wregex ble_midi_pattern_;
+#endif
 };
 
 // C++/WinRT initializer
 UWPMidiInit UWPMidiClass::uwp_midi_init_;
 // Regex pattern to extract 8 hex digits from UWP MIDI ID string
 const std::wregex UWPMidiClass::hex_id_pattern_{ std::wregex(L"#MIDII_([0-9A-F]{8})\\..+#") };
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+const std::wregex UWPMidiClass::ble_midi_pattern_{ std::wregex(L"#MIDII_[0-9A-F]{8}\\.BLE[0-9]{2}#") };
+#endif
 
 // Find and create a list of UWP MIDI ports
 std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_selector)
@@ -3410,6 +3438,17 @@ bool UWPMidiClass::in_open(size_t port_number)
     if (!in_port_)
         return false;
 
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+    std::wsmatch m;
+    if (std::regex_search(ports_[port_number].id, m, ble_midi_pattern_))
+    {
+        // BLE-MIDI IN port
+        LARGE_INTEGER li;
+        if (::QueryPerformanceFrequency(&li))
+            qpc_freq_ = li.QuadPart;
+    }
+#endif
+
     try
     {
         before_token_ = in_port_.MessageReceived({ this, &UWPMidiClass::midi_in_callback });
@@ -3456,6 +3495,15 @@ void UWPMidiClass::close()
 // MessageReceived event handler
 void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceivedEventArgs& e)
 {
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+    LARGE_INTEGER qpc;
+    if (qpc_freq_)
+    {
+        if (!::QueryPerformanceCounter(&qpc))
+            qpc_freq_ = 0;
+    }
+#endif
+
     const auto& m{ e.Message() };
     if (!m)
         return;
@@ -3469,10 +3517,46 @@ void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceived
         message.timeStamp = 0.0;
         input_data_->firstMessage = false;
         last_time_ = duration;
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+        if (qpc_freq_)
+            before_qpc_ = qpc.QuadPart;
+#endif
     }
     else
     {
-        const std::chrono::duration<double> sec{ duration - last_time_ };
+        auto delta{ duration - last_time_ };
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+        if (qpc_freq_)
+        {
+            if (b_overflow_low_)
+            {
+                if (delta >= ble_midi_period_low_)
+                {
+                    // Fix after overflow low
+                    // https://github.com/trueroad/BLE_MIDI_packet_data_set#page-7-overflow-both
+                    delta -= ble_midi_period_low_;
+                    b_overflow_low_ = false;
+                }
+            }
+            else
+            {
+                if ((ble_midi_period_high_ - ble_midi_period_low_) < delta && delta < ble_midi_period_high_ &&
+                    ((before_qpc_ - qpc.QuadPart) * 1000 / qpc_freq_) < qpc_threshold_)
+                {
+                    // Fix overflow low
+                    // https://github.com/trueroad/BLE_MIDI_packet_data_set#page-7-overflow-low
+                    delta = delta - ble_midi_period_high_ + ble_midi_period_low_;
+                    b_overflow_low_ = true;
+                }
+            }
+
+            before_qpc_ = qpc.QuadPart;
+        }
+#endif
+
+        const std::chrono::duration<double> sec{ delta };
         message.timeStamp = sec.count();
     }
 

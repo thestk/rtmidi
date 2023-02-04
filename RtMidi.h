@@ -58,7 +58,24 @@
   #endif
 #endif
 
-#define RTMIDI_VERSION "5.0.0"
+#define RTMIDI_VERSION_MAJOR 5
+#define RTMIDI_VERSION_MINOR 0
+#define RTMIDI_VERSION_PATCH 0
+#define RTMIDI_VERSION_BETA  0
+
+#define RTMIDI_TOSTRING2(n) #n
+#define RTMIDI_TOSTRING(n) RTMIDI_TOSTRING2(n)
+
+#if RTMIDI_VERSION_BETA > 0
+    #define RTMIDI_VERSION RTMIDI_TOSTRING(RTMIDI_VERSION_MAJOR) \
+                        "." RTMIDI_TOSTRING(RTMIDI_VERSION_MINOR) \
+                        "." RTMIDI_TOSTRING(RTMIDI_VERSION_PATCH) \
+                     "beta" RTMIDI_TOSTRING(RTMIDI_VERSION_BETA)
+#else
+    #define RTMIDI_VERSION RTMIDI_TOSTRING(RTMIDI_VERSION_MAJOR) \
+                        "." RTMIDI_TOSTRING(RTMIDI_VERSION_MINOR) \
+                        "." RTMIDI_TOSTRING(RTMIDI_VERSION_PATCH)
+#endif
 
 #include <exception>
 #include <iostream>

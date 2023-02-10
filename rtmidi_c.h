@@ -97,6 +97,11 @@ typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
 
 /* RtMidi API */
 
+/*! \brief Return the current RtMidi version.
+ *! See \ref RtMidi::getVersion().
+*/
+RTMIDIAPI const char* rtmidi_get_version();
+
 /*! \brief Determine the available compiled MIDI APIs.
  *
  * If the given `apis` parameter is null, returns the number of available APIs.

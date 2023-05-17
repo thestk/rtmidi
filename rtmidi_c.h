@@ -64,6 +64,7 @@ enum RtMidiApi {
     RTMIDI_API_LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     RTMIDI_API_UNIX_JACK,      /*!< The Jack Low-Latency MIDI Server API. */
     RTMIDI_API_WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
+    RTMIDI_API_ANDROID,        /*!< The Android MIDI API. */
     RTMIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
     RTMIDI_API_NUM             /*!< Number of values in this enum. */
 };

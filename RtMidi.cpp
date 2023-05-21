@@ -336,7 +336,6 @@ class MidiInAndroid : public MidiInApi
 
   void onMidiMessage( uint8_t* data, double domHishResTimeStamp );
 
- protected:
   void initialize( const std::string& clientName );
   void connect();
   AMidiDevice* receiveDevice = NULL;
@@ -344,7 +343,7 @@ class MidiInAndroid : public MidiInApi
   pthread_t readThread;
   std::atomic<bool> reading = ATOMIC_VAR_INIT(false);
   static void* pollMidi(void* context);
-  int64_t lastTime;
+  double lastTime;
 };
 
 class MidiOutAndroid: public MidiOutApi
@@ -362,7 +361,6 @@ class MidiOutAndroid: public MidiOutApi
   std::string getPortName( unsigned int portNumber );
   void sendMessage( const unsigned char *message, size_t size );
 
- protected:
   void initialize( const std::string& clientName );
   void connect();
   AMidiDevice* sendDevice = NULL;
@@ -444,9 +442,9 @@ const char* rtmidi_api_names[][2] = {
   { "alsa"        , "ALSA" },
   { "jack"        , "Jack" },
   { "winmm"       , "Windows MultiMedia" },
-  { "web"         , "Web MIDI API" },
   { "amidi"       , "Android MIDI API" },
   { "dummy"       , "Dummy" },
+  { "web"         , "Web MIDI API" },
 };
 const unsigned int rtmidi_num_api_names =
   sizeof(rtmidi_api_names)/sizeof(rtmidi_api_names[0]);
@@ -4022,6 +4020,8 @@ void MidiOutWeb::initialize( const std::string& clientName )
 
 #if defined(__AMIDI__)
 
+#include <cstdint>
+
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -4084,6 +4084,13 @@ static jobject androidGetContext(JNIEnv *env) {
   return context;
 }
 
+static jobject androidGetMidiManager(JNIEnv *env, jobject context) {
+  // MidiManager midiManager = (MidiManager) getSystemService(Context.MIDI_SERVICE);
+  auto contextClass = env->FindClass("android/content/Context");
+  auto getServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+  return env->CallObjectMethod(context, getServiceMethod, env->NewStringUTF("midi"));
+}
+
 static void androidRefreshMidiDevices(JNIEnv *env, jobject context, bool isOutput) {
   // Remove all midi devices
   for (jobject jMidiDevice : androidMidiDevices) {
@@ -4091,10 +4098,7 @@ static void androidRefreshMidiDevices(JNIEnv *env, jobject context, bool isOutpu
   }
   androidMidiDevices.clear();
 
-  // MidiManager midiManager = (MidiManager) getSystemService(Context.MIDI_SERVICE);
-  auto contextClass = env->FindClass("android/content/Context");
-  auto getServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-  auto midiService = env->CallObjectMethod(context, getServiceMethod, env->NewStringUTF("midi"));
+  auto midiService = androidGetMidiManager(env, context);
 
   // MidiDeviceInfo[] devInfos = mMidiManager.getDevices();
   auto midiMgrClass = env->FindClass("android/media/midi/MidiManager");
@@ -4116,21 +4120,48 @@ static void androidRefreshMidiDevices(JNIEnv *env, jobject context, bool isOutpu
   }
 }
 
-// Calls midiManager.openDevice() without a callback object. Unfortunately the callback
-// object can't be defined using JNI so this implementation assumes opening a device
-// always succeeds. Problem is there is no way to tell when the device is ready so subsequent
-// commands need to be retried
-static void androidOpenDevice(JNIEnv *env, jobject midiMgr, jobject deviceInfo) {
-  // openDevice(MidiDeviceInfo deviceInfo, OnDeviceOpenedListener listener, Handler handler)
-  auto midiMgrClass = env->FindClass("android/media/midi/MidiManager");
-  auto getDevicesMethod = env->GetMethodID(midiMgrClass, "openDevice", "(Landroid/media/midi/MidiDeviceInfo;Landroid/media/midi/MidiManager$OnDeviceOpenedListener;Landroid/os/Handler;)V");
 
-  auto handlerClass = env->FindClass("android/os/Handler");
-  auto handlerCtor = env->GetMethodID(handlerClass, "<init>", "()V");
-  auto handler = env->NewObject(handlerClass, handlerCtor);
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_yellowlab_rtmidi_MidiDeviceOpenedListener_midiDeviceOpened(JNIEnv *env, jclass clazz,
+                                                                    jobject midi_device, jlong targetPtr, jboolean isOutput) {
+  if (isOutput) {
+    auto midiOut = reinterpret_cast<MidiOutAndroid*>(targetPtr);
+    AMidiDevice_fromJava(env, midi_device, &midiOut->sendDevice);
+    AMidiInputPort_open(midiOut->sendDevice, 0, &midiOut->midiInputPort);
+  } else {
+    auto midiIn = reinterpret_cast<MidiInAndroid*>(targetPtr);
+    AMidiDevice_fromJava(env, midi_device, &midiIn->receiveDevice);
+    AMidiOutputPort_open(midiIn->receiveDevice, 0, &midiIn->midiOutputPort);
+    pthread_create(&midiIn->readThread, NULL, MidiInAndroid::pollMidi, midiIn);
+  }
+}
 
-  env->CallVoidMethod(midiMgr, getDevicesMethod, deviceInfo, nullptr, handler);
-  env->DeleteLocalRef(handler);
+static void androidOpenDevice(jobject deviceInfo, void* target, bool isOutput) {
+    auto env = androidGetThreadEnv();
+    auto context = androidGetContext(env);
+    auto midiMgr = androidGetMidiManager(env, context);
+
+    // openDevice(MidiDeviceInfo deviceInfo, OnDeviceOpenedListener listener, Handler handler)
+    auto midiMgrClass = env->GetObjectClass(midiMgr);
+    auto openDevicesMethod = env->GetMethodID(midiMgrClass, "openDevice", "(Landroid/media/midi/MidiDeviceInfo;Landroid/media/midi/MidiManager$OnDeviceOpenedListener;Landroid/os/Handler;)V");
+
+    auto handlerClass = env->FindClass("android/os/Handler");
+    auto handlerCtor = env->GetMethodID(handlerClass, "<init>", "()V");
+    auto handler = env->NewObject(handlerClass, handlerCtor);
+
+    auto listenerClass = env->FindClass("com/yellowlab/rtmidi/MidiDeviceOpenedListener");
+    if (!listenerClass) {
+      LOGE(LOG_TAG, "Midi listener class not found com.yellowlab.rtmidi.MidiDeviceOpenedListener. Did you forget to add it to your APK?");
+      return;
+    }
+
+    auto targetPtr = reinterpret_cast<jlong>(target);
+    auto listenerCtor = env->GetMethodID(listenerClass, "<init>", "(JZ)V");
+    auto listener = env->NewObject(listenerClass, listenerCtor, targetPtr, isOutput);
+
+    env->CallVoidMethod(midiMgr, openDevicesMethod, deviceInfo, listener, handler);
+    env->DeleteLocalRef(handler);
 }
 
 static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
@@ -4200,17 +4231,7 @@ void MidiInAndroid :: openPort(unsigned int portNumber, const std::string &portN
     return;
   }
 
-  auto env = androidGetThreadEnv();
-
-  AMidiDevice_fromJava(env, androidMidiDevices[portNumber], &receiveDevice);
-  // int32_t deviceType = AMidiDevice_getType(receiveDevice);
-  // ssize_t numPorts = AMidiDevice_getNumOutputPorts(receiveDevice);
-
-  AMidiOutputPort_open(receiveDevice, portNumber, &midiOutputPort);
-
-  // Start read thread
-  // pthread_init(true);
-  pthread_create(&readThread, NULL, MidiInAndroid::pollMidi, this);
+  androidOpenDevice(androidMidiDevices[portNumber], this, false);
 }
 
 void MidiInAndroid :: openVirtualPort(const std::string &portName) {
@@ -4256,6 +4277,8 @@ void* MidiInAndroid :: pollMidi(void* context) {
   while (self->reading) {
     // AMidiOutputPort_receive is non-blocking, must poll with some sleep
     usleep(2000);
+    auto ignoreFlags = self->inputData_.ignoreFlags;
+    bool& continueSysex = self->inputData_.continueSysex;
 
     int32_t opcode;
     size_t numBytesReceived;
@@ -4268,21 +4291,44 @@ void* MidiInAndroid :: pollMidi(void* context) {
       self->errorString_ = "MidiInAndroid::pollMidi: error receiving MIDI data";
       self->error( RtMidiError::SYSTEM_ERROR, self->errorString_ );
       self->reading = false;
+      break;
+    }
+
+    switch (incomingMessage[0]) {
+      case 0xF0:
+        // Start of a SysEx message
+        continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
+            if (ignoreFlags & 0x01) continue;
+            break;
+      case 0xF1:
+      case 0xF8:
+        // MIDI Time Code or Timing Clock message
+        if (ignoreFlags & 0x02) continue;
+            break;
+      case 0xFE:
+        // Active Sensing message
+        if (ignoreFlags & 0x04) continue;
+            break;
+      default:
+        if (continueSysex) {
+          // Continuation of a SysEx message
+          continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
+          if (ignoreFlags & 0x01) continue;
+        }
+            // All other MIDI messages
     }
 
     if (numMessagesReceived > 0 && numBytesReceived >= 0) {
       auto message = self->inputData_.message;
-      auto ignoreFlags = self->inputData_.ignoreFlags;
 
       if (self->inputData_.firstMessage == true) {
         message.timeStamp = 0.0;
         self->inputData_.firstMessage = false;
       } else {
-        message.timeStamp = (timestamp - self->lastTime) * 0.000001;
+        message.timeStamp = (timestamp * 0.000001) - self->lastTime;
       }
-      self->lastTime = timestamp;
+      self->lastTime = (timestamp * 0.000001);
 
-      bool& continueSysex = self->inputData_.continueSysex;
       if (!continueSysex) message.bytes.clear();
 
       if ( !( ( continueSysex || incomingMessage[0] == 0xF0 ) && ( ignoreFlags & 0x01 ) ) ) {
@@ -4290,30 +4336,6 @@ void* MidiInAndroid :: pollMidi(void* context) {
         // copy the event buffer into the MIDI message struct.
         for (unsigned int i=0; i<numBytesReceived; i++)
           message.bytes.push_back(incomingMessage[i]);
-      }
-
-      switch (incomingMessage[0]) {
-        case 0xF0:
-          // Start of a SysEx message
-          continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
-          if (ignoreFlags & 0x01) continue;
-          break;
-        case 0xF1:
-        case 0xF8:
-          // MIDI Time Code or Timing Clock message
-          if (ignoreFlags & 0x02) continue;
-          break;
-        case 0xFE:
-          // Active Sensing message
-          if (ignoreFlags & 0x04) continue;
-          break;
-        default:
-          if (continueSysex) {
-            // Continuation of a SysEx message
-            continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
-            if (ignoreFlags & 0x01) continue;
-          }
-          // All other MIDI messages
       }
 
       if (!continueSysex) {
@@ -4375,10 +4397,7 @@ void MidiOutAndroid :: openPort( unsigned int portNumber, const std::string &por
     return;
   }
 
-  auto env = androidGetThreadEnv();
-
-  AMidiDevice_fromJava(env, androidMidiDevices[portNumber], &sendDevice);
-  AMidiInputPort_open(sendDevice, portNumber, &midiInputPort);
+  androidOpenDevice(androidMidiDevices[portNumber], this, true);
 }
 
 void MidiOutAndroid :: openVirtualPort( const std::string &portName ) {

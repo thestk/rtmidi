@@ -150,7 +150,7 @@ if(RTMIDI_API_CORE)
 endif()
 
 # Android AMIDI
-if(ANDROID_NDK)
+if(ANDROID)
   set(NEED_PTHREAD ON)
   set(JAVA_INCLUDE_PATH2 NotNeeded)
   set(JAVA_AWT_INCLUDE_PATH NotNeeded)

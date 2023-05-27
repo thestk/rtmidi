@@ -3,6 +3,11 @@ package com.yellowlab.rtmidi;
 import android.media.midi.MidiDevice;
 import android.media.midi.MidiManager;
 
+/**
+ * This class must be included in the Android app using rtmidi. It is used by the
+ * C++ code in the Android library because a Java listener class is required by the
+ * Android Midi API.
+ */
 public class MidiDeviceOpenedListener implements MidiManager.OnDeviceOpenedListener {
     private long nativeId;
     private boolean isOutput;

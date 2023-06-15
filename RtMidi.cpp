@@ -3086,7 +3086,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
     for ( unsigned int i=0; i<nBytes; ++i ) buffer[i] = message[i];
 
     // Create and prepare MIDIHDR structure.
-    MIDIHDR sysex;
+    MIDIHDR sysex{};
     sysex.lpData = (LPSTR) buffer;
     sysex.dwBufferLength = nBytes;
     sysex.dwFlags = 0;

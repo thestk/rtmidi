@@ -144,6 +144,7 @@ class RTMIDI_DLL_PUBLIC RtMidi
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
     RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
     WEB_MIDI_API,   /*!< W3C Web MIDI API. */
+    WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
     NUM_APIS        /*!< Number of values in this enum. */
   };
 
@@ -559,7 +560,7 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
   void setCallback( RtMidiIn::RtMidiCallback callback, void *userData );
   void cancelCallback( void );
   virtual void ignoreTypes( bool midiSysex, bool midiTime, bool midiSense );
-  double getMessage( std::vector<unsigned char> *message );
+  virtual double getMessage( std::vector<unsigned char> *message );
   virtual void setBufferSize( unsigned int size, unsigned int count );
 
   // A MIDI structure used internally by the class to store incoming

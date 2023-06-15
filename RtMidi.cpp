@@ -74,13 +74,19 @@
 // flag can be defined (e.g. in your project file) to disable this behaviour.
 //#define RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
 
+// Default for Windows UWP is to enable a workaround to fix BLE-MIDI IN ports'
+// wrong timestamps that occur at least in Windows 10 21H2;
+// this flag can be defined (e.g. in your project file)
+// to disable this behavior.
+//#define RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+
 // **************************************************************** //
 //
 // MidiInApi and MidiOutApi subclass prototypes.
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WINDOWS_UWP__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -257,6 +263,48 @@ class MidiOutWinMM: public MidiOutApi
 
 #endif
 
+#if defined(__WINDOWS_UWP__)
+
+class MidiInWinUWP : public MidiInApi
+{
+public:
+    MidiInWinUWP(const std::string& clientName, unsigned int queueSizeLimit);
+    ~MidiInWinUWP(void) override;
+    RtMidi::Api getCurrentApi(void) override { return RtMidi::WINDOWS_UWP; };
+    void openPort(unsigned int portNumber, const std::string& portName) override;
+    void openVirtualPort(const std::string& portName) override;
+    void closePort(void) override;
+    void setClientName(const std::string& clientName) override;
+    void setPortName(const std::string& portName) override;
+    unsigned int getPortCount(void) override;
+    std::string getPortName(unsigned int portNumber) override;
+    double getMessage(std::vector<unsigned char>* message) override;
+
+protected:
+    void initialize(const std::string& clientName) override;
+};
+
+class MidiOutWinUWP : public MidiOutApi
+{
+public:
+    MidiOutWinUWP(const std::string& clientName);
+    ~MidiOutWinUWP(void) override;
+    RtMidi::Api getCurrentApi(void) override { return RtMidi::WINDOWS_UWP; };
+    void openPort(unsigned int portNumber, const std::string& portName) override;
+    void openVirtualPort(const std::string& portName) override;
+    void closePort(void) override;
+    void setClientName(const std::string& clientName) override;
+    void setPortName(const std::string& portName) override;
+    unsigned int getPortCount(void) override;
+    std::string getPortName(unsigned int portNumber) override;
+    void sendMessage(const unsigned char* message, size_t size) override;
+
+protected:
+    void initialize(const std::string& clientName) override;
+};
+
+#endif
+
 #if defined(__WEB_MIDI_API__)
 
 class MidiInWeb : public MidiInApi
@@ -381,8 +429,9 @@ const char* rtmidi_api_names[][2] = {
   { "alsa"        , "ALSA" },
   { "jack"        , "Jack" },
   { "winmm"       , "Windows MultiMedia" },
-  { "web"         , "Web MIDI API" },
   { "dummy"       , "Dummy" },
+  { "web"         , "Web MIDI API" },
+  { "winuwp"      , "Windows UWP" },
 };
 const unsigned int rtmidi_num_api_names =
   sizeof(rtmidi_api_names)/sizeof(rtmidi_api_names[0]);
@@ -401,6 +450,9 @@ extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #endif
 #if defined(__WINDOWS_MM__)
   RtMidi::WINDOWS_MM,
+#endif
+#if defined(__WINDOWS_UWP__)
+  RtMidi::WINDOWS_UWP,
 #endif
 #if defined(__WEB_MIDI_API__)
   RtMidi::WEB_MIDI_API,
@@ -483,6 +535,10 @@ void RtMidiIn :: openMidiApi( RtMidi::Api api, const std::string &clientName, un
   if ( api == WINDOWS_MM )
     rtapi_ = new MidiInWinMM( clientName, queueSizeLimit );
 #endif
+#if defined(__WINDOWS_UWP__)
+  if (api == WINDOWS_UWP)
+      rtapi_ = new MidiInWinUWP(clientName, queueSizeLimit);
+#endif
 #if defined(__MACOSX_CORE__)
   if ( api == MACOSX_CORE )
     rtapi_ = new MidiInCore( clientName, queueSizeLimit );
@@ -554,6 +610,10 @@ void RtMidiOut :: openMidiApi( RtMidi::Api api, const std::string &clientName )
 #if defined(__WINDOWS_MM__)
   if ( api == WINDOWS_MM )
     rtapi_ = new MidiOutWinMM( clientName );
+#endif
+#if defined(__WINDOWS_UWP__)
+  if (api == WINDOWS_UWP)
+      rtapi_ = new MidiOutWinUWP(clientName);
 #endif
 #if defined(__MACOSX_CORE__)
   if ( api == MACOSX_CORE )
@@ -3078,6 +3138,767 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 }
 
 #endif  // __WINDOWS_MM__
+
+
+//*********************************************************************//
+//  API: Universal Windows Platform (UWP)
+//*********************************************************************//
+
+// C++/WinRT
+//   https://github.com/microsoft/cppwinrt
+//
+// UWP MIDI API
+//   https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/midi
+//
+// Example implementation using UWP MIDI in C++/WinRT
+//   https://github.com/trueroad/uwp_midiio
+
+#if defined(__WINDOWS_UWP__)
+
+#include <algorithm>
+#include <chrono>
+#include <regex>
+#include <string_view>
+#include <mutex>
+
+#include <windows.h>
+#include <winrt/base.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Devices.Enumeration.h>
+#include <winrt/Windows.Devices.Midi.h>
+#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Security.Cryptography.h>
+
+using namespace winrt;
+using namespace Windows::Foundation;
+using namespace Windows::Devices::Enumeration;
+using namespace Windows::Devices::Midi;
+using namespace Windows::Storage::Streams;
+using namespace Windows::Security::Cryptography;
+
+// Class for initializing C++/WinRT
+class UWPMidiInit
+{
+public:
+    UWPMidiInit()
+    {
+        winrt::init_apartment();
+    }
+};
+
+// Class for handling UWP MIDI
+class UWPMidiClass
+{
+public:
+    // Structure to store MIDI port name and ID
+    struct port
+    {
+        std::string name;
+        std::wstring id;
+        std::string hex_id;
+        std::string display_name;
+    };
+
+    UWPMidiClass(MidiApi& midi_api) :
+        midi_api_(midi_api)
+    {
+    }
+
+    ~UWPMidiClass()
+    {
+        close();
+    }
+
+    // Initialize for MIDI IN
+    void in_init(MidiInApi::RtMidiInData* input_data)
+    {
+        input_data_ = input_data;
+
+        try
+        {
+            ports_ = list_ports(MidiInPort::GetDeviceSelector());
+        }
+        catch (hresult_error const& ex)
+        {
+            raise_hresult_error("UWPMidiClass::in_init: ", ex);
+        }
+        sort_display_name(ports_);
+    }
+
+    // Initialize for MIDI OUT
+    void out_init()
+    {
+        try
+        {
+            ports_ = list_ports(MidiOutPort::GetDeviceSelector());
+            fix_display_name(list_ports(MidiInPort::GetDeviceSelector()), ports_);
+        }
+        catch (hresult_error const& ex)
+        {
+            raise_hresult_error("UWPMidiClass::out_init: ", ex);
+        }
+        sort_display_name(ports_);
+    }
+
+    size_t get_num_ports()
+    {
+        return ports_.size();
+    }
+
+    std::string get_port_name(size_t n)
+    {
+        return ports_[n].display_name;
+    }
+
+    bool in_open(size_t port_number);
+    bool out_open(size_t port_number);
+    void close();
+
+    void midi_in_callback(const MidiInPort&, const MidiMessageReceivedEventArgs& e);
+    bool send_buffer(const unsigned char* buff, size_t len);
+
+    // Raise RtMidi error for hresult error
+    void raise_hresult_error(std::string_view message, hresult_error const& ex)
+    {
+        std::ostringstream ss;
+        ss << message << "exception HRESULT 0x" << std::hex << ex.code() << ", "
+            << utf16_to_utf8(static_cast<std::wstring_view>(ex.message()))
+            << "\n";
+        midi_api_.error(RtMidiError::DRIVER_ERROR, ss.str());
+    }
+
+    // Mutex for MIDI port open/close
+    std::mutex mtx_open_close_;
+    // Mutex for MIDI IN message queue access
+    std::mutex mtx_queue_;
+
+private:
+    std::vector<port> list_ports(winrt::hstring device_selector);
+    void fix_display_name(const std::vector<port>& in_ports,
+        std::vector<port>& out_ports);
+    void sort_display_name(std::vector<port>& ports);
+    std::string utf16_to_utf8(const std::wstring_view wstr);
+
+    template<class MidiPort_T, class IMidiPort_T>
+    IMidiPort_T open(size_t port_number);
+
+    // MidiApi class
+    MidiApi& midi_api_;
+
+    // List of MIDI ports
+    std::vector<port> ports_;
+    // MIDI IN port
+    MidiInPort in_port_{ nullptr };
+    // MIDI OUT port
+    IMidiOutPort out_port_{ nullptr };
+    // Backup initial MessageReceived event token
+    winrt::event_token before_token_;
+    // Input data
+    MidiInApi::RtMidiInData* input_data_{ nullptr };
+    // Last timestamp
+    std::chrono::duration<TimeSpan::rep, TimeSpan::period> last_time_{ 0 };
+
+    // C++/WinRT initializer
+    static UWPMidiInit uwp_midi_init_;
+    // Regex pattern to extract 8 hex digits from UWP MIDI ID string
+    static const std::wregex hex_id_pattern_;
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+    // QueryPerformanceFrequency
+    LONGLONG qpc_freq_{ 0 };
+    // Last QueryPerformanceCounter
+    LONGLONG before_qpc_;
+    // Weather overflow low occurred or not
+    bool b_overflow_low_{ false };
+
+    // BLE-MIDI timestamp periods
+    inline constexpr static std::chrono::duration<TimeSpan::rep, TimeSpan::period> ble_midi_period_low_{ std::chrono::milliseconds{128} };
+    inline constexpr static std::chrono::duration<TimeSpan::rep, TimeSpan::period> ble_midi_period_high_{ std::chrono::milliseconds{8192} };
+    // QPC threshold 4096 ms
+    inline constexpr static LONGLONG qpc_threshold_{ 4096 };
+
+    // Regex pattern to detect BLE-MIDI IN
+    static const std::wregex ble_midi_pattern_;
+#endif
+};
+
+// C++/WinRT initializer
+UWPMidiInit UWPMidiClass::uwp_midi_init_;
+// Regex pattern to extract 8 hex digits from UWP MIDI ID string
+const std::wregex UWPMidiClass::hex_id_pattern_{ std::wregex(L"#MIDII_([0-9A-F]{8})\\..+#") };
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+const std::wregex UWPMidiClass::ble_midi_pattern_{ std::wregex(L"#MIDII_[0-9A-F]{8}\\.BLE[0-9]{2}#") };
+#endif
+
+// Find and create a list of UWP MIDI ports
+std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_selector)
+{
+    const auto devs{ DeviceInformation::FindAllAsync(device_selector).get() };
+
+    std::vector<port> retval;
+    for (const auto& d : devs)
+    {
+        port p;
+        p.name = utf16_to_utf8(d.Name());
+        p.id = d.Id();
+
+        std::wsmatch m;
+        if (std::regex_search(p.id, m, hex_id_pattern_))
+        {
+            // Ordinary MIDI ports
+            // Append hex digits extracted from the UWP MIDI ID string to the port name.
+            p.hex_id = utf16_to_utf8(m[1].str());
+
+            std::ostringstream ss;
+            ss << p.name
+                << " [ "
+                << p.hex_id
+                << " ]";
+            p.display_name = ss.str();
+        }
+        else
+        {
+            // Microsoft GS Wavetable Synth etc.
+            // Unable to extract hex digits from UWP MIDI ID string.
+            // Use the device name as the port name.
+            p.display_name = p.name;
+        }
+
+        retval.push_back(p);
+    }
+    return retval;
+}
+
+// Fix MIDI OUT port names starting with `MIDI` to MIDI IN port names with similar ID strings
+void UWPMidiClass::fix_display_name(const std::vector<port>& in_ports,
+    std::vector<port>& out_ports)
+{
+    for (auto& outp : out_ports)
+    {
+        if (outp.hex_id.empty() ||
+            std::string_view{ outp.name }.substr(0, 4) != "MIDI")
+            continue;
+
+        for (const auto& inp : in_ports)
+        {
+            if (outp.hex_id == inp.hex_id)
+            {
+                outp.display_name = inp.display_name;
+                break;
+            }
+        }
+    }
+}
+
+void UWPMidiClass::sort_display_name(std::vector<port>& ports)
+{
+    std::sort(ports.begin(), ports.end(),
+        [](const auto& lhs, const auto& rhs)
+    {
+        return lhs.display_name < rhs.display_name;
+    });
+}
+
+std::string UWPMidiClass::utf16_to_utf8(const std::wstring_view wstr)
+{
+    auto len{ WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr, nullptr) };
+    std::string u8str(len, '\0');
+    if (len)
+        WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), u8str.data(), len, nullptr, nullptr);
+    return u8str;
+}
+
+// Open MIDI IN/OUT port
+template<class MidiPort_T, class IMidiPort_T>
+IMidiPort_T UWPMidiClass::open(size_t port_number)
+{
+    try
+    {
+        auto async{ MidiPort_T::FromIdAsync(ports_[port_number].id) };
+        // Timeout 3 seconds
+        if (async.wait_for(std::chrono::seconds(3)) == AsyncStatus::Completed)
+            return async.GetResults();
+    }
+    catch (hresult_error const& ex)
+    {
+        raise_hresult_error("UWPMidiClass::open: ", ex);
+    }
+    return nullptr;
+}
+
+// Open MIDI IN port
+bool UWPMidiClass::in_open(size_t port_number)
+{
+    if (in_port_)
+        in_port_.Close();
+
+    in_port_ = open<MidiInPort, MidiInPort>(port_number);
+    if (!in_port_)
+        return false;
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+    std::wsmatch m;
+    if (std::regex_search(ports_[port_number].id, m, ble_midi_pattern_))
+    {
+        // BLE-MIDI IN port
+        LARGE_INTEGER li;
+        if (::QueryPerformanceFrequency(&li))
+            qpc_freq_ = li.QuadPart;
+    }
+#endif
+
+    try
+    {
+        before_token_ = in_port_.MessageReceived({ this, &UWPMidiClass::midi_in_callback });
+    }
+    catch (hresult_error const& ex)
+    {
+        raise_hresult_error("UWPMidiClass::in_open: ", ex);
+    }
+
+    return true;
+}
+
+// Open MIDI Out port
+bool UWPMidiClass::out_open(size_t port_number)
+{
+    if (out_port_)
+        out_port_.Close();
+
+    out_port_ = open<MidiOutPort, IMidiOutPort>(port_number);
+    if (!out_port_)
+        return false;
+
+    return true;
+}
+
+// Close MIDI IN/OUT port
+void UWPMidiClass::close()
+{
+    if (in_port_)
+    {
+        if (before_token_)
+            in_port_.MessageReceived(before_token_);
+
+        in_port_.Close();
+        in_port_ = nullptr;
+    }
+    if (out_port_)
+    {
+        out_port_.Close();
+        out_port_ = nullptr;
+    }
+}
+
+// MessageReceived event handler
+void UWPMidiClass::midi_in_callback(const MidiInPort&, const MidiMessageReceivedEventArgs& e)
+{
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+    LARGE_INTEGER qpc;
+    if (qpc_freq_)
+    {
+        if (!::QueryPerformanceCounter(&qpc))
+            qpc_freq_ = 0;
+    }
+#endif
+
+    const auto& m{ e.Message() };
+    if (!m)
+        return;
+
+    MidiInApi::MidiMessage message;
+    const std::chrono::duration<TimeSpan::rep, TimeSpan::period> duration{ m.Timestamp() };
+
+    // Calculate time stamp.
+    if (input_data_->firstMessage == true)
+    {
+        message.timeStamp = 0.0;
+        input_data_->firstMessage = false;
+        last_time_ = duration;
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+        if (qpc_freq_)
+            before_qpc_ = qpc.QuadPart;
+#endif
+    }
+    else
+    {
+        auto delta{ duration - last_time_ };
+
+#ifndef RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
+        if (qpc_freq_)
+        {
+            if (b_overflow_low_)
+            {
+                if (delta >= ble_midi_period_low_)
+                {
+                    // Fix after overflow low
+                    // https://github.com/trueroad/BLE_MIDI_packet_data_set#page-7-overflow-both
+                    delta -= ble_midi_period_low_;
+                    b_overflow_low_ = false;
+                }
+            }
+            else
+            {
+                if ((ble_midi_period_high_ - ble_midi_period_low_) < delta && delta < ble_midi_period_high_ &&
+                    ((before_qpc_ - qpc.QuadPart) * 1000 / qpc_freq_) < qpc_threshold_)
+                {
+                    // Fix overflow low
+                    // https://github.com/trueroad/BLE_MIDI_packet_data_set#page-7-overflow-low
+                    delta = delta - ble_midi_period_high_ + ble_midi_period_low_;
+                    b_overflow_low_ = true;
+                }
+            }
+
+            before_qpc_ = qpc.QuadPart;
+        }
+#endif
+
+        const std::chrono::duration<double> sec{ delta };
+        message.timeStamp = sec.count();
+    }
+
+    if (((input_data_->ignoreFlags & 0x01) &&
+            (m.Type() == MidiMessageType::SystemExclusive || m.Type() == MidiMessageType::EndSystemExclusive)) ||
+        ((input_data_->ignoreFlags & 0x02) &&
+            (m.Type() == MidiMessageType::MidiTimeCode || m.Type() == MidiMessageType::TimingClock)) ||
+        ((input_data_->ignoreFlags & 0x04) &&
+            m.Type() == MidiMessageType::ActiveSensing))
+    {
+        return;
+    }
+
+    const auto& raw_data{ m.RawData() };
+    const size_t len{ raw_data.Length() };
+
+    if (len)
+        message.bytes.assign(raw_data.data(), raw_data.data() + len);
+
+    last_time_ = duration;
+
+    if (input_data_->usingCallback)
+    {
+        (input_data_->userCallback)(message.timeStamp, &message.bytes, input_data_->userData);
+    }
+    else
+    {
+        std::lock_guard<std::mutex> lock(mtx_queue_);
+
+        if (!input_data_->queue.push(message))
+        {
+            std::cerr << "\nMidiInWinUWP: message queue limit reached!!\n\n";
+        }
+    }
+}
+
+// Send MIDI message
+bool UWPMidiClass::send_buffer(const unsigned char* buff, size_t len)
+{
+    if (!out_port_)
+        return false;
+
+    try
+    {
+        out_port_.SendBuffer(CryptographicBuffer::CreateFromByteArray(array_view(buff, buff + len)));
+    }
+    catch (hresult_error const& ex)
+    {
+        raise_hresult_error("UWPMidiClass::send_buffer: ", ex);
+    }
+
+    return true;
+}
+
+//*********************************************************************//
+//  API: Windows UWP
+//  Class Definitions: MidiInWinUWP
+//*********************************************************************//
+
+MidiInWinUWP::MidiInWinUWP(const std::string& clientName, unsigned int queueSizeLimit)
+    : MidiInApi(queueSizeLimit)
+{
+    MidiInWinUWP::initialize(clientName);
+}
+
+MidiInWinUWP :: ~MidiInWinUWP()
+{
+    // Close a connection if it exists.
+    MidiInWinUWP::closePort();
+
+    // Cleanup.
+    UWPMidiClass *data = static_cast<UWPMidiClass*> (apiData_);
+    delete data;
+}
+
+void MidiInWinUWP::initialize(const std::string& /*clientName*/)
+{
+    // Save our api-specific connection information.
+    UWPMidiClass* data{ new UWPMidiClass(*this) };
+    data->in_init(&inputData_);
+    apiData_ = static_cast<void*>(data);
+
+    // We'll issue a warning here if no devices are available but not
+    // throw an error since the user can plugin something later.
+    const auto nDevices{ data->get_num_ports() };
+    if (nDevices == 0)
+    {
+        errorString_ = "MidiInWinUWP::initialize: no MIDI input devices currently available.";
+        error(RtMidiError::WARNING, errorString_);
+    }
+}
+
+void MidiInWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
+    if (connected_)
+    {
+        errorString_ = "MidiInWinUWP::openPort: a valid connection already exists!";
+        error(RtMidiError::WARNING, errorString_);
+        return;
+    }
+
+    if (data->get_num_ports() == 0)
+    {
+        errorString_ = "MidiInWinUWP::openPort: no MIDI input sources found!";
+        error(RtMidiError::NO_DEVICES_FOUND, errorString_);
+        return;
+    }
+
+    if (portNumber >= data->get_num_ports())
+    {
+        std::ostringstream ost;
+        ost << "MidiInWinUWP::openPort: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::INVALID_PARAMETER, errorString_);
+        return;
+    }
+
+    if (!data->in_open(portNumber))
+    {
+        errorString_ = "MidiInWinUWP::openPort: error creating Windows UWP MIDI input port.";
+        error(RtMidiError::DRIVER_ERROR, errorString_);
+        return;
+    }
+
+    connected_ = true;
+}
+
+void MidiInWinUWP::openVirtualPort(const std::string&/*portName*/)
+{
+    // This function cannot be implemented for the Windows UWP MIDI API.
+    errorString_ = "MidiInWinUWP::openVirtualPort: cannot be implemented in Windows UWP MIDI API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiInWinUWP::closePort(void)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
+    if (connected_)
+    {
+        data->close();
+        connected_ = false;
+    }
+}
+
+void MidiInWinUWP::setClientName(const std::string&)
+{
+    errorString_ = "MidiInWinUWP::setClientName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiInWinUWP::setPortName(const std::string&)
+{
+    errorString_ = "MidiInWinUWP::setPortName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+unsigned int MidiInWinUWP::getPortCount()
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    return static_cast<unsigned int>(data->get_num_ports());
+}
+
+std::string MidiInWinUWP::getPortName(unsigned int portNumber)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+
+    const auto nDevices{ data->get_num_ports() };
+    if (portNumber >= nDevices)
+    {
+        std::ostringstream ost;
+        ost << "MidiInWinUWP::getPortName: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::WARNING, errorString_);
+        return "";
+    }
+
+    return data->get_port_name(portNumber);
+}
+
+double MidiInWinUWP::getMessage(std::vector<unsigned char>* message)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_queue_);
+
+    return MidiInApi::getMessage(message);
+}
+
+//*********************************************************************//
+//  API: Windows UWP
+//  Class Definitions: MidiOutWinUWP
+//*********************************************************************//
+
+MidiOutWinUWP::MidiOutWinUWP(const std::string& clientName) : MidiOutApi()
+{
+    MidiOutWinUWP::initialize(clientName);
+}
+
+MidiOutWinUWP :: ~MidiOutWinUWP()
+{
+    // Close a connection if it exists.
+    MidiOutWinUWP::closePort();
+
+    // Cleanup.
+    UWPMidiClass* data = static_cast<UWPMidiClass*> (apiData_);
+    delete data;
+}
+
+void MidiOutWinUWP::initialize(const std::string& /*clientName*/)
+{
+    // Save our api-specific connection information.
+    UWPMidiClass* data{ new UWPMidiClass(*this) };
+    data->out_init();
+    apiData_ = static_cast<void*>(data);
+
+    // We'll issue a warning here if no devices are available but not
+    // throw an error since the user can plug something in later.
+    const auto nDevices{ data->get_num_ports() };
+    if (nDevices == 0)
+    {
+        errorString_ = "MidiOutWinUWP::initialize: no MIDI output devices currently available.";
+        error(RtMidiError::WARNING, errorString_);
+    }
+}
+
+unsigned int MidiOutWinUWP::getPortCount()
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    return static_cast<unsigned int>(data->get_num_ports());
+}
+
+std::string MidiOutWinUWP::getPortName(unsigned int portNumber)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+
+    const auto nDevices{ data->get_num_ports() };
+    if (portNumber >= nDevices)
+    {
+        std::ostringstream ost;
+        ost << "MidiOutWinUWP::getPortName: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::WARNING, errorString_);
+        return "";
+    }
+
+    return data->get_port_name(portNumber);
+}
+
+void MidiOutWinUWP::openPort(unsigned int portNumber, const std::string&/*portName*/)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
+    if (connected_)
+    {
+        errorString_ = "MidiOutWinUWP::openPort: a valid connection already exists!";
+        error(RtMidiError::WARNING, errorString_);
+        return;
+    }
+
+    if (data->get_num_ports() == 0)
+    {
+        errorString_ = "MidiOutWinUWP::openPort: no MIDI output destinations found!";
+        error(RtMidiError::NO_DEVICES_FOUND, errorString_);
+        return;
+    }
+
+    if (portNumber >= data->get_num_ports())
+    {
+        std::ostringstream ost;
+        ost << "MidiOutWinUWP::openPort: the 'portNumber' argument (" << portNumber << ") is invalid.";
+        errorString_ = ost.str();
+        error(RtMidiError::INVALID_PARAMETER, errorString_);
+        return;
+    }
+
+    if (!data->out_open(portNumber))
+    {
+        errorString_ = "MidiOutWinUWP::openPort: error creating Windows UWP MIDI output port.";
+        error(RtMidiError::DRIVER_ERROR, errorString_);
+        return;
+    }
+
+    connected_ = true;
+}
+
+void MidiOutWinUWP::closePort(void)
+{
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    std::lock_guard<std::mutex> lock(data->mtx_open_close_);
+
+    if (connected_)
+    {
+        data->close();
+        connected_ = false;
+    }
+}
+
+void MidiOutWinUWP::setClientName(const std::string&)
+{
+    errorString_ = "MidiOutWinUWP::setClientName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiOutWinUWP::setPortName(const std::string&)
+{
+    errorString_ = "MidiOutWinUWP::setPortName: this function is not implemented for the WINDOWS_UWP API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiOutWinUWP::openVirtualPort(const std::string&/*portName*/)
+{
+    // This function cannot be implemented for the Windows UWP MIDI API.
+    errorString_ = "MidiOutWinUWP::openVirtualPort: cannot be implemented in Windows UWP MIDI API!";
+    error(RtMidiError::WARNING, errorString_);
+}
+
+void MidiOutWinUWP::sendMessage(const unsigned char* message, size_t size)
+{
+    if (!connected_)
+        return;
+
+    if (size == 0)
+    {
+        errorString_ = "MidiOutWinUWP::sendMessage: message argument is empty!";
+        error(RtMidiError::WARNING, errorString_);
+        return;
+    }
+
+    UWPMidiClass* data{ static_cast<UWPMidiClass*>(apiData_) };
+    if (!data->send_buffer(message, size))
+    {
+        errorString_ = "MidiOutWinUWP::sendMessage: error sending message.";
+        error(RtMidiError::DRIVER_ERROR, errorString_);
+    }
+}
+
+#endif  // __WINDOWS_UWP__
 
 
 //*********************************************************************//

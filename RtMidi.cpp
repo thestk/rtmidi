@@ -1239,7 +1239,7 @@ unsigned int MidiInCore :: getPortCount()
 
 // This function was submitted by Douglas Casey Tucker and apparently
 // derived largely from PortMidi.
-CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
+CFStringRef CreateEndpointName( MIDIEndpointRef endpoint, bool isExternal )
 {
   CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
   CFStringRef str;
@@ -1249,13 +1249,10 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
   MIDIObjectGetStringProperty( endpoint, kMIDIPropertyName, &str );
   if ( str != NULL ) {
     CFStringAppend( result, str );
-    CFRelease( str );
   }
 
   // some MIDI devices have a leading space in endpoint name. trim
-  CFStringRef space = CFStringCreateWithCString(NULL, " ", kCFStringEncodingUTF8);
-  CFStringTrim(result, space);
-  CFRelease(space);
+  CFStringTrim(result, CFSTR(" "));
 
   MIDIEntityRef entity = 0;
   MIDIEndpointGetEntity( endpoint, &entity );
@@ -1269,7 +1266,6 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
     MIDIObjectGetStringProperty( entity, kMIDIPropertyName, &str );
     if ( str != NULL ) {
       CFStringAppend( result, str );
-      CFRelease( str );
     }
   }
   // now consider the device's name
@@ -1282,6 +1278,7 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
   MIDIObjectGetStringProperty( device, kMIDIPropertyName, &str );
   if ( CFStringGetLength( result ) == 0 ) {
       CFRelease( result );
+      CFRetain( str );
       return str;
   }
   if ( str != NULL ) {
@@ -1289,10 +1286,10 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
     // the endpoint name and just use the device name
     if ( isExternal && MIDIDeviceGetNumberOfEntities( device ) < 2 ) {
       CFRelease( result );
+      CFRetain( str );
       return str;
     } else {
       if ( CFStringGetLength( str ) == 0 ) {
-        CFRelease( str );
         return result;
       }
       // does the entity name already start with the device name?
@@ -1307,7 +1304,6 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
 
         CFStringInsert( result, 0, str );
       }
-      CFRelease( str );
     }
   }
   return result;
@@ -1315,7 +1311,7 @@ CFStringRef EndpointName( MIDIEndpointRef endpoint, bool isExternal )
 
 // This function was submitted by Douglas Casey Tucker and apparently
 // derived largely from PortMidi.
-static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
+static CFStringRef CreateConnectedEndpointName( MIDIEndpointRef endpoint )
 {
   CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
   CFStringRef str;
@@ -1342,11 +1338,12 @@ static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
           if ( connObjectType == kMIDIObjectType_ExternalSource  ||
                connObjectType == kMIDIObjectType_ExternalDestination ) {
             // Connected to an external device's endpoint (10.3 and later).
-            str = EndpointName( (MIDIEndpointRef)(connObject), true );
+            str = CreateEndpointName( (MIDIEndpointRef)(connObject), true );
           } else {
             // Connected to an external device (10.2) (or something else, catch-
             str = NULL;
             MIDIObjectGetStringProperty( connObject, kMIDIPropertyName, &str );
+            if ( str ) CFRetain ( str );
           }
           if ( str != NULL ) {
             if ( anyStrings )
@@ -1367,7 +1364,7 @@ static CFStringRef ConnectedEndpointName( MIDIEndpointRef endpoint )
   CFRelease( result );
 
   // Here, either the endpoint had no connections, or we failed to obtain names
-  return EndpointName( endpoint, false );
+  return CreateEndpointName( endpoint, false );
 }
 
 std::string MidiInCore :: getPortName( unsigned int portNumber )
@@ -1387,7 +1384,7 @@ std::string MidiInCore :: getPortName( unsigned int portNumber )
   }
 
   portRef = MIDIGetSource( portNumber );
-  nameRef = ConnectedEndpointName( portRef );
+  nameRef = CreateConnectedEndpointName( portRef );
   CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8 );
   CFRelease( nameRef );
 
@@ -1474,7 +1471,7 @@ std::string MidiOutCore :: getPortName( unsigned int portNumber )
   }
 
   portRef = MIDIGetDestination( portNumber );
-  nameRef = ConnectedEndpointName(portRef);
+  nameRef = CreateConnectedEndpointName(portRef);
   CFStringGetCString( nameRef, name, sizeof(name), kCFStringEncodingUTF8 );
   CFRelease( nameRef );
 

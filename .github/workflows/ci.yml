@@ -21,7 +21,7 @@ jobs:
     - name: install dependencies
       run:
         sudo apt-get update
-        && sudo apt-get install g++-8 autoconf-archive cmake ${{matrix.deps}}
+        && sudo apt-get install g++ autoconf-archive cmake ${{matrix.deps}}
     - name: automake
       run:
         env NOCONFIGURE=1 ./autogen.sh && mkdir bld-automake && cd bld-automake

@@ -18,6 +18,8 @@ class StaticEnumAssertions { StaticEnumAssertions() {
     ENUM_EQUAL( RTMIDI_API_WINDOWS_MM,      RtMidi::WINDOWS_MM );
     ENUM_EQUAL( RTMIDI_API_ANDROID,         RtMidi::ANDROID_AMIDI );
     ENUM_EQUAL( RTMIDI_API_RTMIDI_DUMMY,    RtMidi::RTMIDI_DUMMY );
+    ENUM_EQUAL( RTMIDI_API_WEB_MIDI_API,    RtMidi::WEB_MIDI_API );
+    ENUM_EQUAL( RTMIDI_API_WINDOWS_UWP,     RtMidi::WINDOWS_UWP );
 
     ENUM_EQUAL( RTMIDI_ERROR_WARNING,            RtMidiError::WARNING );
     ENUM_EQUAL( RTMIDI_ERROR_DEBUG_WARNING,      RtMidiError::DEBUG_WARNING );
@@ -49,6 +51,11 @@ class CallbackProxyUserData
 extern "C" const unsigned int rtmidi_num_compiled_apis;
 
 /* RtMidi API */
+const char* rtmidi_get_version()
+{
+    return RTMIDI_VERSION;
+}
+
 int rtmidi_get_compiled_api (enum RtMidiApi *apis, unsigned int apis_size)
 {
     unsigned num = rtmidi_num_compiled_apis;

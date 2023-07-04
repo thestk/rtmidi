@@ -45,9 +45,15 @@ AS_IF([test "x$CFLAGS" = "x" ], [override_c=yes], [override_c=no])
 
 # Check version number coherency between RtMidi.h and configure.ac
 AC_MSG_CHECKING([that version numbers are coherent])
-RTMIDI_VERSION=`sed -n 's/#define RTMIDI_VERSION "\(.*\)"/\1/p' $srcdir/RtMidi.h`
+RTMIDI_VERSION_MAJOR=`sed -n 's/#define RTMIDI_VERSION_MAJOR *\([0-9]*\)/\1/p' $srcdir/RtMidi.h`
+RTMIDI_VERSION_MINOR=`sed -n 's/#define RTMIDI_VERSION_MINOR *\([0-9]*\)/\1/p' $srcdir/RtMidi.h`
+RTMIDI_VERSION_PATCH=`sed -n 's/#define RTMIDI_VERSION_PATCH *\([0-9]*\)/\1/p' $srcdir/RtMidi.h`
+RTMIDI_VERSION_BETA=`sed -n 's/#define RTMIDI_VERSION_BETA *\([0-9]*\)/\1/p' $srcdir/RtMidi.h`
 AS_IF(
-   [test "x$RTMIDI_VERSION" != "x$PACKAGE_VERSION"],
+   [test '('   "0$RTMIDI_VERSION_BETA" -le 0 \
+            -o "x$RTMIDI_VERSION_MAJOR.$RTMIDI_VERSION_MINOR.${RTMIDI_VERSION_PATCH}beta${RTMIDI_VERSION_BETA}" != "x$PACKAGE_VERSION" ')' \
+      -a '('   "0$RTMIDI_VERSION_BETA" -ne 0\
+            -o "x$RTMIDI_VERSION_MAJOR.$RTMIDI_VERSION_MINOR.${RTMIDI_VERSION_PATCH}" != "x$PACKAGE_VERSION" ')' ],
    [AC_MSG_FAILURE([testing RTMIDI_VERSION==PACKAGE_VERSION failed, check that RtMidi.h defines RTMIDI_VERSION as "$PACKAGE_VERSION" or that the first line of configure.ac has been updated.])])
 
 # Enable some nice automake features if they are available

@@ -159,10 +159,10 @@ class RTMIDI_DLL_PUBLIC RtMidi
     LINUX_ALSA,     /*!< The Advanced Linux Sound Architecture API. */
     UNIX_JACK,      /*!< The JACK Low-Latency MIDI Server API. */
     WINDOWS_MM,     /*!< The Microsoft Multimedia MIDI API. */
-    ANDROID_AMIDI,  /*!< Native Android MIDI API. */
     RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
     WEB_MIDI_API,   /*!< W3C Web MIDI API. */
     WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
+    ANDROID_AMIDI,  /*!< Native Android MIDI API. */
     NUM_APIS        /*!< Number of values in this enum. */
   };
 

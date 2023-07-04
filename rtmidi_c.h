@@ -67,6 +67,7 @@ enum RtMidiApi {
     RTMIDI_API_RTMIDI_DUMMY,   /*!< A compilable but non-functional API. */
     RTMIDI_API_WEB_MIDI_API,   /*!< W3C Web MIDI API. */
     RTMIDI_API_WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
+    RTMIDI_API_ANDROID,        /*!< The Android MIDI API. */
     RTMIDI_API_NUM             /*!< Number of values in this enum. */
 };
 

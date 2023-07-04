@@ -2,7 +2,7 @@
 # CopyPolicy: RtMidi license.
 
 # Set minimum CMake required version for this project.
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
 # Define a C++ project.
 project(RtMidi LANGUAGES CXX C)
@@ -40,11 +40,10 @@ set(RTMIDI_TARGETNAME_UNINSTALL "uninstall" CACHE STRING "Name of 'uninstall' bu
 
 # API Options
 option(RTMIDI_API_JACK "Compile with JACK support." ${HAVE_JACK})
-if(UNIX AND NOT APPLE)
-  option(RTMIDI_API_ALSA "Compile with ALSA support." ON)
-endif()
 option(RTMIDI_API_WINMM "Compile with WINMM support." ${WIN32})
 option(RTMIDI_API_CORE "Compile with CoreMIDI support." ${APPLE})
+option(RTMIDI_API_ALSA "Compile with ALSA support." ${ALSA})
+option(RTMIDI_API_AMIDI "Compile with Android support." ${ANDROID})
 
 # Add -Wall if possible
 if (CMAKE_COMPILER_IS_GNUCXX)
@@ -119,12 +118,9 @@ if(RTMIDI_API_JACK)
 endif()
 
 # ALSA
-if(RTMIDI_API_ALSA)
+find_package(ALSA)
+if(ALSA_FOUND OR ALSA)
   set(NEED_PTHREAD ON)
-  find_package(ALSA)
-  if (NOT ALSA_FOUND)
-    message(FATAL_ERROR "ALSA API requested but no ALSA dev libraries found")
-  endif()
   list(APPEND INCDIRS ${ALSA_INCLUDE_DIR})
   list(APPEND LINKLIBS ALSA::ALSA)
   list(APPEND PKGCONFIG_REQUIRES "alsa")
@@ -151,6 +147,18 @@ if(RTMIDI_API_CORE)
   list(APPEND LINKLIBS ${CORESERVICES_LIB} ${COREAUDIO_LIB} ${COREMIDI_LIB} ${COREFOUNDATION_LIB})
   list(APPEND LIBS_REQUIRES "-framework CoreServices -framework CoreAudio -framework CoreMIDI -framework CoreFoundation")
   list(APPEND LINKFLAGS "-Wl,-F/Library/Frameworks")
+endif()
+
+# Android AMIDI
+if(ANDROID)
+  set(NEED_PTHREAD ON)
+  set(JAVA_INCLUDE_PATH2 NotNeeded)
+  set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+  find_package(JNI)
+#  find_library(ALOG_LIB log android)
+  list(APPEND API_DEFS "-D__AMIDI__")
+  list(APPEND API_LIST "amidi")
+  list(APPEND LINKLIBS log ${JNI_LIBRARIES} amidi)
 endif()
 
 # pthread

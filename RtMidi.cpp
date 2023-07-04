@@ -86,7 +86,7 @@
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WINDOWS_UWP__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)
+#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WINDOWS_UWP__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)  && !defined(__AMIDI__)
   #define __RTMIDI_DUMMY__
 #endif
 
@@ -356,6 +356,67 @@ class MidiOutWeb: public MidiOutApi
 
 #endif
 
+#if defined(__AMIDI__)
+
+#define LOG_TAG "RtMidi"
+#include <amidi/AMidi.h>
+#include <android/log.h>
+#include <pthread.h>
+#include <atomic>
+#include <string>
+#include <vector>
+#include <jni.h>
+#include <unistd.h>
+
+class MidiInAndroid : public MidiInApi
+{
+ public:
+  MidiInAndroid(const std::string &/*clientName*/, unsigned int queueSizeLimit );
+  ~MidiInAndroid( void );
+  RtMidi::Api getCurrentApi( void ) { return RtMidi::ANDROID_AMIDI; };
+  void openPort( unsigned int portNumber, const std::string &portName );
+  void openVirtualPort( const std::string &portName );
+  void closePort( void );
+  void setClientName( const std::string &clientName );
+  void setPortName( const std::string &portName );
+  unsigned int getPortCount( void );
+  std::string getPortName( unsigned int portNumber );
+
+  void onMidiMessage( uint8_t* data, double domHishResTimeStamp );
+
+  void initialize( const std::string& clientName );
+  void connect();
+  AMidiDevice* receiveDevice = NULL;
+  AMidiOutputPort* midiOutputPort = NULL;
+  pthread_t readThread;
+  std::atomic<bool> reading = ATOMIC_VAR_INIT(false);
+  static void* pollMidi(void* context);
+  double lastTime;
+};
+
+class MidiOutAndroid: public MidiOutApi
+{
+ public:
+  MidiOutAndroid( const std::string &clientName );
+  ~MidiOutAndroid( void );
+  RtMidi::Api getCurrentApi( void ) { return RtMidi::ANDROID_AMIDI; };
+  void openPort( unsigned int portNumber, const std::string &portName );
+  void openVirtualPort( const std::string &portName );
+  void closePort( void );
+  void setClientName( const std::string &clientName );
+  void setPortName( const std::string &portName );
+  unsigned int getPortCount( void );
+  std::string getPortName( unsigned int portNumber );
+  void sendMessage( const unsigned char *message, size_t size );
+
+  void initialize( const std::string& clientName );
+  void connect();
+  AMidiDevice* sendDevice = NULL;
+  AMidiInputPort* midiInputPort = NULL;
+};
+
+#endif
+
 #if defined(__RTMIDI_DUMMY__)
 
 class MidiInDummy: public MidiInApi
@@ -432,6 +493,7 @@ const char* rtmidi_api_names[][2] = {
   { "dummy"       , "Dummy" },
   { "web"         , "Web MIDI API" },
   { "winuwp"      , "Windows UWP" },
+  { "amidi"       , "Android MIDI API" },
 };
 const unsigned int rtmidi_num_api_names =
   sizeof(rtmidi_api_names)/sizeof(rtmidi_api_names[0]);
@@ -457,8 +519,11 @@ extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #if defined(__WEB_MIDI_API__)
   RtMidi::WEB_MIDI_API,
 #endif
-#if defined(__RTMIDI_DUMMY__)
-  RtMidi::RTMIDI_DUMMY,
+#if defined(__WEB_MIDI_API__)
+  RtMidi::WEB_MIDI_API,
+#endif
+#if defined(__AMIDI__)
+  RtMidi::ANDROID_AMIDI,
 #endif
   RtMidi::UNSPECIFIED,
 };
@@ -547,6 +612,10 @@ void RtMidiIn :: openMidiApi( RtMidi::Api api, const std::string &clientName, un
     if ( api == WEB_MIDI_API )
     rtapi_ = new MidiInWeb( clientName, queueSizeLimit );
 #endif
+#if defined(__AMIDI__)
+    if ( api == ANDROID_AMIDI )
+    rtapi_ = new MidiInAndroid( clientName, queueSizeLimit );
+#endif
 #if defined(__RTMIDI_DUMMY__)
   if ( api == RTMIDI_DUMMY )
     rtapi_ = new MidiInDummy( clientName, queueSizeLimit );
@@ -622,6 +691,10 @@ void RtMidiOut :: openMidiApi( RtMidi::Api api, const std::string &clientName )
 #if defined(__WEB_MIDI_API__)
     if ( api == WEB_MIDI_API )
     rtapi_ = new MidiOutWeb( clientName );
+#endif
+#if defined(__AMIDI__)
+    if ( api == ANDROID_AMIDI )
+    rtapi_ = new MidiOutAndroid( clientName );
 #endif
 #if defined(__RTMIDI_DUMMY__)
   if ( api == RTMIDI_DUMMY )
@@ -4758,3 +4831,429 @@ void MidiOutWeb::initialize( const std::string& clientName )
 }
 
 #endif  // __WEB_MIDI_API__
+
+
+//*********************************************************************//
+//  API: ANDROID AMIDI
+//
+//  Written by Yellow Labrador, May 2023.
+//  https://github.com/YellowLabrador/rtmidi
+//  *********************************************************************//
+
+#if defined(__AMIDI__)
+
+#include <cstdint>
+
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+
+static std::string androidClientName;
+static std::vector<jobject> androidMidiDevices;
+
+//*********************************************************************//
+//  API: Android AMIDI
+//  Class Definitions: MidiInAndroid
+//*********************************************************************//
+
+static JNIEnv* androidGetThreadEnv() {
+  // Every Android app has only one JVM. Calling JNI_GetCreatedJavaVMs
+  // will retrieve the JVM running the app.
+  jsize jvmsFound = 0;
+  JavaVM jvms[1];
+  JavaVM* pjvms = jvms;
+  jint result = JNI_GetCreatedJavaVMs(&pjvms, 1, &jvmsFound);
+
+  // Something went terribly wrong, no JVM was found
+  if (jvmsFound != 1 || result != JNI_OK) {
+      LOGE("No JVM found");
+      return NULL;
+  }
+
+  // Get the JNIEnv for the current thread
+  JNIEnv* env = NULL;
+  int rc = pjvms->GetEnv((void**)&env, JNI_VERSION_1_6);
+
+  // The current thread was not attached to the JVM. Add it to the JVM
+  if (rc == JNI_EDETACHED) {
+      pjvms->AttachCurrentThreadAsDaemon(&env, NULL);
+  }
+
+  // Neither way to retrieve the JNIEnv worked
+  if (env == NULL) {
+      LOGE("Unable to retrieve JNI environment");
+  }
+
+  return env;
+}
+
+static jobject androidGetContext(JNIEnv *env) {
+  auto activityThread = env->FindClass("android/app/ActivityThread");
+  auto currentActivityThread = env->GetStaticMethodID(activityThread, "currentActivityThread", "()Landroid/app/ActivityThread;");
+  auto at = env->CallStaticObjectMethod(activityThread, currentActivityThread);
+  if (at == NULL) {
+      LOGE("Unable to locate the global ActivityThread");
+      return NULL;
+  }
+
+  auto getApplication = env->GetMethodID(activityThread, "getApplication", "()Landroid/app/Application;");
+  auto context = env->CallObjectMethod(at, getApplication);
+  if (context == NULL) {
+      LOGE("Application context was NULL");
+  }
+
+  return context;
+}
+
+static jobject androidGetMidiManager(JNIEnv *env, jobject context) {
+  // MidiManager midiManager = (MidiManager) getSystemService(Context.MIDI_SERVICE);
+  auto contextClass = env->FindClass("android/content/Context");
+  auto getServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+  return env->CallObjectMethod(context, getServiceMethod, env->NewStringUTF("midi"));
+}
+
+static void androidRefreshMidiDevices(JNIEnv *env, jobject context, bool isOutput) {
+  // Remove all midi devices
+  for (jobject jMidiDevice : androidMidiDevices) {
+    env->DeleteGlobalRef(jMidiDevice);
+  }
+  androidMidiDevices.clear();
+
+  auto midiService = androidGetMidiManager(env, context);
+
+  // MidiDeviceInfo[] devInfos = mMidiManager.getDevices();
+  auto midiMgrClass = env->FindClass("android/media/midi/MidiManager");
+  auto getDevicesMethod = env->GetMethodID(midiMgrClass, "getDevices", "()[Landroid/media/midi/MidiDeviceInfo;");
+  auto jDevices = (jobjectArray) env->CallObjectMethod(midiService, getDevicesMethod);
+
+  auto deviceInfoClass = env->FindClass("android/media/midi/MidiDeviceInfo");
+  auto getInputPortCountMethod = env->GetMethodID(deviceInfoClass, "getInputPortCount", "()I");
+  auto getOutputPortCountMethod = env->GetMethodID(deviceInfoClass, "getOutputPortCount", "()I");
+
+  jsize len = env->GetArrayLength((jarray)jDevices);
+  for (int i=0; i<len; i++) {
+      auto jDeviceInfo = env->GetObjectArrayElement(jDevices, i);
+
+      int numPorts = env->CallIntMethod(jDeviceInfo, isOutput ? getOutputPortCountMethod : getInputPortCountMethod);
+      if (numPorts > 0) {
+          androidMidiDevices.push_back(env->NewGlobalRef(jDeviceInfo));
+      }
+  }
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_yellowlab_rtmidi_MidiDeviceOpenedListener_midiDeviceOpened(JNIEnv *env, jclass clazz,
+                                                                    jobject midi_device, jlong targetPtr, jboolean isOutput) {
+  if (isOutput) {
+    auto midiOut = reinterpret_cast<MidiOutAndroid*>(targetPtr);
+    AMidiDevice_fromJava(env, midi_device, &midiOut->sendDevice);
+    AMidiInputPort_open(midiOut->sendDevice, 0, &midiOut->midiInputPort);
+  } else {
+    auto midiIn = reinterpret_cast<MidiInAndroid*>(targetPtr);
+    AMidiDevice_fromJava(env, midi_device, &midiIn->receiveDevice);
+    AMidiOutputPort_open(midiIn->receiveDevice, 0, &midiIn->midiOutputPort);
+    pthread_create(&midiIn->readThread, NULL, MidiInAndroid::pollMidi, midiIn);
+  }
+}
+
+static void androidOpenDevice(jobject deviceInfo, void* target, bool isOutput) {
+    auto env = androidGetThreadEnv();
+    auto context = androidGetContext(env);
+    auto midiMgr = androidGetMidiManager(env, context);
+
+    // openDevice(MidiDeviceInfo deviceInfo, OnDeviceOpenedListener listener, Handler handler)
+    auto midiMgrClass = env->GetObjectClass(midiMgr);
+    auto openDevicesMethod = env->GetMethodID(midiMgrClass, "openDevice", "(Landroid/media/midi/MidiDeviceInfo;Landroid/media/midi/MidiManager$OnDeviceOpenedListener;Landroid/os/Handler;)V");
+
+    auto handlerClass = env->FindClass("android/os/Handler");
+    auto handlerCtor = env->GetMethodID(handlerClass, "<init>", "()V");
+    auto handler = env->NewObject(handlerClass, handlerCtor);
+
+    auto listenerClass = env->FindClass("com/yellowlab/rtmidi/MidiDeviceOpenedListener");
+    if (!listenerClass) {
+      LOGE(LOG_TAG, "Midi listener class not found com.yellowlab.rtmidi.MidiDeviceOpenedListener. Did you forget to add it to your APK?");
+      return;
+    }
+
+    auto targetPtr = reinterpret_cast<jlong>(target);
+    auto listenerCtor = env->GetMethodID(listenerClass, "<init>", "(JZ)V");
+    auto listener = env->NewObject(listenerClass, listenerCtor, targetPtr, isOutput);
+
+    env->CallVoidMethod(midiMgr, openDevicesMethod, deviceInfo, listener, handler);
+    env->DeleteLocalRef(handler);
+}
+
+static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
+  if (portNumber >= androidMidiDevices.size()) {
+    LOGE("androidPortName: Invalid port number");
+    return "";
+  }
+
+  // String deviceName = devInfo.getProperties().getString(MidiDeviceInfo.PROPERTY_NAME);
+  auto deviceInfoClass = env->FindClass("android/media/midi/MidiDeviceInfo");
+  auto getPropsMethod = env->GetMethodID(deviceInfoClass, "getProperties", "()Landroid/os/Bundle;");
+  auto bundle = env->CallObjectMethod(androidMidiDevices[portNumber], getPropsMethod);
+
+  auto bundleClass = env->FindClass("android/os/Bundle");
+  auto getStringMethod = env->GetMethodID(bundleClass, "getString", "(Ljava/lang/String;)Ljava/lang/String;");
+  auto jPortName = (jstring) env->CallObjectMethod(bundle, getStringMethod, env->NewStringUTF("name"));
+
+  auto portNameChars = env->GetStringUTFChars(jPortName, NULL);
+  auto name = std::string(portNameChars);
+  env->ReleaseStringUTFChars(jPortName, portNameChars);
+
+  return name;
+}
+
+MidiInAndroid :: MidiInAndroid( const std::string &clientName, unsigned int queueSizeLimit )
+  : MidiInApi( queueSizeLimit ) {
+  MidiInAndroid::initialize( clientName );
+}
+
+void MidiInAndroid :: initialize( const std::string& clientName ) {
+  androidClientName = clientName;
+  connect();
+}
+
+void MidiInAndroid :: connect() {
+  auto env = androidGetThreadEnv();
+  auto context = androidGetContext(env);
+  androidRefreshMidiDevices(env, context, true);
+
+  env->DeleteLocalRef(context);
+}
+
+MidiInAndroid :: ~MidiInAndroid() {
+  auto env = androidGetThreadEnv();
+
+  // Remove all midi devices
+  for (jobject jMidiDevice : androidMidiDevices) {
+    env->DeleteGlobalRef(jMidiDevice);
+  }
+  androidMidiDevices.clear();
+
+  androidClientName = "";
+}
+
+void MidiInAndroid :: openPort(unsigned int portNumber, const std::string &portName) {
+  if (portNumber >= androidMidiDevices.size()) {
+    errorString_ = "MidiInAndroid::openPort: Invalid port number";
+    error( RtMidiError::INVALID_PARAMETER, errorString_ );
+
+    return;
+  }
+
+  if (reading) {
+    errorString_ = "MidiInAndroid::openPort: A port is already open";
+    error( RtMidiError::INVALID_USE, errorString_ );
+
+    return;
+  }
+
+  androidOpenDevice(androidMidiDevices[portNumber], this, false);
+}
+
+void MidiInAndroid :: openVirtualPort(const std::string &portName) {
+  errorString_ = "MidiInAndroid::openVirtualPort: this function is not implemented for the Android API!";
+  error( RtMidiError::WARNING, errorString_ );
+}
+
+unsigned int MidiInAndroid :: getPortCount() {
+  connect();
+  return androidMidiDevices.size();
+}
+
+std::string MidiInAndroid :: getPortName(unsigned int portNumber) { 
+  auto env = androidGetThreadEnv();
+  return androidPortName(env, portNumber);
+}
+
+void MidiInAndroid :: closePort() {
+  reading = false;
+  pthread_join(readThread, NULL);
+
+  AMidiDevice_release(receiveDevice);
+  receiveDevice = NULL;
+  midiOutputPort = NULL;
+}
+
+void MidiInAndroid:: setClientName(const std::string& clientName) {
+  androidClientName = clientName;
+}
+
+void MidiInAndroid :: setPortName(const std::string &portName) {
+  errorString_ = "MidiInAndroid::setPortName: this function is not implemented for the Android API!";
+  error( RtMidiError::WARNING, errorString_ );
+}
+
+void* MidiInAndroid :: pollMidi(void* context) {
+  auto self = (MidiInAndroid*) context;
+  self->reading = true;
+
+  const size_t MAX_BYTES_TO_RECEIVE = 128;
+  uint8_t incomingMessage[MAX_BYTES_TO_RECEIVE];
+
+  while (self->reading) {
+    // AMidiOutputPort_receive is non-blocking, must poll with some sleep
+    usleep(2000);
+    auto ignoreFlags = self->inputData_.ignoreFlags;
+    bool& continueSysex = self->inputData_.continueSysex;
+
+    int32_t opcode;
+    size_t numBytesReceived;
+    int64_t timestamp;
+    ssize_t numMessagesReceived = AMidiOutputPort_receive(
+        self->midiOutputPort, &opcode, incomingMessage, MAX_BYTES_TO_RECEIVE,
+        &numBytesReceived, &timestamp);
+
+    if (numMessagesReceived < 0) {
+      self->errorString_ = "MidiInAndroid::pollMidi: error receiving MIDI data";
+      self->error( RtMidiError::SYSTEM_ERROR, self->errorString_ );
+      self->reading = false;
+      break;
+    }
+
+    switch (incomingMessage[0]) {
+      case 0xF0:
+        // Start of a SysEx message
+        continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
+            if (ignoreFlags & 0x01) continue;
+            break;
+      case 0xF1:
+      case 0xF8:
+        // MIDI Time Code or Timing Clock message
+        if (ignoreFlags & 0x02) continue;
+            break;
+      case 0xFE:
+        // Active Sensing message
+        if (ignoreFlags & 0x04) continue;
+            break;
+      default:
+        if (continueSysex) {
+          // Continuation of a SysEx message
+          continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
+          if (ignoreFlags & 0x01) continue;
+        }
+            // All other MIDI messages
+    }
+
+    if (numMessagesReceived > 0 && numBytesReceived >= 0) {
+      auto message = self->inputData_.message;
+
+      if (self->inputData_.firstMessage == true) {
+        message.timeStamp = 0.0;
+        self->inputData_.firstMessage = false;
+      } else {
+        message.timeStamp = (timestamp * 0.000001) - self->lastTime;
+      }
+      self->lastTime = (timestamp * 0.000001);
+
+      if (!continueSysex) message.bytes.clear();
+
+      if ( !( ( continueSysex || incomingMessage[0] == 0xF0 ) && ( ignoreFlags & 0x01 ) ) ) {
+        // Unless this is a (possibly continued) SysEx message and we're ignoring SysEx,
+        // copy the event buffer into the MIDI message struct.
+        for (unsigned int i=0; i<numBytesReceived; i++)
+          message.bytes.push_back(incomingMessage[i]);
+      }
+
+      if (!continueSysex) {
+        if (self->inputData_.usingCallback) {
+          auto callback = (RtMidiIn::RtMidiCallback) self->inputData_.userCallback;
+          callback(message.timeStamp, &message.bytes, self->inputData_.userData);
+        } else {
+          if (!self->inputData_.queue.push(message))
+            std::cerr << "\nMidiInAndroid: message queue limit reached!!\n\n";
+        }
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+//*********************************************************************//
+//  API: Android AMIDI
+//  Class Definitions: MidiOutAndroid
+//*********************************************************************//
+
+
+MidiOutAndroid :: MidiOutAndroid( const std::string &clientName ) : MidiOutApi() {
+  MidiOutAndroid::initialize( clientName );
+}
+
+void MidiOutAndroid :: initialize( const std::string& clientName ) {
+  androidClientName = clientName;
+  connect();
+}
+
+void MidiOutAndroid :: connect() {
+  auto env = androidGetThreadEnv();
+  auto context = androidGetContext(env);
+  androidRefreshMidiDevices(env, context, false);
+
+  env->DeleteLocalRef(context);
+}
+
+MidiOutAndroid :: ~MidiOutAndroid() {
+  auto env = androidGetThreadEnv();
+
+  // Remove all midi devices
+  for (jobject jMidiDevice : androidMidiDevices) {
+    env->DeleteGlobalRef(jMidiDevice);
+  }
+  androidMidiDevices.clear();
+
+  androidClientName = "";
+}
+
+void MidiOutAndroid :: openPort( unsigned int portNumber, const std::string &portName ) {
+  if (portNumber >= androidMidiDevices.size()) {
+    errorString_ = "MidiOutAndroid::openPort: Invalid port number";
+    error( RtMidiError::INVALID_PARAMETER, errorString_ );
+
+    return;
+  }
+
+  androidOpenDevice(androidMidiDevices[portNumber], this, true);
+}
+
+void MidiOutAndroid :: openVirtualPort( const std::string &portName ) {
+  errorString_ = "MidiOutAndroid::openVirtualPort: this function is not implemented for the Android API!";
+  error( RtMidiError::WARNING, errorString_ );
+}
+
+unsigned int MidiOutAndroid :: getPortCount() {
+  connect();
+  return androidMidiDevices.size();
+}
+
+std::string MidiOutAndroid :: getPortName( unsigned int portNumber ) {
+  auto env = androidGetThreadEnv();
+  return androidPortName(env, portNumber);
+}
+
+void MidiOutAndroid :: closePort() {
+  AMidiDevice_release(sendDevice);
+  sendDevice = NULL;
+  midiInputPort = NULL;
+}
+
+void MidiOutAndroid:: setClientName( const std::string& name ) {
+  androidClientName = name;
+}
+
+void MidiOutAndroid :: setPortName( const std::string &portName ) {
+  errorString_ = "MidiOutAndroid::setPortName: this function is not implemented for the Android API!";
+  error( RtMidiError::WARNING, errorString_ );
+}
+
+void MidiOutAndroid :: sendMessage( const unsigned char *message, size_t size ) {
+  AMidiInputPort_send(midiInputPort, (uint8_t*)message, size);
+}
+
+#endif  // __AMIDI__

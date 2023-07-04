@@ -72,6 +72,7 @@ AC_ARG_WITH(core, [AS_HELP_STRING([--with-core], [ choose CoreMIDI API support (
 AC_ARG_WITH(winmm, [AS_HELP_STRING([--with-winmm], [ choose Windows MultiMedia (MM) API support (win32 only)])])
 AC_ARG_WITH(winks, [AS_HELP_STRING([--with-winks], [  choose kernel streaming support (win32 only)])])
 AC_ARG_WITH(webmidi, [AS_HELP_STRING([--with-webmidi], [  choose Web MIDI support])])
+AC_ARG_WITH(android, [AS_HELP_STRING([--with-android], [  choose Android support])])
 
 
 # Checks for programs.
@@ -146,6 +147,7 @@ AS_IF([test "x$with_core"   = "xyes"], [systems="$systems core"])
 AS_IF([test "x$with_winmm"  = "xyes"], [systems="$systems winmm"])
 AS_IF([test "x$with_winks"  = "xyes"], [systems="$systems winks"])
 AS_IF([test "x$with_webmidi" = "xyes"], [systems="$systems webmidi"])
+AS_IF([test "x$with_android" = "xyes"], [systems="$systems android"])
 AS_IF([test "x$with_dummy"  = "xyes"], [systems="$systems dummy"])
 required=" $systems "
 
@@ -168,6 +170,7 @@ AS_IF([test "x$with_winmm"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep 
 AS_IF([test "x$with_winks"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v winks`])
 AS_IF([test "x$with_core"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v core`])
 AS_IF([test "x$with_webmidi" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v webmidi`])
+AS_IF([test "x$with_android" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v android`])
 AS_IF([test "x$with_dummy"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v dummy`])
 systems=" `echo $systems|tr \\\\n ' '` "
 
@@ -234,6 +237,10 @@ AS_CASE(["$systems"], [*" webmidi "*], [
   AC_CHECK_HEADERS(emscripten.h,
     [api="$api -D__WEB_MIDI_API__"
      found="$found Web MIDI"])
+])
+
+AS_CASE(["$systems"], [*" android "*], [
+      AC_MSG_ERROR([Android NDK configuration not implemented, use CMAKE])
 ])
 
 AS_IF([test -n "$need_ole32"], [LIBS="-lole32 $LIBS"])

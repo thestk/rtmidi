@@ -4974,7 +4974,7 @@ static void androidOpenDevice(jobject deviceInfo, void* target, bool isOutput) {
 
     auto listenerClass = env->FindClass("com/yellowlab/rtmidi/MidiDeviceOpenedListener");
     if (!listenerClass) {
-      LOGE(LOG_TAG, "Midi listener class not found com.yellowlab.rtmidi.MidiDeviceOpenedListener. Did you forget to add it to your APK?");
+      LOGE("Midi listener class not found com.yellowlab.rtmidi.MidiDeviceOpenedListener. Did you forget to add it to your APK?");
       return;
     }
 
@@ -5072,6 +5072,11 @@ std::string MidiInAndroid :: getPortName(unsigned int portNumber) {
 }
 
 void MidiInAndroid :: closePort() {
+  // Don't try to close a port before it was open
+  if (!reading) {
+    return;
+  }
+
   reading = false;
   pthread_join(readThread, NULL);
 

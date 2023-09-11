@@ -3441,14 +3441,15 @@ std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_s
     return retval;
 }
 
-// Fix MIDI OUT port names starting with `MIDI` to MIDI IN port names with similar ID strings
+// Fix MIDI OUT port names starting with `MIDI` or `2 - MIDI` to MIDI IN port names with similar ID strings
 void UWPMidiClass::fix_display_name(const std::vector<port>& in_ports,
     std::vector<port>& out_ports)
 {
     for (auto& outp : out_ports)
     {
-        if (outp.hex_id.empty() ||
-            std::string_view{ outp.name }.substr(0, 4) != "MIDI")
+        if (outp.hex_id.empty())
+            continue;
+        if (std::string_view{ outp.name }.substr(0, 4) != "MIDI" && std::string_view{ outp.name }.substr(1, 7) != " - MIDI")
             continue;
 
         for (const auto& inp : in_ports)

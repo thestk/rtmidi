@@ -94,6 +94,12 @@ void rtmidi_error (MidiApi *api, enum RtMidiErrorType type, const char* errorStr
   api->error ((RtMidiError::Type) type, msg);
 }
 
+void rtmidi_clear_error (RtMidiPtr device)
+{
+    device->ok = true;
+    device->msg = "";
+}
+
 void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName)
 {
     std::string name = portName;
@@ -102,7 +108,7 @@ void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *po
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
     }
 }
 
@@ -114,7 +120,7 @@ void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
     }
 
 }
@@ -126,7 +132,7 @@ void rtmidi_close_port (RtMidiPtr device)
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
     }
 }
 
@@ -137,7 +143,7 @@ unsigned int rtmidi_get_port_count (RtMidiPtr device)
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
         return -1;
     }
 }
@@ -153,7 +159,7 @@ int rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber, char * bufO
         name = ((RtMidi*) device->ptr)->getPortName (portNumber);
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
         return -1;
     }
 
@@ -182,7 +188,7 @@ RtMidiInPtr rtmidi_in_create_default ()
         wrp->ptr = 0;
         wrp->data = 0;
         wrp->ok  = false;
-        wrp->msg = err.what ();
+        wrp->msg = strdup (err.what ());
     }
 
     return wrp;
@@ -205,7 +211,7 @@ RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsign
         wrp->ptr = 0;
         wrp->data = 0;
         wrp->ok  = false;
-        wrp->msg = err.what ();
+        wrp->msg = strdup (err.what ());
     }
 
     return wrp;
@@ -226,7 +232,7 @@ enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
 
         return RTMIDI_API_UNSPECIFIED;
     }
@@ -246,7 +252,7 @@ void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void 
         ((RtMidiIn*) device->ptr)->setCallback (callback_proxy, device->data);
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
         delete (CallbackProxyUserData*) device->data;
         device->data = 0;
     }
@@ -260,7 +266,7 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
         device->data = 0;
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
     }
 }
 
@@ -287,7 +293,7 @@ double rtmidi_in_get_message (RtMidiInPtr device,
     }
     catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
         return -1;
     }
     catch (...) {
@@ -314,7 +320,7 @@ RtMidiOutPtr rtmidi_out_create_default ()
         wrp->ptr = 0;
         wrp->data = 0;
         wrp->ok  = false;
-        wrp->msg = err.what ();
+        wrp->msg = strdup (err.what ());
     }
 
     return wrp;
@@ -337,7 +343,7 @@ RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
         wrp->ptr = 0;
         wrp->data = 0;
         wrp->ok  = false;
-        wrp->msg = err.what ();
+        wrp->msg = strdup (err.what ());
     }
 
 
@@ -357,7 +363,7 @@ enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 
     } catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
 
         return RTMIDI_API_UNSPECIFIED;
     }
@@ -371,7 +377,7 @@ int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, 
     }
     catch (const RtMidiError & err) {
         device->ok  = false;
-        device->msg = err.what ();
+        device->msg = strdup (err.what ());
         return -1;
     }
     catch (...) {

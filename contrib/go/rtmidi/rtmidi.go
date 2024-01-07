@@ -69,6 +69,11 @@ func (api API) String() string {
 	return "?"
 }
 
+// GetVersion Return the current RtMidi version.
+func GetVersion() string {
+	return C.GoString(C.rtmidi_get_version())
+}
+
 // CompiledAPI determines the available compiled MIDI APIs.
 func CompiledAPI() (apis []API) {
 	n := C.rtmidi_get_compiled_api(nil, 0)

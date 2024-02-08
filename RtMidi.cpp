@@ -1116,6 +1116,8 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
                 std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
             }
             message.bytes.clear();
+            // All subsequent messages within same MIDI packet will have time delta 0
+            message.timeStamp = 0.0;
           }
           iByte += size;
         }

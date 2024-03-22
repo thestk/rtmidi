@@ -1378,6 +1378,7 @@ CFStringRef CreateEndpointName( MIDIEndpointRef endpoint, bool isExternal )
           CFStringInsert( result, 0, CFSTR(" ") );
 
         CFStringInsert( result, 0, str );
+        CFRelease(str);
       }
     }
   }

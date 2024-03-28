@@ -1324,6 +1324,7 @@ CFStringRef CreateEndpointName( MIDIEndpointRef endpoint, bool isExternal )
   MIDIObjectGetStringProperty( endpoint, kMIDIPropertyName, &str );
   if ( str != NULL ) {
     CFStringAppend( result, str );
+    CFRelease(str);
   }
 
   // some MIDI devices have a leading space in endpoint name. trim

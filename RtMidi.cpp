@@ -1675,12 +1675,6 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
     return;
   }
 
-  if ( message[0] != 0xF0 && nBytes > 3 ) {
-    errorString_ = "MidiOutCore::sendMessage: message format problem ... not sysex but > 3 bytes?";
-    error( RtMidiError::WARNING, errorString_ );
-    return;
-  }
-
   MIDITimeStamp timeStamp = AudioGetCurrentHostTime();
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
@@ -3148,7 +3142,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 
   MMRESULT result;
   WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-  if ( message[0] == 0xF0 ) { // Sysex message
+  if ( nBytes > 3 ) { // Sysex message
 
     // Allocate buffer for sysex data.
     char *buffer = (char *) malloc( nBytes );
@@ -3188,13 +3182,6 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
     free( buffer );
   }
   else { // Channel or system message.
-
-    // Make sure the message size isn't too big.
-    if ( nBytes > 3 ) {
-      errorString_ = "MidiOutWinMM::sendMessage: message size is greater than 3 bytes (and not sysex)!";
-      error( RtMidiError::WARNING, errorString_ );
-      return;
-    }
 
     // Pack MIDI bytes into double word.
     DWORD packet;

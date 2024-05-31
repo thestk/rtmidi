@@ -1198,7 +1198,7 @@ void MidiInCore :: openPort( unsigned int portNumber, const std::string &portNam
   }
 
   CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
-  unsigned int nSrc = MIDIGetNumberOfSources();
+  auto nSrc = MIDIGetNumberOfSources();
   if ( nSrc < 1 ) {
     errorString_ = "MidiInCore::openPort: no MIDI input sources found!";
     error( RtMidiError::NO_DEVICES_FOUND, errorString_ );
@@ -1309,7 +1309,7 @@ void MidiInCore :: setPortName ( const std::string& )
 unsigned int MidiInCore :: getPortCount()
 {
   CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
-  return MIDIGetNumberOfSources();
+  return static_cast<unsigned int> (MIDIGetNumberOfSources());
 }
 
 // This function was submitted by Douglas Casey Tucker and apparently
@@ -1397,7 +1397,7 @@ static CFStringRef CreateConnectedEndpointName( MIDIEndpointRef endpoint )
 
   // Does the endpoint have connections?
   CFDataRef connections = NULL;
-  int nConnected = 0;
+  size_t nConnected = 0;
   bool anyStrings = false;
   err = MIDIObjectGetDataProperty( endpoint, kMIDIPropertyConnectionUniqueID, &connections );
   if ( connections != NULL ) {
@@ -1528,7 +1528,7 @@ void MidiOutCore :: initialize( const std::string& clientName )
 unsigned int MidiOutCore :: getPortCount()
 {
   CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
-  return MIDIGetNumberOfDestinations();
+  return static_cast<unsigned int> (MIDIGetNumberOfDestinations());
 }
 
 std::string MidiOutCore :: getPortName( unsigned int portNumber )
@@ -1564,7 +1564,7 @@ void MidiOutCore :: openPort( unsigned int portNumber, const std::string &portNa
   }
 
   CFRunLoopRunInMode( kCFRunLoopDefaultMode, 0, false );
-  unsigned int nDest = MIDIGetNumberOfDestinations();
+  auto nDest = MIDIGetNumberOfDestinations();
   if (nDest < 1) {
     errorString_ = "MidiOutCore::openPort: no MIDI output destinations found!";
     error( RtMidiError::NO_DEVICES_FOUND, errorString_ );
@@ -5059,7 +5059,7 @@ unsigned int MidiInAndroid :: getPortCount() {
   return androidMidiDevices.size();
 }
 
-std::string MidiInAndroid :: getPortName(unsigned int portNumber) { 
+std::string MidiInAndroid :: getPortName(unsigned int portNumber) {
   auto env = androidGetThreadEnv();
   return androidPortName(env, portNumber);
 }

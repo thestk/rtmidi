@@ -4957,15 +4957,26 @@ static void androidOpenDevice(jobject deviceInfo, void* target, bool isOutput) {
     auto context = androidGetContext(env);
     auto midiMgr = androidGetMidiManager(env, context);
 
+    auto looperClass = env->FindClass("android/os/Looper");
+    auto getMyLooperMethod = env->GetStaticMethodID(looperClass, "myLooper", "()Landroid/os/Looper;");
+    auto looperObj = env->CallStaticObjectMethod(looperClass, getMyLooperMethod);
+    auto getLooperPrepareMethod = env->GetStaticMethodID(looperClass, "prepare", "()V");
+    auto getLooperQuitMethod = env->GetMethodID(looperClass, "quit", "()V");
+
+    if (!looperObj)
+        env->CallStaticVoidMethod(looperClass, getLooperPrepareMethod);
+
     // openDevice(MidiDeviceInfo deviceInfo, OnDeviceOpenedListener listener, Handler handler)
     auto midiMgrClass = env->GetObjectClass(midiMgr);
     auto openDevicesMethod = env->GetMethodID(midiMgrClass, "openDevice", "(Landroid/media/midi/MidiDeviceInfo;Landroid/media/midi/MidiManager$OnDeviceOpenedListener;Landroid/os/Handler;)V");
 
     auto handlerClass = env->FindClass("android/os/Handler");
-    auto handlerCtor = env->GetMethodID(handlerClass, "<init>", "()V");
-    auto handler = env->NewObject(handlerClass, handlerCtor);
+    auto getMainLooperMethod = env->GetStaticMethodID(looperClass, "getMainLooper", "()Landroid/os/Looper;");
+    auto mainLooperObj = env->CallStaticObjectMethod(looperClass, getMainLooperMethod);
+    auto handlerCtor = env->GetMethodID(handlerClass, "<init>", "(Landroid/os/Looper;)V");
+    auto handler = env->NewObject(handlerClass, handlerCtor, mainLooperObj);
 
-    auto listenerClass = env->FindClass("com/yellowlab/rtmidi/MidiDeviceOpenedListener");
+    jclass listenerClass = env->FindClass("com/yellowlab/rtmidi/MidiDeviceOpenedListener");
     if (!listenerClass) {
       LOGE("Midi listener class not found com.yellowlab.rtmidi.MidiDeviceOpenedListener. Did you forget to add it to your APK?");
       return;

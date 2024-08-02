@@ -193,7 +193,7 @@ endif()
 list(APPEND LIB_TARGETS rtmidi)
 
 # Add headers destination for install rule.
-set_property(TARGET rtmidi PROPERTY PUBLIC_HEADER RtMidi.h rtmidi_c.h)
+set_property(TARGET rtmidi PROPERTY PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/RtMidi.h" "${CMAKE_CURRENT_SOURCE_DIR}/rtmidi_c.h")
 set_target_properties(rtmidi PROPERTIES
   SOVERSION ${SO_VER}
   VERSION ${FULL_VER})

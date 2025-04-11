@@ -525,6 +525,9 @@ extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #if defined(__AMIDI__)
   RtMidi::ANDROID_AMIDI,
 #endif
+#if defined(__RTMIDI_DUMMY__)
+  RtMidi::RTMIDI_DUMMY,
+#endif
   RtMidi::UNSPECIFIED,
 };
 extern "C" const unsigned int rtmidi_num_compiled_apis =

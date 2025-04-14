@@ -31,6 +31,9 @@ apinames_LDADD = $(top_builddir)/librtmidi.la
 
 testcapi_SOURCES = testcapi.c
 testcapi_LDADD = $(top_builddir)/librtmidi.la
+if !enable_shared
+testcapi_LINK = $(CXXLINK)
+endif
 
 EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
 	sysextest.dsp RtMidi.dsw

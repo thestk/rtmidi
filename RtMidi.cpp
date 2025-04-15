@@ -1683,8 +1683,8 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
   OSStatus result;
 
   ByteCount bufsize = nBytes > 65535 ? 65535 : nBytes;
-  Byte buffer[bufsize+16]; // pad for other struct members
-  ByteCount listSize = sizeof( buffer );
+  Byte *buffer = (Byte *) calloc( bufsize+16, sizeof(Byte));
+  ByteCount listSize = sizeof(Byte) * bufsize;
   MIDIPacketList *packetList = (MIDIPacketList*)buffer;
 
   ByteCount remainingBytes = nBytes;
@@ -1722,6 +1722,7 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
       }
     }
   }
+  free(buffer);
 }
 
 #endif  // __MACOSX_CORE__

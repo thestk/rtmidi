@@ -33,7 +33,7 @@ In some cases, for example to use RtMidi with GS Synth, it may be necessary for 
 
 ## Further reading
 
-For complete documentation on RtMidi, see the `doc` directory of the distribution or surf to http://www.music.mcgill.ca/~gary/rtmidi/.
+For complete documentation on RtMidi, see the `doc` directory of the distribution or surf to https://caml.music.mcgill.ca/~gary/rtmidi/.
 
 ## Legal and ethical
 

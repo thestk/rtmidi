@@ -9,7 +9,7 @@ By Gary P. Scavone, 2003-2023.
 
 This distribution of RtMidi contains the following:
 
-- `doc`:      RtMidi documentation (also online at http://www.music.mcgill.ca/~gary/rtmidi/)
+- `doc`:      RtMidi documentation (also online at https://caml.music.mcgill.ca/~gary/rtmidi/)
 - `tests`:    example RtMidi programs
 
 On Unix systems, type `./configure` in the top level directory, then `make` in the `tests/` directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the `tests/` directory.

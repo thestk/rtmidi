@@ -6,7 +6,7 @@
     MIDI input/output subclasses RtMidiIn and RtMidiOut.
 
     RtMidi GitHub site: https://github.com/thestk/rtmidi
-    RtMidi WWW site: http://www.music.mcgill.ca/~gary/rtmidi/
+    RtMidi WWW site: https://caml.music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
     Copyright (c) 2003-2023 Gary P. Scavone

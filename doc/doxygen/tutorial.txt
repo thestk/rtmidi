@@ -26,7 +26,7 @@ The version number has been bumped to 6.0.0 because new APIs (Android and Window
 
 \section download Download
 
-Latest Release (3 August 2023): <A href="http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-6.0.0.tar.gz">Version 6.0.0</A>
+Latest Release (3 August 2023): <A href="https://caml.music.mcgill.ca/~gary/rtmidi/release/rtmidi-6.0.0.tar.gz">Version 6.0.0</A>
 
 \section start Getting Started
 

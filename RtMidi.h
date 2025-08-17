@@ -82,6 +82,7 @@
 #include <string>
 #include <vector>
 
+inline namespace rtmidi {
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -673,5 +674,7 @@ inline std::string RtMidiOut :: getPortName( unsigned int portNumber ) { return 
 inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( &message->at(0), message->size() ); }
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
+
+}
 
 #endif

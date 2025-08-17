@@ -45,6 +45,10 @@ option(RTMIDI_API_CORE "Compile with CoreMIDI support." ${APPLE})
 option(RTMIDI_API_ALSA "Compile with ALSA support." ${ALSA})
 option(RTMIDI_API_AMIDI "Compile with Android support." ${ANDROID})
 
+# Module options
+option(RTMIDI_BUILD_MODULES "Build C++ modules for RtMidi" OFF)
+option(RTMIDI_USE_NAMESPACE "Use namespace rtmidi for module" ON)
+
 # Add -Wall if possible
 if (CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
@@ -214,6 +218,15 @@ target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
 target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS} 
                              PRIVATE ${LINKLIBS})
+
+if(RTMIDI_BUILD_MODULES)
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
+    message(STATUS "Building rtmidi C++ module")
+    add_subdirectory(modules)
+  else()
+    message(WARNING "Skipping rtmidi C++ module (requires CMake 3.28+, found ${CMAKE_VERSION})")
+  endif()
+endif()
 
 # Add tests if requested.
 option(RTMIDI_BUILD_TESTING "Build test programs" ON)

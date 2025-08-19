@@ -31,6 +31,10 @@
 #define RTMIDIAPI //__declspec(dllimport)
 #endif
 
+#if defined _WIN32
+#define strdup _strdup
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -134,6 +138,9 @@ RTMIDIAPI enum RtMidiApi rtmidi_compiled_api_by_name(const char *name);
 
 //! \internal Report an error.
 RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);
+
+//! \brief Resets the ok flag and the error message.
+RTMIDIAPI void rtmidi_clear_error (RtMidiPtr device);
 
 /*! \brief Open a MIDI port.
  *

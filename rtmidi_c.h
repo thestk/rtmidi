@@ -45,7 +45,7 @@ struct RtMidiWrapper {
     bool  ok;
 
     //! If an error occurred (ok != true), set to an error message.
-    const char* msg;
+    char* msg;
 };
 
 //! \brief Typedef for a generic RtMidi pointer.

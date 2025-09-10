@@ -34,14 +34,15 @@ class StaticEnumAssertions { StaticEnumAssertions() {
     ENUM_EQUAL( RTMIDI_ERROR_THREAD_ERROR,       RtMidiError::THREAD_ERROR );
 }};
 
+template <typename T>
 class CallbackProxyUserData
 {
   public:
-  CallbackProxyUserData (RtMidiCCallback cCallback, void *userData)
+  CallbackProxyUserData (T cCallback, void *userData)
     : c_callback (cCallback), user_data (userData)
   {
   }
-  RtMidiCCallback c_callback;
+  T c_callback;
   void *user_data;
 };
 
@@ -88,12 +89,6 @@ enum RtMidiApi rtmidi_compiled_api_by_name(const char *name) {
         api = RtMidi::getCompiledApiByName(name);
     }
     return (enum RtMidiApi)api;
-}
-
-void rtmidi_error (MidiApi *api, enum RtMidiErrorType type, const char* errorString)
-{
-  std::string msg = errorString;
-  api->error ((RtMidiError::Type) type, msg);
 }
 
 void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName)
@@ -176,13 +171,15 @@ RtMidiInPtr rtmidi_in_create_default ()
         RtMidiIn* rIn = new RtMidiIn ();
 
         wrp->ptr = (void*) rIn;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = true;
         rtmidi_set_error_msg (wrp, "");
 
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = false;
         rtmidi_set_error_msg (wrp, err.what ());
     }
@@ -199,13 +196,15 @@ RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsign
         RtMidiIn* rIn = new RtMidiIn ((RtMidi::Api) api, name, queueSizeLimit);
 
         wrp->ptr = (void*) rIn;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = true;
         rtmidi_set_error_msg (wrp, "");
 
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = false;
         rtmidi_set_error_msg (wrp, err.what ());
     }
@@ -217,8 +216,10 @@ void rtmidi_in_free (RtMidiInPtr device)
 {
     if (device->msg)
       free (device->msg);
-    if (device->data)
-      delete (CallbackProxyUserData*) device->data;
+    if (device->callback_proxy)
+      delete (CallbackProxyUserData<RtMidiCCallback>*) device->callback_proxy;
+    if (device->error_callback_proxy)
+      delete (CallbackProxyUserData<RtMidiErrorCCallback>*) device->error_callback_proxy;
     delete (RtMidiIn*) device->ptr;
     delete device;
 }
@@ -239,20 +240,27 @@ enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
 static
 void callback_proxy (double timeStamp, std::vector<unsigned char> *message, void *userData)
 {
-  CallbackProxyUserData* data = reinterpret_cast<CallbackProxyUserData*> (userData);
-  data->c_callback (timeStamp, message->data (), message->size (), data->user_data);
+  CallbackProxyUserData<RtMidiCCallback>* proxy = reinterpret_cast<CallbackProxyUserData<RtMidiCCallback>*> (userData);
+  proxy->c_callback (timeStamp, message->data (), message->size (), proxy->user_data);
+}
+
+static
+void error_callback_proxy (RtMidiError::Type type, const std::string &errorText, void *userData)
+{
+  CallbackProxyUserData<RtMidiErrorCCallback>* proxy = reinterpret_cast<CallbackProxyUserData<RtMidiErrorCCallback>*> (userData);
+  proxy->c_callback (static_cast<RtMidiErrorType>(type), errorText.c_str (), proxy->user_data);
 }
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)
 {
-    device->data = (void*) new CallbackProxyUserData (callback, userData);
+    device->callback_proxy = (void*) new CallbackProxyUserData<RtMidiCCallback> (callback, userData);
     try {
-        ((RtMidiIn*) device->ptr)->setCallback (callback_proxy, device->data);
+        ((RtMidiIn*) device->ptr)->setCallback (callback_proxy, device->callback_proxy);
     } catch (const RtMidiError & err) {
         device->ok  = false;
         rtmidi_set_error_msg (device, err.what ());
-        delete (CallbackProxyUserData*) device->data;
-        device->data = 0;
+        delete (CallbackProxyUserData<RtMidiCCallback>*) device->callback_proxy;
+        device->callback_proxy = 0;
     }
 }
 
@@ -260,11 +268,24 @@ void rtmidi_in_cancel_callback (RtMidiInPtr device)
 {
     try {
         ((RtMidiIn*) device->ptr)->cancelCallback ();
-        delete (CallbackProxyUserData*) device->data;
-        device->data = 0;
+        delete (CallbackProxyUserData<RtMidiCCallback>*) device->callback_proxy;
+        device->callback_proxy = 0;
     } catch (const RtMidiError & err) {
         device->ok  = false;
         rtmidi_set_error_msg (device, err.what ());
+    }
+}
+
+void rtmidi_set_error_callback (RtMidiOutPtr device, RtMidiErrorCCallback callback, void *userData)
+{
+    device->error_callback_proxy = (void*) new CallbackProxyUserData<RtMidiErrorCCallback> (callback, userData);
+    try {
+        ((RtMidi*) device->ptr)->setErrorCallback (error_callback_proxy, device->error_callback_proxy);
+    } catch (const RtMidiError & err) {
+        device->ok  = false;
+        rtmidi_set_error_msg (device, err.what ());
+        delete (CallbackProxyUserData<RtMidiErrorCCallback>*) device->error_callback_proxy;
+        device->error_callback_proxy = 0;
     }
 }
 
@@ -310,13 +331,15 @@ RtMidiOutPtr rtmidi_out_create_default ()
         RtMidiOut* rOut = new RtMidiOut ();
 
         wrp->ptr = (void*) rOut;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = true;
         rtmidi_set_error_msg (wrp, "");
 
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = false;
         rtmidi_set_error_msg (wrp, err.what ());
     }
@@ -333,13 +356,15 @@ RtMidiOutPtr rtmidi_out_create (enum RtMidiApi api, const char *clientName)
         RtMidiOut* rOut = new RtMidiOut ((RtMidi::Api) api, name);
 
         wrp->ptr = (void*) rOut;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = true;
         rtmidi_set_error_msg (wrp, "");
 
     } catch (const RtMidiError & err) {
         wrp->ptr = 0;
-        wrp->data = 0;
+        wrp->callback_proxy = 0;
+        wrp->error_callback_proxy = 0;
         wrp->ok  = false;
         rtmidi_set_error_msg (wrp, err.what ());
     }

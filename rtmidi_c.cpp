@@ -417,5 +417,5 @@ static void rtmidi_set_error_msg (RtMidiPtr device, const char *err)
     if (device->msg) {
         free (device->msg);
     }
-    device->msg = strdup(err);
+    device->msg = _strdup(err);
 }

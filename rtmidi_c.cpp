@@ -3,6 +3,11 @@
 #include "rtmidi_c.h"
 #include "RtMidi.h"
 
+// Fixes build error C4996 on Windows 11 with VS2022
+#ifdef _MSC_VER
+#define strdup _strdup
+#endif
+
 /* Compile-time assertions that will break if the enums are changed in
  * the future without synchronizing them properly.  If you get (g++)
  * "error: ‘StaticEnumAssert<b>::StaticEnumAssert() [with bool b = false]’

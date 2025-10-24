@@ -47,7 +47,7 @@ option(RTMIDI_API_AMIDI "Compile with Android support." ${ANDROID})
 
 # Module options
 option(RTMIDI_BUILD_MODULES "Build C++ modules for RtMidi" OFF)
-option(RTMIDI_USE_NAMESPACE "Use namespace rtmidi for module" ON)
+option(RTMIDI_USE_NAMESPACE "Force usage of namespace rt::midi for modules" ON)
 
 # Add -Wall if possible
 if (CMAKE_COMPILER_IS_GNUCXX)

@@ -12,6 +12,10 @@ if(NOT COMMAND configure_cpp_module_target)
     endfunction()
 endif()
 
+if(RTMIDI_USE_NAMESPACE)
+    target_compile_definitions(rtmidi_modules PRIVATE RTMIDI_USE_NAMESPACE)
+endif()
+
 configure_cpp_module_target(rtmidi_modules)
 
 target_link_libraries(rtmidi_modules

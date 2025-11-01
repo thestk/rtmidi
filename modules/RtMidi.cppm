@@ -2,15 +2,24 @@ module;
 
 #include "RtMidi.h"
 
-export module rtmidi;
+export module rt.midi;
 
-export inline namespace rtmidi {
-    using rtmidi::RtMidiError;
-    using rtmidi::RtMidiErrorCallback;
-    using rtmidi::RtMidi;
-    using rtmidi::RtMidiIn;
-    using rtmidi::RtMidiOut;
-    using rtmidi::MidiApi;
-    using rtmidi::MidiInApi;
-    using rtmidi::MidiOutApi;
+export
+#ifdef RTMIDI_USE_NAMESPACE
+inline namespace rt {
+inline namespace midi {
+#else
+namespace rt::midi {
+#endif
+    using rt::midi::RtMidiError;
+    using rt::midi::RtMidiErrorCallback;
+    using rt::midi::RtMidi;
+    using rt::midi::RtMidiIn;
+    using rt::midi::RtMidiOut;
+    using rt::midi::MidiApi;
+    using rt::midi::MidiInApi;
+    using rt::midi::MidiOutApi;
 }
+#ifdef RTMIDI_USE_NAMESPACE
+}
+#endif

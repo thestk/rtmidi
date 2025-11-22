@@ -4,13 +4,7 @@ module;
 
 export module rt.midi;
 
-export
-#ifndef RTMIDI_USE_NAMESPACE
-inline namespace rt {
-inline namespace midi {
-#else
-namespace rt::midi {
-#endif
+export namespace rt::midi {
     using rt::midi::RtMidiError;
     using rt::midi::RtMidiErrorCallback;
     using rt::midi::RtMidi;
@@ -20,6 +14,7 @@ namespace rt::midi {
     using rt::midi::MidiInApi;
     using rt::midi::MidiOutApi;
 }
+
 #ifndef RTMIDI_USE_NAMESPACE
-}
+using namespace rt::midi;
 #endif

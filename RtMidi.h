@@ -82,8 +82,7 @@
 #include <string>
 #include <vector>
 
-inline namespace rt {
-inline namespace midi {
+namespace rt::midi {
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -677,6 +676,9 @@ inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size 
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
 }
-}
 
+#endif
+
+#ifndef RTMIDI_USE_NAMESPACE
+using namespace rt::midi;
 #endif

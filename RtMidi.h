@@ -541,6 +541,12 @@ class RTMIDI_DLL_PUBLIC MidiApi
 {
  public:
 
+  //! Set a boolean to avoid printing error messages to the error stream when no error callback is setup.
+  /*!
+      \param print True to print error messages to the error stream when no callback setup, false to not do so.
+   */
+  static void printErrorIfNoCallback( bool print );
+
   MidiApi();
   virtual ~MidiApi();
   virtual RtMidi::Api getCurrentApi( void ) = 0;
@@ -562,6 +568,7 @@ class RTMIDI_DLL_PUBLIC MidiApi
 protected:
   virtual void initialize( const std::string& clientName ) = 0;
 
+  static bool printErrorIfNoCallback_;
   void *apiData_;
   bool connected_;
   std::string errorString_;

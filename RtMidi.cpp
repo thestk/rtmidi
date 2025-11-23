@@ -40,8 +40,7 @@
 #include "RtMidi.h"
 #include <sstream>
 
-inline namespace rt {
-inline namespace midi {
+using namespace rt::midi;
 
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -5274,6 +5273,3 @@ void MidiOutAndroid :: sendMessage( const unsigned char *message, size_t size ) 
 }
 
 #endif  // __AMIDI__
-
-}
-}

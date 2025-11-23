@@ -49,19 +49,6 @@ option(RTMIDI_API_AMIDI "Compile with Android support." ${ANDROID})
 option(RTMIDI_BUILD_MODULES "Build C++ modules for RtMidi" OFF)
 option(RTMIDI_USE_NAMESPACE "Force usage of namespace rt::midi for modules" ON)
 
-# Add -Wall if possible
-if (CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-endif (CMAKE_COMPILER_IS_GNUCXX)
-
-# Add debug flags
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_definitions(-D__RTMIDI_DEBUG__)
-  if (CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-  endif (CMAKE_COMPILER_IS_GNUCXX)
-endif ()
-
 # Read libtool version info from configure.ac
 set(R "m4_define\\(\\[lt_([a-z]+)\\], ([0-9]+)\\)")
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/configure.ac" CONFIGAC
@@ -168,7 +155,7 @@ if(RTMIDI_API_AMIDI)
 endif()
 
 # pthread
-if (NEED_PTHREAD)
+if(NEED_PTHREAD)
   find_package(Threads REQUIRED
     CMAKE_THREAD_PREFER_PTHREAD
     THREADS_PREFER_PTHREAD_FLAG)
@@ -181,14 +168,14 @@ set(LIB_TARGETS)
 
 # Use RTMIDI_BUILD_SHARED_LIBS / RTMIDI_BUILD_STATIC_LIBS if they
 # are defined, otherwise default to standard BUILD_SHARED_LIBS.
-if (DEFINED RTMIDI_BUILD_SHARED_LIBS AND NOT RTMIDI_BUILD_SHARED_LIBS STREQUAL "")
-  if (RTMIDI_BUILD_SHARED_LIBS)
+if(DEFINED RTMIDI_BUILD_SHARED_LIBS AND NOT RTMIDI_BUILD_SHARED_LIBS STREQUAL "")
+  if(RTMIDI_BUILD_SHARED_LIBS)
     add_library(rtmidi SHARED ${rtmidi_SOURCES})
   else()
     add_library(rtmidi STATIC ${rtmidi_SOURCES})
   endif()
-elseif (DEFINED RTMIDI_BUILD_STATIC_LIBS AND NOT RTMIDI_BUILD_STATIC_LIBS STREQUAL "")
-  if (RTMIDI_BUILD_STATIC_LIBS)
+elseif(DEFINED RTMIDI_BUILD_STATIC_LIBS AND NOT RTMIDI_BUILD_STATIC_LIBS STREQUAL "")
+  if(RTMIDI_BUILD_STATIC_LIBS)
     add_library(rtmidi STATIC ${rtmidi_SOURCES})
   else()
     add_library(rtmidi SHARED ${rtmidi_SOURCES})
@@ -197,6 +184,19 @@ else()
   add_library(rtmidi ${rtmidi_SOURCES})
 endif()
 list(APPEND LIB_TARGETS rtmidi)
+
+# Add -Wall if possible
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+  target_compile_options(rtmidi PRIVATE -Wall)
+endif()
+
+# Add debug flags
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-D__RTMIDI_DEBUG__)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    target_compile_options(rtmidi PRIVATE -Werror)
+  endif()
+endif()
 
 # Add headers destination for install rule.
 set_property(TARGET rtmidi PROPERTY PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/RtMidi.h" "${CMAKE_CURRENT_SOURCE_DIR}/rtmidi_c.h")
@@ -216,7 +216,7 @@ target_include_directories(rtmidi PRIVATE ${INCDIRS}
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
-target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS} 
+target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS}
                              PRIVATE ${LINKLIBS})
 
 if(RTMIDI_BUILD_MODULES)
@@ -233,7 +233,7 @@ option(RTMIDI_BUILD_TESTING "Build test programs" ON)
 if (NOT DEFINED RTMIDI_BUILD_TESTING OR RTMIDI_BUILD_TESTING STREQUAL "")
   set(RTMIDI_BUILD_TESTING ${BUILD_TESTING})
 endif()
-if (RTMIDI_BUILD_TESTING)
+if(RTMIDI_BUILD_TESTING)
   include(CTest)
   add_executable(cmidiin    tests/cmidiin.cpp)
   add_executable(midiclock  tests/midiclock.cpp)
@@ -314,14 +314,14 @@ write_basic_package_version_file(
 string(REPLACE ";" "\n" package_dependencies "${PACKAGE_DEPENDENCIES}")
 
 # Write cmake package config file
-configure_package_config_file (
+configure_package_config_file(
     cmake/rtmidi-config.cmake.in
     rtmidi-config.cmake
     INSTALL_DESTINATION "${RTMIDI_CMAKE_DESTINATION}"
 )
 
 # Install package files
-install (
+install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config-version.cmake"

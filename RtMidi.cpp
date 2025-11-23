@@ -5012,7 +5012,13 @@ static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
   auto bundleClass = env->FindClass("android/os/Bundle");
   auto getStringMethod = env->GetMethodID(bundleClass, "getString", "(Ljava/lang/String;)Ljava/lang/String;");
   auto jPortName = (jstring) env->CallObjectMethod(bundle, getStringMethod, env->NewStringUTF("name"));
-
+  if (jPortName == nullptr) {
+    jPortName = (jstring) env->CallObjectMethod(bundle, getStringMethod, env->NewStringUTF("product"));
+    if (jPortName == nullptr) {
+      return "";
+    }
+  }
+  
   auto portNameChars = env->GetStringUTFChars(jPortName, NULL);
   auto name = std::string(portNameChars);
   env->ReleaseStringUTFChars(jPortName, portNameChars);

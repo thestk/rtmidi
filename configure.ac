@@ -84,6 +84,7 @@ AS_IF([test "x$AR" = "xno"], [
 ])
 
 LT_INIT([win32-dll])
+AM_CONDITIONAL([enable_shared], [test "$enable_shared" = "yes"])
 AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for header files.

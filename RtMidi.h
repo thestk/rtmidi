@@ -82,7 +82,8 @@
 #include <string>
 #include <vector>
 
-namespace rt::midi {
+namespace rt {
+namespace midi {
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -675,7 +676,8 @@ inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message 
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
-}
+} // namespace midi
+} // namespace rt
 
 #endif
 

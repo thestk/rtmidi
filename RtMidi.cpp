@@ -2688,6 +2688,7 @@ struct WinMidiData {
   MidiInApi::MidiMessage message;
   std::vector<LPMIDIHDR> sysexBuffer;
   CRITICAL_SECTION _mutex; // [Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
+  std::atomic<bool> closing;
 };
 
 //*********************************************************************//
@@ -2761,12 +2762,15 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
     // avoid requeueing it, else the computer suddenly reboots after
     // one or two minutes.
     if ( apiData->sysexBuffer[sysex->dwUser]->dwBytesRecorded > 0 ) {
-      //if ( sysex->dwBytesRecorded > 0 ) {
-      EnterCriticalSection( &(apiData->_mutex) );
-      MMRESULT result = midiInAddBuffer( apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR) );
-      LeaveCriticalSection( &(apiData->_mutex) );
-      if ( result != MMSYSERR_NOERROR )
-        std::cerr << "\nRtMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
+      
+      if (!apiData->closing)
+      {
+          EnterCriticalSection(&(apiData->_mutex));
+          MMRESULT result = midiInAddBuffer(apiData->inHandle, apiData->sysexBuffer[sysex->dwUser], sizeof(MIDIHDR));
+          LeaveCriticalSection(&(apiData->_mutex));
+          if (result != MMSYSERR_NOERROR)
+              std::cerr << "\nRtMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
+      }
 
       if ( data->ignoreFlags & 0x01 ) return;
     }
@@ -2823,6 +2827,7 @@ void MidiInWinMM :: initialize( const std::string& /*clientName*/ )
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
   data->message.bytes.clear();  // needs to be empty for first input message
+  data->closing = false;
 
   if ( !InitializeCriticalSectionAndSpinCount( &(data->_mutex), 0x00000400 ) ) {
     errorString_ = "MidiInWinMM::initialize: InitializeCriticalSectionAndSpinCount failed.";
@@ -2917,9 +2922,13 @@ void MidiInWinMM :: closePort( void )
 {
   if ( connected_ ) {
     WinMidiData *data = static_cast<WinMidiData *> (apiData_);
-    EnterCriticalSection( &(data->_mutex) );
-    midiInReset( data->inHandle );
-    midiInStop( data->inHandle );
+
+    // avoid deadlock in midiInputCallback
+    data->closing = true;
+
+    EnterCriticalSection(&(data->_mutex));
+    midiInReset(data->inHandle);
+    midiInStop(data->inHandle);
 
     for ( size_t i=0; i < data->sysexBuffer.size(); ++i ) {
       int result = midiInUnprepareHeader(data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR));

@@ -2650,6 +2650,7 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
 // Windows MM MIDI header files.
 #include <windows.h>
 #include <mmsystem.h>
+#include <atomic>
 
 // Convert a null-terminated wide string or ANSI-encoded string to UTF-8.
 static std::string ConvertToUTF8(const TCHAR *str)

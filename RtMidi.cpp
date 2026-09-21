@@ -1683,11 +1683,10 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
   OSStatus result;
 
   ByteCount bufsize = nBytes > 65535 ? 65535 : nBytes;
-  ByteCount listSize = (bufsize+16) * sizeof(Byte);
-  Byte *buffer = (Byte *) alloca(listSize);
+  std::vector<Byte> buffer( bufsize + 16 ); // pad for other struct members
+  ByteCount listSize = buffer.size();
+  MIDIPacketList *packetList = (MIDIPacketList*)buffer.data();
   
-  MIDIPacketList *packetList = (MIDIPacketList*)buffer;
-
   ByteCount remainingBytes = nBytes;
   while ( remainingBytes ) {
     MIDIPacket *packet = MIDIPacketListInit( packetList );

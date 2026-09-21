@@ -2687,7 +2687,14 @@ struct WinMidiData {
   DWORD lastTime;
   MidiInApi::MidiMessage message;
   std::vector<LPMIDIHDR> sysexBuffer;
-  CRITICAL_SECTION _mutex; // [Patrice] protects the sysex buffer requeue in midiInputCallback
+  // WinMM calls midiInputCallback() on a thread it owns, because midiInOpen()
+  // is called with CALLBACK_FUNCTION, and that callback requeues sysex buffers
+  // with midiInAddBuffer().  Meanwhile closePort() runs on the caller's thread
+  // and retires the same buffers with midiInUnprepareHeader().  This guards
+  // that overlap: it is not protecting against two application threads, but
+  // against the driver's own callback thread arriving during teardown.
+  // [Patrice]
+  CRITICAL_SECTION _mutex;
 };
 
 //*********************************************************************//

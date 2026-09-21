@@ -9,12 +9,14 @@ By Gary P. Scavone, 2003-2023.
 
 This distribution of RtMidi contains the following:
 
-- `doc`:      RtMidi documentation (also online at http://www.music.mcgill.ca/~gary/rtmidi/)
+- `doc`:      RtMidi documentation (also online at https://caml.music.mcgill.ca/~gary/rtmidi/)
 - `tests`:    example RtMidi programs
 
-On Unix systems, type `./configure` in the top level directory, then `make` in the `tests/` directory to compile the test programs.  In Windows, open the Visual C++ workspace file located in the `tests/` directory.
+On Unix systems, run `./configure` and then `make` in the top level directory.  This builds both the library and the test programs in `tests/`.  In Windows, open the Visual C++ workspace file located in the `tests/` directory.
 
 If you checked out the code from git, please run `./autogen.sh` before `./configure`.
+
+`./configure --help` lists the available MIDI API options (`--with-alsa`, `--with-jack`, `--with-core`, `--with-winmm`); by default those appropriate to the system are selected.  RtMidi can also be built with CMake.
 
 ## Overview
 
@@ -27,13 +29,15 @@ RtMidi is a set of C++ classes (`RtMidiIn`, `RtMidiOut`, and API specific classe
 
 MIDI input and output functionality are separated into two classes, `RtMidiIn` and `RtMidiOut`.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a `double` floating point type).  MIDI data is passed to the user as raw bytes using an `std::vector<unsigned char>`.
 
+RtMidi is also offered as a module, which is enabled with `RTMIDI_BUILD_MODULES`, and is accessed with `import rt.midi;`. Namespaces are implicitly imported (unless disabled with `RTMIDI_USE_NAMESPACE`), so classes can be accessed through namespace `rt::midi` or through the global namespace (for example, `rt::midi::MidiApi` and `::MidiApi` are both valid).
+
 ## Windows
 
 In some cases, for example to use RtMidi with GS Synth, it may be necessary for your program to call `CoInitializeEx` and `CoUninitialize` on entry to and exit from the thread that uses RtMidi.
 
 ## Further reading
 
-For complete documentation on RtMidi, see the `doc` directory of the distribution or surf to http://www.music.mcgill.ca/~gary/rtmidi/.
+For complete documentation on RtMidi, see the `doc` directory of the distribution or surf to https://caml.music.mcgill.ca/~gary/rtmidi/.
 
 ## Legal and ethical
 

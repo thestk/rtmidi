@@ -6,7 +6,7 @@
     MIDI input/output subclasses RtMidiIn and RtMidiOut.
 
     RtMidi GitHub site: https://github.com/thestk/rtmidi
-    RtMidi WWW site: http://www.music.mcgill.ca/~gary/rtmidi/
+    RtMidi WWW site: https://caml.music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
     Copyright (c) 2003-2023 Gary P. Scavone
@@ -39,6 +39,9 @@
 
 #include "RtMidi.h"
 #include <sstream>
+
+using namespace rt::midi;
+
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif
@@ -1752,9 +1755,454 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
 // ALSA header file.
 #include <alsa/asoundlib.h>
 
+// USB identity lookup needs snd_seq_client_info_get_card() (ALSA 1.1.1).
+#if SND_LIB_VERSION >= 0x010101
+#include <algorithm>
+#include <fstream>
+#include <memory>
+#include <mutex>
+#include <fcntl.h>
+#include <limits.h>
+
+namespace {
+
+class AlsaMidiMonitor;
+
+// Per-connection state; ownership stays with the input/output backend.
+class AlsaMidiReconnect
+{
+ public:
+  static bool isSupported() { return true; }
+  AlsaMidiReconnect();
+  ~AlsaMidiReconnect() { stop(); }
+  void prepare( snd_seq_t *seq, snd_seq_port_subscribe_t *subscription, bool input );
+  int start();
+  void stop();
+  int setEnabled( bool enabled );
+  bool isEnabled() const;
+
+ private:
+  friend class AlsaMidiMonitor;
+  AlsaMidiReconnect( const AlsaMidiReconnect & );
+  AlsaMidiReconnect &operator=( const AlsaMidiReconnect & );
+  static std::string identity( snd_seq_t *seq, const snd_seq_addr_t &address );
+  int findPort( snd_seq_t *seq, snd_seq_addr_t &match );
+  void reconcile( snd_seq_t *seq );
+  void reconnect( snd_seq_t *seq );
+
+  std::shared_ptr<AlsaMidiMonitor> monitor_;
+  snd_seq_port_subscribe_t *subscription_;
+  snd_seq_addr_t remote_;
+  std::string identity_;
+  bool input_, missing_, active_, enabled_, check_;
+  int lastError_;
+};
+
+// One announcement handle and worker for all ALSA input/output connections.
+// The registry lock protects subscription lifetime, never MIDI reads/writes.
+// Helpers retain shared ownership, including during static-object destruction.
+class AlsaMidiMonitor
+{
+ public:
+  static std::shared_ptr<AlsaMidiMonitor> instance() {
+    static std::shared_ptr<AlsaMidiMonitor> monitor( new AlsaMidiMonitor );
+    return monitor;
+  }
+  ~AlsaMidiMonitor();
+  static void warning( int error, const char *operation, int &previous );
+
+ private:
+  friend class AlsaMidiReconnect;
+  AlsaMidiMonitor() : seq_(0), wake_{-1, -1}, running_(false), quitting_(false), rescan_(false), retry_(false), lastError_(0) {}
+  int start();
+  void notify();
+  int open();
+  void reset( bool retry = false );
+  static void *run( void *context );
+  void watch();
+
+  std::mutex control_;
+  std::vector<AlsaMidiReconnect *> connections_;
+  snd_seq_t *seq_;
+  int wake_[2];
+  pthread_t thread_;
+  bool running_, quitting_, rescan_, retry_;
+  int lastError_;
+};
+
+AlsaMidiReconnect :: AlsaMidiReconnect()
+  : monitor_(AlsaMidiMonitor::instance()), subscription_(0), input_(false),
+    missing_(false), active_(false), enabled_(true), check_(false), lastError_(0)
+{
+}
+
+std::string AlsaMidiReconnect :: identity( snd_seq_t *seq, const snd_seq_addr_t &address )
+{
+  snd_seq_client_info_t *client;
+  snd_seq_port_info_t *port;
+  snd_seq_client_info_alloca( &client );
+  snd_seq_port_info_alloca( &port );
+  if ( snd_seq_get_any_client_info( seq, address.client, client ) < 0 ||
+       snd_seq_get_any_port_info( seq, address.client, address.port, port ) < 0 ) return "";
+  int card = snd_seq_client_info_get_card( client );
+  if ( card < 0 ) return "";
+
+  std::ostringstream cardPath;
+  cardPath << "/sys/class/sound/card" << card << "/device";
+  char resolved[PATH_MAX];
+  if ( !realpath( cardPath.str().c_str(), resolved ) ) return "";
+  std::string path( resolved );
+  while ( !path.empty() ) {
+    std::string vendor, product, serial;
+    std::ifstream( (path + "/idVendor").c_str() ) >> vendor;
+    std::ifstream( (path + "/idProduct").c_str() ) >> product;
+    if ( !vendor.empty() && !product.empty() ) {
+      std::ifstream serialFile( (path + "/serial").c_str() );
+      std::getline( serialFile, serial );
+      // Without a serial, identity means the same USB location, not proof of
+      // the same physical unit. Never fall back to an ALSA address or name alone.
+      std::ostringstream key;
+      key << vendor << ':' << product << ':';
+      if ( serial.empty() ) key << "path:" << path;
+      else key << "serial:" << serial;
+      key << ':' << (unsigned int) address.port << ':' << snd_seq_port_info_get_name( port );
+      return key.str();
+    }
+    path.erase( path.find_last_of( '/' ) );
+  }
+  return "";
+}
+
+
+int AlsaMidiReconnect :: findPort( snd_seq_t *seq, snd_seq_addr_t &match )
+{
+  snd_seq_client_info_t *client;
+  snd_seq_port_info_t *port;
+  snd_seq_client_info_alloca( &client );
+  snd_seq_port_info_alloca( &port );
+  unsigned int matches = 0;
+  unsigned int caps = SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE;
+  if ( input_ ) caps = SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ;
+  snd_seq_client_info_set_client( client, -1 );
+  int clientResult, portResult;
+  while ( (clientResult = snd_seq_query_next_client( seq, client )) >= 0 ) {
+    snd_seq_port_info_set_client( port, snd_seq_client_info_get_client( client ) );
+    snd_seq_port_info_set_port( port, -1 );
+    while ( (portResult = snd_seq_query_next_port( seq, port )) >= 0 ) {
+      unsigned int capability = snd_seq_port_info_get_capability( port );
+      if ( (capability & caps) != caps || (capability & SND_SEQ_PORT_CAP_NO_EXPORT) != 0 ) continue;
+      snd_seq_addr_t address;
+      address.client = snd_seq_port_info_get_client( port );
+      address.port = snd_seq_port_info_get_port( port );
+      if ( identity( seq, address ) != identity_ ) continue;
+      match = address;
+      ++matches;
+    }
+    if ( portResult != -ENOENT ) {
+      AlsaMidiMonitor::warning( portResult, "enumerating MIDI ports", lastError_ );
+      return portResult;
+    }
+  }
+  if ( clientResult != -ENOENT ) {
+    AlsaMidiMonitor::warning( clientResult, "enumerating MIDI clients", lastError_ );
+    return clientResult;
+  }
+  // Duplicate serials or otherwise ambiguous identities must not be guessed.
+  return matches;
+}
+
+
+void AlsaMidiReconnect :: prepare( snd_seq_t *seq, snd_seq_port_subscribe_t *subscription, bool input )
+{
+  stop();
+  input_ = input;
+  if ( input ) remote_ = *snd_seq_port_subscribe_get_sender( subscription );
+  else remote_ = *snd_seq_port_subscribe_get_dest( subscription );
+  identity_ = identity( seq, remote_ );
+  if ( identity_.empty() ) return;
+  snd_seq_addr_t match;
+  int matches = findPort( seq, match );
+  if ( matches >= 0 && matches != 1 ) return;
+
+  std::lock_guard<std::mutex> lock( monitor_->control_ );
+  monitor_->connections_.push_back( this );
+  subscription_ = subscription;
+  missing_ = false;
+  lastError_ = 0;
+}
+
+int AlsaMidiReconnect :: start()
+{
+  std::lock_guard<std::mutex> lock( monitor_->control_ );
+  if ( !subscription_ ) return 0;
+  active_ = true;
+  check_ = true;
+  int result = monitor_->start();
+  monitor_->notify();
+  return result;
+}
+
+void AlsaMidiReconnect :: stop()
+{
+  std::lock_guard<std::mutex> lock( monitor_->control_ );
+  if ( !subscription_ ) return;
+  std::vector<AlsaMidiReconnect *> &connections = monitor_->connections_;
+  connections.erase( std::find( connections.begin(), connections.end(), this ) );
+  // No worker can access the subscription after this lock is released.
+  subscription_ = 0;
+  active_ = false;
+  monitor_->notify();
+}
+
+int AlsaMidiReconnect :: setEnabled( bool enabled )
+{
+  std::lock_guard<std::mutex> lock( monitor_->control_ );
+  enabled_ = enabled;
+  if ( !enabled || !active_ ) return 0;
+  check_ = true;
+  int result = monitor_->start();
+  monitor_->notify();
+  return result;
+}
+
+bool AlsaMidiReconnect :: isEnabled() const
+{
+  std::lock_guard<std::mutex> lock( monitor_->control_ );
+  return enabled_;
+}
+
+void AlsaMidiReconnect :: reconcile( snd_seq_t *seq )
+{
+  snd_seq_port_subscribe_t *query;
+  snd_seq_port_subscribe_alloca( &query );
+  snd_seq_port_subscribe_copy( query, subscription_ );
+  // After lost announcements, the numeric address alone is not trustworthy.
+  if ( snd_seq_get_port_subscription( seq, query ) < 0 || identity( seq, remote_ ) != identity_ )
+    missing_ = true;
+  check_ = false;
+}
+
+void AlsaMidiReconnect :: reconnect( snd_seq_t *seq )
+{
+  snd_seq_addr_t match;
+  if ( findPort( seq, match ) != 1 ) return;
+  if ( input_ ) snd_seq_port_subscribe_set_sender( subscription_, &match );
+  else snd_seq_port_subscribe_set_dest( subscription_, &match );
+  int result = snd_seq_subscribe_port( seq, subscription_ );
+  if ( result == 0 || result == -EBUSY ) {
+    // EBUSY can mean another application already restored this subscription.
+    snd_seq_port_subscribe_t *query;
+    snd_seq_port_subscribe_alloca( &query );
+    snd_seq_port_subscribe_copy( query, subscription_ );
+    int status = snd_seq_get_port_subscription( seq, query );
+    if ( status < 0 ) {
+      AlsaMidiMonitor::warning( status, "checking restored subscription", lastError_ );
+      return;
+    }
+    remote_ = match;
+    missing_ = false;
+    lastError_ = 0;
+  }
+  else AlsaMidiMonitor::warning( result, "restoring MIDI subscription", lastError_ );
+}
+
+void AlsaMidiMonitor :: warning( int error, const char *operation, int &previous )
+{
+  if ( previous == error ) return;
+  // Like alsaMidiHandler(), report worker errors without application callbacks:
+  // a callback could close a port or destroy RtMidi while this lock is held.
+  std::cerr << "RtMidi ALSA hotplug: " << operation << ": " << snd_strerror( error ) << "; retrying.\n";
+  previous = error;
+}
+
+int AlsaMidiMonitor :: start()
+{
+  if ( running_ ) return 0;
+  int error = 0;
+  // No worker exists yet to retry these failures. Retry transient exhaustion
+  // here, then let the caller report persistent failure through MidiApi::error.
+  for ( int attempt = 0; attempt < 3; ++attempt ) {
+    // Like the ALSA input thread, wake through a pipe; never block a notifier.
+    if ( pipe2( wake_, O_NONBLOCK | O_CLOEXEC ) < 0 ) error = errno;
+    else {
+      error = pthread_create( &thread_, 0, run, this );
+      if ( error == 0 ) { running_ = true; return 0; }
+      close( wake_[0] );
+      close( wake_[1] );
+      wake_[0] = wake_[1] = -1;
+    }
+    poll( 0, 0, 10 );
+  }
+  return -error;
+}
+
+void AlsaMidiMonitor :: notify()
+{
+  if ( wake_[1] < 0 ) return;
+  char value = 1;
+  ssize_t result;
+  do { result = write( wake_[1], &value, sizeof(value) ); } while ( result < 0 && errno == EINTR );
+  // EAGAIN means a wake-up is already pending.
+}
+
+AlsaMidiMonitor :: ~AlsaMidiMonitor()
+{
+  {
+    std::lock_guard<std::mutex> lock( control_ );
+    quitting_ = true;
+    notify();
+  }
+  // Never join while holding the lock the worker needs to exit.
+  if ( running_ ) pthread_join( thread_, 0 );
+  if ( seq_ ) snd_seq_close( seq_ );
+  if ( wake_[0] >= 0 ) close( wake_[0] );
+  if ( wake_[1] >= 0 ) close( wake_[1] );
+}
+
+void AlsaMidiMonitor :: reset( bool retry )
+{
+  if ( seq_ ) snd_seq_close( seq_ );
+  seq_ = 0;
+  rescan_ = true;
+  retry_ = retry;
+}
+
+int AlsaMidiMonitor :: open()
+{
+  int result = snd_seq_open( &seq_, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK );
+  if ( result < 0 ) { seq_ = 0; return result; }
+  result = snd_seq_set_client_name( seq_, "RtMidi hotplug" );
+  if ( result >= 0 ) {
+    int port = snd_seq_create_simple_port( seq_, "Announce",
+      SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE | SND_SEQ_PORT_CAP_NO_EXPORT, 0 );
+    result = port;
+    if ( port >= 0 )
+      result = snd_seq_connect_from( seq_, port, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE );
+  }
+  if ( result < 0 ) reset( true );
+  else rescan_ = true;
+  return result;
+}
+
+void *AlsaMidiMonitor :: run( void *context )
+{
+  AlsaMidiMonitor *monitor = static_cast<AlsaMidiMonitor *>(context);
+  pthread_setname_np( pthread_self(), "RtMidi hotplug" );
+  for (;;) {
+    try { monitor->watch(); return 0; }
+    catch ( const std::exception &error ) {
+      std::cerr << "RtMidi ALSA hotplug: " << error.what() << "; retrying.\n";
+      std::lock_guard<std::mutex> lock( monitor->control_ );
+      monitor->reset( true );
+    }
+    poll( 0, 0, 100 );
+  }
+}
+
+void AlsaMidiMonitor :: watch()
+{
+  for (;;) {
+    struct pollfd fds[2] = {};
+    fds[0].fd = wake_[0];
+    fds[0].events = POLLIN;
+    int count = 1, timeout = -1;
+    {
+      std::lock_guard<std::mutex> lock( control_ );
+      if ( quitting_ ) return;
+      if ( connections_.empty() ) reset();
+      else if ( !seq_ && !retry_ ) {
+        int result = open();
+        if ( result < 0 ) warning( result, "opening announcement monitor", lastError_ );
+      }
+      if ( seq_ ) {
+        int result = snd_seq_poll_descriptors( seq_, &fds[1], 1, POLLIN );
+        if ( result != 1 ) {
+          warning( -EIO, "getting announcement descriptor", lastError_ );
+          reset( true );
+        }
+        else {
+          count = 2;
+          if ( rescan_ || snd_seq_event_input_pending( seq_, 0 ) > 0 ) timeout = 0;
+        }
+      }
+      if ( !connections_.empty() && !seq_ ) timeout = 100;
+      for ( AlsaMidiReconnect *connection : connections_ )
+        if ( connection->active_ && (connection->check_ || (connection->missing_ && connection->enabled_)) )
+          if ( timeout != 0 ) timeout = 100;
+    }
+
+    int result = poll( fds, count, timeout );
+    int pollError = errno;
+    std::lock_guard<std::mutex> lock( control_ );
+    if ( quitting_ ) return;
+    if ( result < 0 ) {
+      if ( pollError != EINTR ) { warning( -pollError, "waiting for announcements", lastError_ ); reset( true ); }
+      continue;
+    }
+    if ( fds[0].revents & POLLIN ) {
+      char values[256];
+      ssize_t bytes = read( wake_[0], values, sizeof(values) );
+      (void) bytes;
+    }
+    if ( !seq_ ) { retry_ = false; continue; }
+    if ( fds[1].revents & (POLLERR | POLLHUP | POLLNVAL) ) {
+      warning( -EIO, "reading announcement descriptor", lastError_ );
+      reset( true );
+      continue;
+    }
+    // Bound each batch so an event storm cannot starve closePort().
+    int inputResult = 0;
+    for ( int batch = 0; batch < 1024; ++batch ) {
+      snd_seq_event_t *event;
+      inputResult = snd_seq_event_input( seq_, &event );
+      if ( inputResult < 0 ) break;
+      if ( event->type == SND_SEQ_EVENT_PORT_EXIT )
+        for ( AlsaMidiReconnect *connection : connections_ )
+          if ( event->data.addr.client == connection->remote_.client &&
+               event->data.addr.port == connection->remote_.port )
+            connection->missing_ = true;
+      snd_seq_free_event( event );
+    }
+    if ( inputResult == -ENOSPC ) {
+      warning( inputResult, "announcement overflow; reconciling connections", lastError_ );
+      rescan_ = true;
+    }
+    else if ( inputResult < 0 && inputResult != -EAGAIN && inputResult != -EINTR ) {
+      warning( inputResult, "reading announcements", lastError_ );
+      reset( true );
+      continue;
+    }
+    else lastError_ = 0;
+    for ( AlsaMidiReconnect *connection : connections_ ) {
+      if ( !connection->active_ ) continue;
+      if ( rescan_ || connection->check_ ) connection->reconcile( seq_ );
+      if ( connection->missing_ && connection->enabled_ ) connection->reconnect( seq_ );
+    }
+    rescan_ = false;
+  }
+}
+
+#else
+
+namespace {
+
+class AlsaMidiReconnect
+{
+ public:
+  static bool isSupported() { return false; }
+  void prepare( snd_seq_t *, snd_seq_port_subscribe_t *, bool ) {}
+  int start() { return 0; }
+  void stop() {}
+  int setEnabled( bool ) { return 0; }
+  bool isEnabled() const { return false; }
+};
+
+#endif
+
 // A structure to hold variables related to the ALSA API
 // implementation.
 struct AlsaMidiData {
+  AlsaMidiReconnect reconnect;
   snd_seq_t *seq;
   unsigned int portNum;
   int vport;
@@ -1769,6 +2217,8 @@ struct AlsaMidiData {
   int queue_id; // an input queue is needed to get timestamped events
   int trigger_fds[2];
 };
+
+} // namespace
 
 #define PORT_TYPE( pinfo, bits ) ((snd_seq_port_info_get_capability(pinfo) & (bits)) == (bits))
 
@@ -1855,6 +2305,10 @@ static void *alsaMidiHandler( void *ptr )
       break;
 
     case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
+      continueSysex = false;
+      message.bytes.clear();
+      data->firstMessage = true;
+      snd_midi_event_reset_decode( apiData->coder );
 #if defined(__RTMIDI_DEBUG__)
       std::cerr << "MidiInAlsa::alsaMidiHandler: port connection has closed!\n";
       std::cout << "sender = " << (int) ev->data.connect.sender.client << ":"
@@ -2210,7 +2664,9 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string &portNam
     }
     snd_seq_port_subscribe_set_sender( data->subscription, &sender );
     snd_seq_port_subscribe_set_dest( data->subscription, &receiver );
+    data->reconnect.prepare( data->seq, data->subscription, true );
     if ( snd_seq_subscribe_port( data->seq, data->subscription ) ) {
+      data->reconnect.stop();
       snd_seq_port_subscribe_free( data->subscription );
       data->subscription = 0;
       errorString_ = "MidiInAlsa::openPort: ALSA error making port connection.";
@@ -2235,6 +2691,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string &portNam
     int err = pthread_create( &data->thread, &attr, alsaMidiHandler, &inputData_ );
     pthread_attr_destroy( &attr );
     if ( err ) {
+      data->reconnect.stop();
       snd_seq_unsubscribe_port( data->seq, data->subscription );
       snd_seq_port_subscribe_free( data->subscription );
       data->subscription = 0;
@@ -2246,6 +2703,8 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string &portNam
   }
 
   connected_ = true;
+  int result = data->reconnect.start();
+  if ( result < 0 ) error( RtMidiError::THREAD_ERROR, "MidiInAlsa: cannot start hotplug monitor." );
 }
 
 void MidiInAlsa :: openVirtualPort( const std::string &portName )
@@ -2313,6 +2772,7 @@ void MidiInAlsa :: openVirtualPort( const std::string &portName )
 void MidiInAlsa :: closePort( void )
 {
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
+  data->reconnect.stop();
 
   if ( connected_ ) {
     if ( data->subscription ) {
@@ -2514,18 +2974,24 @@ void MidiOutAlsa :: openPort( unsigned int portNumber, const std::string &portNa
   snd_seq_port_subscribe_set_dest( data->subscription, &receiver );
   snd_seq_port_subscribe_set_time_update( data->subscription, 1 );
   snd_seq_port_subscribe_set_time_real( data->subscription, 1 );
+  data->reconnect.prepare( data->seq, data->subscription, false );
   if ( snd_seq_subscribe_port( data->seq, data->subscription ) ) {
+    data->reconnect.stop();
     snd_seq_port_subscribe_free( data->subscription );
+    data->subscription = 0;
     errorString_ = "MidiOutAlsa::openPort: ALSA error making port connection.";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
 
   connected_ = true;
+  int result = data->reconnect.start();
+  if ( result < 0 ) error( RtMidiError::THREAD_ERROR, "MidiOutAlsa: cannot start hotplug monitor." );
 }
 
 void MidiOutAlsa :: closePort( void )
 {
+  static_cast<AlsaMidiData *>(apiData_)->reconnect.stop();
   if ( connected_ ) {
     AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
     snd_seq_unsubscribe_port( data->seq, data->subscription );
@@ -3437,14 +3903,15 @@ std::vector<UWPMidiClass::port> UWPMidiClass::list_ports(winrt::hstring device_s
     return retval;
 }
 
-// Fix MIDI OUT port names starting with `MIDI` to MIDI IN port names with similar ID strings
+// Fix MIDI OUT port names starting with `MIDI` or `2 - MIDI` to MIDI IN port names with similar ID strings
 void UWPMidiClass::fix_display_name(const std::vector<port>& in_ports,
     std::vector<port>& out_ports)
 {
     for (auto& outp : out_ports)
     {
-        if (outp.hex_id.empty() ||
-            std::string_view{ outp.name }.substr(0, 4) != "MIDI")
+        if (outp.hex_id.empty())
+            continue;
+        if (std::string_view{ outp.name }.substr(0, 4) != "MIDI" && std::string_view{ outp.name }.substr(1, 7) != " - MIDI")
             continue;
 
         for (const auto& inp : in_ports)
@@ -5269,3 +5736,35 @@ void MidiOutAndroid :: sendMessage( const unsigned char *message, size_t size ) 
 }
 
 #endif  // __AMIDI__
+
+// Optional backend features use non-virtual dispatch to preserve the existing
+// MidiApi and derived-class vtables. Other backends default to unsupported.
+bool MidiApi :: supportsAutoReconnect( void ) const
+{
+#if defined(__LINUX_ALSA__)
+  if ( const_cast<MidiApi *>(this)->getCurrentApi() == RtMidi::LINUX_ALSA )
+    return AlsaMidiReconnect::isSupported();
+#endif
+  return false;
+}
+
+void MidiApi :: setAutoReconnect( bool enabled )
+{
+#if defined(__LINUX_ALSA__)
+  if ( getCurrentApi() == RtMidi::LINUX_ALSA ) {
+    int result = static_cast<AlsaMidiData *>(apiData_)->reconnect.setEnabled( enabled );
+    if ( result < 0 ) error( RtMidiError::THREAD_ERROR, "RtMidi ALSA: cannot start hotplug monitor." );
+  }
+#else
+  (void) enabled;
+#endif
+}
+
+bool MidiApi :: isAutoReconnectEnabled( void ) const
+{
+#if defined(__LINUX_ALSA__)
+  if ( const_cast<MidiApi *>(this)->getCurrentApi() == RtMidi::LINUX_ALSA )
+    return static_cast<AlsaMidiData *>(apiData_)->reconnect.isEnabled();
+#endif
+  return false;
+}

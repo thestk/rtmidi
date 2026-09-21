@@ -39,13 +39,14 @@ extern "C" {
 struct RtMidiWrapper {
     //! The wrapped RtMidi object.
     void* ptr;
-    void* data;
+    void* callback_proxy;
+    void* error_callback_proxy;
 
     //! True when the last function call was OK.
-    bool  ok;
+    bool ok;
 
     //! If an error occurred (ok != true), set to an error message.
-    const char* msg;
+    char* msg;
 };
 
 //! \brief Typedef for a generic RtMidi pointer.
@@ -97,6 +98,17 @@ enum RtMidiErrorType {
 typedef void(* RtMidiCCallback) (double timeStamp, const unsigned char* message,
                                  size_t messageSize, void *userData);
 
+/*! \brief The type of a RtMidi error callback function.
+ *
+ * \param type        Type of error
+ * \param message     Error description
+ * \param userData    Additional user data for the callback.
+ *
+ * See \ref MidiApi::setErrorCallback.
+ */
+typedef void(* RtMidiErrorCCallback) (enum RtMidiErrorType type,
+                                      const char *errorText,
+                                      void *userData);
 
 /* RtMidi API */
 
@@ -131,9 +143,6 @@ RTMIDIAPI const char *rtmidi_api_display_name(enum RtMidiApi api);
 //! \brief Return the compiled MIDI API having the given name.
 //! See \ref RtMidi::getCompiledApiByName().
 RTMIDIAPI enum RtMidiApi rtmidi_compiled_api_by_name(const char *name);
-
-//! \internal Report an error.
-RTMIDIAPI void rtmidi_error (enum RtMidiErrorType type, const char* errorString);
 
 /*! \brief Open a MIDI port.
  *
@@ -250,6 +259,9 @@ RTMIDIAPI enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device);
 //! See \ref RtMidiOut::sendMessage().
 RTMIDIAPI int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length);
 
+//! \brief Set error callback function on a RtMidiPtr.
+//! See \ref MidiApi::setErrorCallback().
+RTMIDIAPI void rtmidi_set_error_callback (RtMidiPtr device, RtMidiErrorCCallback callback, void *userData);
 
 #ifdef __cplusplus
 }

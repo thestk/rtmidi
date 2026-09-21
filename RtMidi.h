@@ -6,7 +6,7 @@
     MIDI input/output subclasses RtMidiIn and RtMidiOut.
 
     RtMidi GitHub site: https://github.com/thestk/rtmidi
-    RtMidi WWW site: http://www.music.mcgill.ca/~gary/rtmidi/
+    RtMidi WWW site: https://caml.music.mcgill.ca/~gary/rtmidi/
 
     RtMidi: realtime MIDI i/o C++ classes
     Copyright (c) 2003-2023 Gary P. Scavone
@@ -82,6 +82,8 @@
 #include <string>
 #include <vector>
 
+namespace rt {
+namespace midi {
 
 /************************************************************************/
 /*! \class RtMidiError
@@ -224,6 +226,35 @@ class RTMIDI_DLL_PUBLIC RtMidi
       function, not to virtual ports.
   */
   virtual bool isPortOpen( void ) const = 0;
+
+  //! Whether this backend can restore connections after device removal.
+  /*!
+      Support does not guarantee that every device can be identified again.
+      ALSA reconnects identifiable USB ports; closePort() cancels recovery.
+      Matching uses USB vendor/product, serial (or USB location without one),
+      and port number/name. Ambiguous matches are not reconnected. A USB
+      location identifies a socket, not necessarily the same physical unit.
+      Enumeration remains a snapshot; previously saved port indices may change.
+      isPortOpen() continues to describe an explicitly opened connection,
+      including the interval while its device is temporarily absent.
+  */
+  bool supportsAutoReconnect( void ) const;
+
+  //! Enable or disable automatic recovery (enabled by default when supported).
+  /*!
+      Disabling recovery leaves an existing MIDI connection intact. Re-enabling
+      it also permits recovery of a device lost while disabled. Monitoring may
+      remain active while recovery is disabled. Unsupported backends ignore this
+      setting and always report false from isAutoReconnectEnabled().
+      ALSA monitor failures are logged and retried in the background. Persistent
+      worker-start failures use the normal RtMidi error handler on the caller's
+      thread. This setting may wait for an in-progress recovery operation.
+      Serialize openPort(), closePort(), and destruction on each instance as
+      usual. Do not call this setting from a realtime audio or MIDI callback.
+      Messages lost during disconnection are not replayed.
+  */
+  void setAutoReconnect( bool enabled );
+  bool isAutoReconnectEnabled( void ) const;
 
   //! Set an error callback function to be invoked when an error has occurred.
   /*!
@@ -557,6 +588,11 @@ class RTMIDI_DLL_PUBLIC MidiApi
   //! A basic error reporting function for RtMidi classes.
   void error( RtMidiError::Type type, std::string errorString );
 
+  // Non-virtual extensions leave existing backend vtable layouts unchanged.
+  bool supportsAutoReconnect( void ) const;
+  void setAutoReconnect( bool enabled );
+  bool isAutoReconnectEnabled( void ) const;
+
 protected:
   virtual void initialize( const std::string& clientName ) = 0;
 
@@ -649,6 +685,10 @@ class RTMIDI_DLL_PUBLIC MidiOutApi : public MidiApi
 //
 // **************************************************************** //
 
+inline bool RtMidi :: supportsAutoReconnect( void ) const { return rtapi_->supportsAutoReconnect(); }
+inline void RtMidi :: setAutoReconnect( bool enabled ) { rtapi_->setAutoReconnect( enabled ); }
+inline bool RtMidi :: isAutoReconnectEnabled( void ) const { return rtapi_->isAutoReconnectEnabled(); }
+
 inline RtMidi::Api RtMidiIn :: getCurrentApi( void ) throw() { return rtapi_->getCurrentApi(); }
 inline void RtMidiIn :: openPort( unsigned int portNumber, const std::string &portName ) { rtapi_->openPort( portNumber, portName ); }
 inline void RtMidiIn :: openVirtualPort( const std::string &portName ) { rtapi_->openVirtualPort( portName ); }
@@ -674,4 +714,11 @@ inline void RtMidiOut :: sendMessage( const std::vector<unsigned char> *message 
 inline void RtMidiOut :: sendMessage( const unsigned char *message, size_t size ) { static_cast<MidiOutApi *>(rtapi_)->sendMessage( message, size ); }
 inline void RtMidiOut :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userData ) { rtapi_->setErrorCallback(errorCallback, userData); }
 
+} // namespace midi
+} // namespace rt
+
+#endif
+
+#ifndef RTMIDI_USE_NAMESPACE
+using namespace rt::midi;
 #endif

@@ -33,6 +33,22 @@ testcapi_SOURCES = testcapi.c
 testcapi_LDADD = $(top_builddir)/librtmidi.la
 
 EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
-	sysextest.dsp RtMidi.dsw
+	sysextest.dsp RtMidi.dsw AlsaHotplug.cmake RunAlsaHotplug.cmake README-hotplug.md
 
 TESTS = apinames
+
+if HAVE_ALSA
+noinst_PROGRAMS += alsahotplug
+alsahotplug_SOURCES = alsahotplug.cpp $(top_srcdir)/RtMidi.cpp
+alsahotplug_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS) -U__UNIX_JACK__ -D__RTMIDI_DUMMY__
+alsahotplug_LDFLAGS = -Wl,--wrap=snd_seq_client_info_get_card -Wl,--wrap=realpath \
+  -Wl,--wrap=__realpath_chk -Wl,--wrap=pipe2 -Wl,--wrap=pthread_create \
+  -Wl,--wrap=snd_seq_open -Wl,--wrap=snd_seq_event_input -Wl,--wrap=snd_seq_subscribe_port \
+  -Wl,--wrap=snd_seq_poll_descriptors -Wl,--wrap=snd_seq_query_next_client
+TESTS += alsahotplug
+if NATIVE_BUILD
+# Match CMake: building ALSA also runs its noninteractive regression test.
+all-local: alsahotplug
+	$(MAKE) $(AM_MAKEFLAGS) check-TESTS TESTS=alsahotplug
+endif
+endif

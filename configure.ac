@@ -194,6 +194,7 @@ AS_CASE(["$systems"], [*" jack "*], [
 AS_CASE(["$systems"], [*" alsa "*], [
   AC_CHECK_LIB(asound, snd_seq_open,
     [api="$api -D__LINUX_ALSA__"
+     have_alsa=yes
      req="$req alsa"
      need_pthread=yes
      found="$found ALSA"
@@ -261,6 +262,9 @@ AS_IF([test x"$api" = "x"], [
 ])
 
 CPPFLAGS="$CPPFLAGS $api"
+
+AM_CONDITIONAL([HAVE_ALSA], [test "x$have_alsa" = xyes])
+AM_CONDITIONAL([NATIVE_BUILD], [test "x$cross_compiling" = xno])
 
 AC_OUTPUT
 

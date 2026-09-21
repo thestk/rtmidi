@@ -1399,7 +1399,7 @@ static CFStringRef CreateConnectedEndpointName( MIDIEndpointRef endpoint )
   CFMutableStringRef result = CFStringCreateMutable( NULL, 0 );
   CFStringRef str;
   OSStatus err;
-  int i;
+  size_t i;
 
   // Does the endpoint have connections?
   CFDataRef connections = NULL;
@@ -3150,7 +3150,14 @@ struct WinMidiData {
   DWORD lastTime;
   MidiInApi::MidiMessage message;
   std::vector<LPMIDIHDR> sysexBuffer;
-  CRITICAL_SECTION _mutex; // [Patrice] see https://groups.google.com/forum/#!topic/mididev/6OUjHutMpEo
+  // WinMM calls midiInputCallback() on a thread it owns, because midiInOpen()
+  // is called with CALLBACK_FUNCTION, and that callback requeues sysex buffers
+  // with midiInAddBuffer().  Meanwhile closePort() runs on the caller's thread
+  // and retires the same buffers with midiInUnprepareHeader().  This guards
+  // that overlap: it is not protecting against two application threads, but
+  // against the driver's own callback thread arriving during teardown.
+  // [Patrice]
+  CRITICAL_SECTION _mutex;
 };
 
 //*********************************************************************//

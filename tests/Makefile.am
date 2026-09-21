@@ -31,6 +31,12 @@ apinames_LDADD = $(top_builddir)/librtmidi.la
 
 testcapi_SOURCES = testcapi.c
 testcapi_LDADD = $(top_builddir)/librtmidi.la
+# testcapi.c is C, but it links against a C++ library.  With a shared
+# librtmidi the C++ runtime is pulled in through the library's own
+# dependencies; a static build has no such link, so the C linker fails on
+# every C++ symbol it needs.  Naming a C++ source here makes Automake choose
+# the C++ linker in both cases.  The file is never compiled and need not exist.
+nodist_EXTRA_testcapi_SOURCES = dummy.cxx
 
 EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
 	sysextest.dsp RtMidi.dsw AlsaHotplug.cmake RunAlsaHotplug.cmake README-hotplug.md

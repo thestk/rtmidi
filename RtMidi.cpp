@@ -3401,7 +3401,8 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string &/*port
                                 (DWORD_PTR)&inputData_,
                                 CALLBACK_FUNCTION );
   if ( result != MMSYSERR_NOERROR ) {
-    errorString_ = "MidiInWinMM::openPort: error creating Windows MM MIDI input port.";
+    errorString_ = "MidiInWinMM::openPort: error creating Windows MM MIDI input port (MMRESULT " +
+                   std::to_string( result ) + ").";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
@@ -3418,7 +3419,8 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string &/*port
     result = midiInPrepareHeader( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       releaseWinMMInput( data );
-      errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (PrepareHeader).";
+      errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (PrepareHeader, MMRESULT " +
+                     std::to_string( result ) + ").";
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
     }
@@ -3427,7 +3429,8 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string &/*port
     result = midiInAddBuffer( data->inHandle, data->sysexBuffer[i], sizeof(MIDIHDR) );
     if ( result != MMSYSERR_NOERROR ) {
       releaseWinMMInput( data );
-      errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (AddBuffer).";
+      errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (AddBuffer, MMRESULT " +
+                     std::to_string( result ) + ").";
       error( RtMidiError::DRIVER_ERROR, errorString_ );
       return;
     }
@@ -3436,7 +3439,8 @@ void MidiInWinMM :: openPort( unsigned int portNumber, const std::string &/*port
   result = midiInStart( data->inHandle );
   if ( result != MMSYSERR_NOERROR ) {
     releaseWinMMInput( data );
-    errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port.";
+    errorString_ = "MidiInWinMM::openPort: error starting Windows MM MIDI input port (MMRESULT " +
+                   std::to_string( result ) + ").";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
@@ -3621,7 +3625,8 @@ void MidiOutWinMM :: openPort( unsigned int portNumber, const std::string &/*por
                                  (DWORD)NULL,
                                  CALLBACK_NULL );
   if ( result != MMSYSERR_NOERROR ) {
-    errorString_ = "MidiOutWinMM::openPort: error creating Windows MM MIDI output port.";
+    errorString_ = "MidiOutWinMM::openPort: error creating Windows MM MIDI output port (MMRESULT " +
+                   std::to_string( result ) + ").";
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }

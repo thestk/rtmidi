@@ -89,9 +89,13 @@ using namespace rt::midi;
 //
 // **************************************************************** //
 
-#if !defined(__LINUX_ALSA__) && !defined(__UNIX_JACK__) && !defined(__MACOSX_CORE__) && !defined(__WINDOWS_MM__) && !defined(__WINDOWS_UWP__) && !defined(TARGET_IPHONE_OS) && !defined(__WEB_MIDI_API__)  && !defined(__AMIDI__)
-  #define __RTMIDI_DUMMY__
-#endif
+// The dummy backend is always compiled in.  It is the fallback when no other
+// API is available, and applications also select it deliberately: a headless
+// build, a CI runner with no MIDI, or a test that needs RtMidi to construct
+// without touching hardware.  Before, it existed only when no other backend
+// did, so asking for RTMIDI_DUMMY on a machine that had a real backend threw
+// "no compiled API support found" instead.
+#define __RTMIDI_DUMMY__
 
 #if defined(__MACOSX_CORE__)
 #include <CoreMIDI/CoreMIDI.h>

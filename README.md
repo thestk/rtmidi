@@ -18,6 +18,8 @@ If you checked out the code from git, please run `./autogen.sh` before `./config
 
 `./configure --help` lists the available MIDI API options (`--with-alsa`, `--with-jack`, `--with-core`, `--with-winmm`); by default those appropriate to the system are selected.  RtMidi can also be built with CMake.
 
+Android support uses the AMidi API and must be built with CMake.  See [android/README.md](android/README.md).
+
 ## Overview
 
 RtMidi is a set of C++ classes (`RtMidiIn`, `RtMidiOut`, and API specific classes) that provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA, JACK), Macintosh OS X (CoreMIDI, JACK), and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:

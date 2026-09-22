@@ -3641,11 +3641,27 @@ void MidiOutWinMM :: closePort( void )
     // Disabled because midiOutReset triggers 0x7b (if any note was ON) and 0x79 "Reset All
     // Controllers" (to all 16 channels) CC messages which is undesirable (see issue #222)
     // midiOutReset( data->outHandle );
-
+    //
+    // Do not restore that call. It is the documented remedy for pending
+    // buffers, so it looks like the obvious fix for the retry loop below, and
+    // reinstating it reintroduces #222: an All Notes Off / Reset All
+    // Controllers blast across all 16 channels on every port close.
+    //
     // midiOutClose() returns MIDIERR_STILLPLAYING while buffers are still
-    // queued, and in that case the handle is NOT closed. The midiOutReset()
-    // that would retire them is deliberately disabled above, so give the
-    // driver a bounded time to finish rather than dropping the handle.
+    // queued, and in that case the handle is NOT closed and remains valid:
+    // midiOutClose() only invalidates the handle on success, which is what
+    // makes retrying on that one result correct rather than a use-after-close.
+    // It would be safe even if a driver got that wrong: WinMM validates the
+    // handle rather than dereferencing it, so a call on an invalidated handle
+    // returns MMSYSERR_INVALHANDLE and the loop degrades to a harmless error.
+    // The midiOutReset() that would retire the buffers is deliberately
+    // disabled above, so give the driver a bounded time to finish instead.
+    //
+    // The bound is a deadline rather than an iteration count: Sleep( 1 )
+    // sleeps for at least one scheduler tick, ~15.6 ms by default, so a loop
+    // counting "1 ms" iterations overshoots badly -- a fault-injection build
+    // measured 4.99 s across 312 supposed-1 ms retries. See
+    // https://randomascii.wordpress.com/2020/10/04/windows-timer-resolution-the-great-rule-change/
     const DWORD start = GetTickCount();
     MMRESULT result;
     for ( ;; ) {

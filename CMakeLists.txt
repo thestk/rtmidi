@@ -12,12 +12,15 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Check for Jack (any OS)
-find_library(JACK_LIB jack)
-find_package(PkgConfig)
-pkg_check_modules(jack jack)
-if(JACK_LIB OR jack_FOUND)
-  set(HAVE_JACK TRUE)
+# Check for JACK on native builds. Host packages must not enable a backend
+# that is unavailable in the cross-compilation target (for example Android).
+if(NOT CMAKE_CROSSCOMPILING)
+  find_library(JACK_LIB jack)
+  find_package(PkgConfig)
+  pkg_check_modules(jack jack)
+  if(JACK_LIB OR jack_FOUND)
+    set(HAVE_JACK TRUE)
+  endif()
 endif()
 
 # Necessary for Windows

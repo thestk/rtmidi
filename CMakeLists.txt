@@ -145,13 +145,11 @@ endif()
 # Android AMIDI
 if(RTMIDI_API_AMIDI)
   set(NEED_PTHREAD ON)
-  set(JAVA_INCLUDE_PATH2 NotNeeded)
-  set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-  find_package(JNI)
-#  find_library(ALOG_LIB log android)
   list(APPEND API_DEFS "-D__AMIDI__")
   list(APPEND API_LIST "amidi")
-  list(APPEND LINKLIBS log ${JNI_LIBRARIES} amidi)
+  # The JVM is reached through dlsym() rather than by linking libnativehelper,
+  # which the NDK ships only from API 31 while AMidi is available from API 29.
+  list(APPEND LINKLIBS log amidi dl)
 endif()
 
 # pthread

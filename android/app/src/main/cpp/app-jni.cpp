@@ -2,7 +2,16 @@
 #include <string>
 #include "RtMidi.h"
 
-static RtMidiIn* midiLib = new RtMidiIn( RtMidi::Api::ANDROID_AMIDI );
+// Constructed on first use rather than in a static initializer: a static
+// initializer runs while System.loadLibrary() is still loading this library,
+// before the JNI environment the Android backend needs is usable.
+static RtMidiIn* midiLib = NULL;
+
+static RtMidiIn* getMidiLib() {
+    if ( midiLib == NULL )
+        midiLib = new RtMidiIn( RtMidi::Api::ANDROID_AMIDI );
+    return midiLib;
+}
 static jobject callbackObj = NULL;
 static jmethodID callbackMethod;
 static JavaVM* jvm;
@@ -12,11 +21,11 @@ Java_com_rtmidi_yellowlab_midireader_MidiViewModel_portNames(
         JNIEnv* env,
         jobject /* this */) {
 
-    auto portCount = midiLib->getPortCount();
+    auto portCount = getMidiLib()->getPortCount();
     auto names = env->NewObjectArray(portCount, env->FindClass("java/lang/String"), NULL);
 
     for (int i=0; i<portCount; i++) {
-        auto name = midiLib->getPortName(i);
+        auto name = getMidiLib()->getPortName(i);
         env->SetObjectArrayElement(names, i, env->NewStringUTF(name.c_str()));
     }
 
@@ -47,8 +56,8 @@ Java_com_rtmidi_yellowlab_midireader_MidiViewModel_openPort(
 
     env->GetJavaVM(&jvm);
 
-    midiLib->setCallback( midicallback );
-    midiLib->openPort(port);
+    getMidiLib()->setCallback( midicallback );
+    getMidiLib()->openPort(port);
 
     if (callbackObj) env->DeleteGlobalRef(callbackObj);
     callbackObj = env->NewGlobalRef(listener);
@@ -60,7 +69,7 @@ Java_com_rtmidi_yellowlab_midireader_MidiViewModel_closePort(
         JNIEnv *env,
         jobject /* this */) {
 
-    midiLib->closePort();
+    getMidiLib()->closePort();
     if (callbackObj) env->DeleteGlobalRef(callbackObj);
     callbackObj = NULL;
     callbackMethod = NULL;

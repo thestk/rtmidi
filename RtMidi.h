@@ -80,6 +80,7 @@
 #include <exception>
 #include <iostream>
 #include <string>
+#include <atomic>
 #include <vector>
 
 namespace rt {
@@ -640,9 +641,16 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
       : bytes(0), timeStamp(0.0) {}
   };
 
+  // A single-producer, single-consumer ring buffer: the backend's input
+  // thread is the only writer of \c back, and the thread calling
+  // RtMidiIn::getMessage() is the only writer of \c front.  The indices are
+  // atomic so that each side sees the other's completed writes: push()
+  // releases \c back after the message is stored, pop() acquires it before
+  // reading, and the same pairing applies to \c front.  Without that the
+  // reader may observe a published index before the message it refers to.
   struct MidiQueue {
-    unsigned int front;
-    unsigned int back;
+    std::atomic<unsigned int> front;
+    std::atomic<unsigned int> back;
     unsigned int ringSize;
     MidiMessage *ring;
 

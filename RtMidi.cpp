@@ -795,6 +795,16 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
   }
 }
 
+// The atomic indices in MidiQueue must not change its layout: MidiQueue is a
+// member of RtMidiInData, which is the protected inputData_ member of the
+// exported MidiInApi, so its size is part of this library's ABI.  On every
+// supported platform std::atomic<unsigned int> is lock-free and matches
+// unsigned int in size and alignment; assert it rather than assume it.
+static_assert( sizeof( std::atomic<unsigned int> ) == sizeof( unsigned int ),
+               "std::atomic<unsigned int> must match unsigned int in size" );
+static_assert( alignof( std::atomic<unsigned int> ) == alignof( unsigned int ),
+               "std::atomic<unsigned int> must match unsigned int in alignment" );
+
 //*********************************************************************//
 //  Common MidiInApi Definitions
 //*********************************************************************//
@@ -881,8 +891,12 @@ unsigned int MidiInApi::MidiQueue::size( unsigned int *__back,
                                          unsigned int *__front )
 {
   // Access back/front members exactly once and make stack copies for
-  // size calculation
-  unsigned int _back = back, _front = front, _size;
+  // size calculation.  Acquiring here pairs with the releases in push() and
+  // pop(), so a message stored before an index was published is visible to
+  // whichever side reads that index.
+  unsigned int _back = back.load( std::memory_order_acquire );
+  unsigned int _front = front.load( std::memory_order_acquire );
+  unsigned int _size;
   if ( _back >= _front )
     _size = _back - _front;
   else
@@ -907,7 +921,9 @@ bool MidiInApi::MidiQueue::push( const MidiInApi::MidiMessage& msg )
   if ( _size < ringSize-1 )
   {
     ring[_back] = msg;
-    back = (back+1)%ringSize;
+    // Publish the message by releasing the new back index: the store above
+    // must not be reordered after it.
+    back.store( ( _back + 1 ) % ringSize, std::memory_order_release );
     return true;
   }
 
@@ -929,8 +945,9 @@ bool MidiInApi::MidiQueue::pop( std::vector<unsigned char> *msg, double* timeSta
   msg->assign( ring[_front].bytes.begin(), ring[_front].bytes.end() );
   *timeStamp = ring[_front].timeStamp;
 
-  // Update front
-  front = (front+1)%ringSize;
+  // Release the slot back to the producer only after the copies above have
+  // been made.
+  front.store( ( _front + 1 ) % ringSize, std::memory_order_release );
   return true;
 }
 

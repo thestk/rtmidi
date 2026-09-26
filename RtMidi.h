@@ -317,6 +317,12 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     callback function).  If the queue size limit is reached,
     incoming messages will be ignored.
 
+    The queue is only used when no callback is set. If a callback is
+    installed with setCallback(), incoming messages go straight to it and
+    the queue is never filled, so queueSizeLimit has no effect on them and
+    the queue-limit warning cannot be reached. A binding that always uses a
+    callback may pass 0 here, which also skips allocating the ring buffer.
+
     If no API argument is specified and multiple API support has been
     compiled, the default order of use is ALSA, JACK (Linux) and CORE,
     JACK (OS-X).
@@ -410,6 +416,12 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     MIDI sysex messages are ignored by default as well.  Variable
     values of "true" imply that the respective message type will be
     ignored.
+
+    This setting belongs to the RtMidiIn instance, not to the port it is
+    connected to, and the defaults apply to a port opened with
+    openVirtualPort() exactly as they do to one opened with openPort().
+    An instance that should receive SysEx must call this itself; being the
+    virtual port that another application sends to does not change it.
   */
   void ignoreTypes( bool midiSysex = true, bool midiTime = true, bool midiSense = true );
 

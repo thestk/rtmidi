@@ -2,6 +2,13 @@
 # CopyPolicy: RtMidi license.
 
 # Set minimum CMake required version for this project.
+#
+# This floor is set by the Android backend and arrived with Android support in
+# a30eef6, without an explanation at the time.  Older CMake fails the Android
+# cross-compile because find_package(JNI) resolves JAVA_AWT_LIBRARY and
+# JAVA_JVM_LIBRARY to NOTFOUND; newer CMake knows an NDK supplies the JNI
+# headers without the desktop Java libraries.  Every other target still
+# configures, builds and passes ctest with CMake 3.19.
 cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
 # Define a C++ project.

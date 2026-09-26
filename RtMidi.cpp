@@ -2220,6 +2220,10 @@ struct AlsaMidiData {
   snd_seq_real_time_t lastTime;
   int queue_id; // an input queue is needed to get timestamped events
   int trigger_fds[2];
+  // Output-side SysEx state: true once 0xF0 has been seen and no 0xF7 (or
+  // other terminating status byte) has arrived yet, so a later call carrying
+  // a bare continuation span can be recognized as part of the same message.
+  bool sysexInProgress = false;
 };
 
 } // namespace
@@ -3001,6 +3005,7 @@ void MidiOutAlsa :: closePort( void )
     snd_seq_unsubscribe_port( data->seq, data->subscription );
     snd_seq_port_subscribe_free( data->subscription );
     data->subscription = 0;
+    data->sysexInProgress = false;
     connected_ = false;
   }
 }
@@ -3043,6 +3048,60 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
   long result;
   AlsaMidiData *data = static_cast<AlsaMidiData *> (apiData_);
   unsigned int nBytes = static_cast<unsigned int> (size);
+
+  // A large SysEx may be handed to sendMessage() across several calls - an
+  // opening F0.. with no F7, bare continuation bytes, then a span ending in
+  // F7 - so that the caller can pace the transfer and produce real
+  // inter-span gaps on the wire.
+  //
+  // snd_midi_event_encode() only emits an event for a self-contained message
+  // and returns SND_SEQ_EVENT_NONE for any such span, which the loop below
+  // reports as "incomplete message!" and drops. ALSA's native transport for a
+  // large SysEx is exactly a sequence of SysEx events carrying arbitrary byte
+  // spans, which the receiver concatenates until F7 - the mirror of the
+  // reassembly MidiInAlsa already performs - so emit those directly and
+  // bypass the encoder. The other backends already accept partial SysEx this
+  // way; this brings ALSA into line with them.
+  if ( nBytes > 0 ) {
+    const unsigned char first = message[0];
+    if ( data->sysexInProgress || first == 0xF0 ) {
+      // Work out the framing state this buffer leaves behind, but commit it
+      // only once the event has been accepted (below). If the send fails, the
+      // state stays as it was, so a caller that retries the same span gets it
+      // routed the same way; otherwise a retried continuation would fall
+      // through to the encoder and be rejected as an incomplete message.
+      // Real-time bytes (0xF8-0xFF) may appear mid-SysEx without ending it;
+      // F7 ends it, and so does any other non-real-time status byte.
+      bool nextSysexInProgress = data->sysexInProgress;
+      for ( unsigned int i = 0; i < nBytes; ++i ) {
+        const unsigned char b = message[i];
+        if ( b >= 0xF8 ) continue;
+        if ( b == 0xF0 ) { nextSysexInProgress = true; continue; }
+        if ( b == 0xF7 ) { nextSysexInProgress = false; continue; }
+        if ( b >= 0x80 ) nextSysexInProgress = false;
+      }
+
+      snd_seq_event_t ev;
+      snd_seq_ev_clear( &ev );
+      snd_seq_ev_set_source( &ev, data->vport );
+      snd_seq_ev_set_subs( &ev );
+      snd_seq_ev_set_direct( &ev );
+      snd_seq_ev_set_sysex( &ev, nBytes, const_cast<unsigned char *>( message ) );
+      result = snd_seq_event_output( data->seq, &ev );
+      if ( result < 0 ) {
+        errorString_ = "MidiOutAlsa::sendMessage: error sending MIDI message to port.";
+        error( RtMidiError::WARNING, errorString_ );
+        return;
+      }
+
+      // The event has been accepted, so the framing state moves on.
+      data->sysexInProgress = nextSysexInProgress;
+
+      snd_seq_drain_output( data->seq );
+      return;
+    }
+  }
+
   if ( nBytes > data->bufferSize ) {
     data->bufferSize = nBytes;
     result = snd_midi_event_resize_buffer( data->coder, nBytes );

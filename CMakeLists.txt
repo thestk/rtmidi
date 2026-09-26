@@ -7,6 +7,8 @@ cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 # Define a C++ project.
 project(RtMidi LANGUAGES CXX C)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # standards version
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -41,6 +43,7 @@ set(RTMIDI_TARGETNAME_UNINSTALL "rt_uninstall" CACHE STRING "Name of 'uninstall'
 # API Options
 option(RTMIDI_API_JACK "Compile with JACK support." ${HAVE_JACK})
 option(RTMIDI_API_WINMM "Compile with WINMM support." ${WIN32})
+option(RTMIDI_API_WMS "Compile with Windows MIDI Services support (the in-box Windows.Devices.Midi2 API, Windows 11 25H2 and later; unavailable elsewhere at run time)." OFF)
 option(RTMIDI_API_CORE "Compile with CoreMIDI support." ${APPLE})
 option(RTMIDI_API_ALSA "Compile with ALSA support." ${ALSA})
 option(RTMIDI_API_AMIDI "Compile with Android support." ${ANDROID})
@@ -129,6 +132,56 @@ if(RTMIDI_API_WINMM)
   list(APPEND LINKLIBS winmm)
 endif()
 
+# Windows MIDI Services
+if(RTMIDI_API_WMS)
+  if(NOT WIN32)
+    message(FATAL_ERROR "RTMIDI_API_WMS is only supported on Windows")
+  endif()
+  if(NOT MSVC)
+    message(FATAL_ERROR "RTMIDI_API_WMS requires the MSVC toolset (C++/WinRT)")
+  endif()
+
+  # WMS requires C++17 for C++/WinRT
+  if(CMAKE_CXX_STANDARD VERSION_LESS 17)
+    set(CMAKE_CXX_STANDARD 17)
+  endif()
+
+  find_package(CppWinRT REQUIRED)
+  find_package(WindowsMidiServices REQUIRED)
+
+  list(APPEND INCDIRS "${CppWinRT_INCLUDE_DIR}")
+
+  # A Windows SDK that includes the API already provides its projection;
+  # otherwise generate it from Windows.Devices.Midi2.winmd.
+  if(NOT WindowsMidiServices_SDK_PROJECTION)
+    set(RTMIDI_WMS_PROJECTION_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/winrt")
+    set(RTMIDI_WMS_GENERATED_HEADER "${RTMIDI_WMS_PROJECTION_DIR}/winrt/Windows.Devices.Midi2.h")
+
+    add_custom_command(
+      OUTPUT "${RTMIDI_WMS_GENERATED_HEADER}"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${RTMIDI_WMS_PROJECTION_DIR}"
+      COMMAND "${CppWinRT_EXECUTABLE}" -input "${WindowsMidiServices_WINMD}" -reference "${CppWinRT_WINDOWS_WINMD}" -output "${RTMIDI_WMS_PROJECTION_DIR}"
+      DEPENDS "${WindowsMidiServices_WINMD}" "${CppWinRT_WINDOWS_WINMD}"
+      COMMENT "Generating Windows MIDI Services C++/WinRT projections"
+      VERBATIM)
+
+    add_custom_target(rtmidi_generate_wms_projection DEPENDS "${RTMIDI_WMS_GENERATED_HEADER}")
+    list(APPEND INCDIRS "${RTMIDI_WMS_PROJECTION_DIR}")
+  endif()
+
+  list(APPEND API_DEFS "-D__WINDOWS_MIDI_SERVICES__")
+  list(APPEND API_LIST "wms")
+  list(APPEND LINKLIBS windowsapp runtimeobject ole32)
+
+  # Optional: use the zero-allocation COM raw send path instead of WinRT
+  option(RTMIDI_USE_WMS_COM_RAW
+    "Use IMidiEndpointConnectionRaw (COM, zero-allocation) instead of WinRT SendMultipleMessagesWordArray"
+    OFF)
+  if(RTMIDI_USE_WMS_COM_RAW)
+    list(APPEND API_DEFS "-DRTMIDI_USE_WMS_COM_RAW")
+  endif()
+endif()
+
 # CoreMIDI
 if(RTMIDI_API_CORE)
   find_library(CORESERVICES_LIB CoreServices)
@@ -184,6 +237,10 @@ else()
   add_library(rtmidi ${rtmidi_SOURCES})
 endif()
 list(APPEND LIB_TARGETS rtmidi)
+
+if(TARGET rtmidi_generate_wms_projection)
+  add_dependencies(rtmidi rtmidi_generate_wms_projection)
+endif()
 
 # Add -Wall if possible
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)

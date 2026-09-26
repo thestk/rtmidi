@@ -69,6 +69,7 @@ enum RtMidiApi {
     RTMIDI_API_WEB_MIDI_API,   /*!< W3C Web MIDI API. */
     RTMIDI_API_WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
     RTMIDI_API_ANDROID,        /*!< The Android MIDI API. */
+    RTMIDI_API_WINDOWS_MIDI_SERVICES, /*!< Windows MIDI Services. */
     RTMIDI_API_NUM             /*!< Number of values in this enum. */
 };
 
@@ -84,7 +85,8 @@ enum RtMidiErrorType {
   RTMIDI_ERROR_INVALID_USE,       /*!< The function was called incorrectly. */
   RTMIDI_ERROR_DRIVER_ERROR,      /*!< A system driver error occurred. */
   RTMIDI_ERROR_SYSTEM_ERROR,      /*!< A system error occurred. */
-  RTMIDI_ERROR_THREAD_ERROR       /*!< A thread error occurred. */
+  RTMIDI_ERROR_THREAD_ERROR,      /*!< A thread error occurred. */
+  RTMIDI_ERROR_DRIVER_NOT_INSTALLED /*!< A required driver or runtime is not installed. */
 };
 
 /*! \brief The type of a RtMidi callback function.

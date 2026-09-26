@@ -108,9 +108,10 @@ class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
     MEMORY_ERROR,      /*!< An error occurred during memory allocation. */
     INVALID_PARAMETER, /*!< An invalid parameter was specified to a function. */
     INVALID_USE,       /*!< The function was called incorrectly. */
-    DRIVER_ERROR,      /*!< A system driver error occurred. */
-    SYSTEM_ERROR,      /*!< A system error occurred. */
-    THREAD_ERROR       /*!< A thread error occurred. */
+    DRIVER_ERROR,        /*!< A system driver error occurred. */
+    SYSTEM_ERROR,        /*!< A system error occurred. */
+    THREAD_ERROR,        /*!< A thread error occurred. */
+    DRIVER_NOT_INSTALLED /*!< A required driver or runtime is not installed on this system. */
   };
 
   //! The constructor.
@@ -165,8 +166,30 @@ class RTMIDI_DLL_PUBLIC RtMidi
     WEB_MIDI_API,   /*!< W3C Web MIDI API. */
     WINDOWS_UWP,    /*!< The Microsoft Universal Windows Platform MIDI API. */
     ANDROID_AMIDI,  /*!< Native Android MIDI API. */
+    WINDOWS_MIDI_SERVICES, /*!< Windows MIDI Services (Windows 11 25H2+). */
     NUM_APIS        /*!< Number of values in this enum. */
   };
+
+  //! Result returned by checkApiAvailability().
+  struct RtMidiApiAvailability {
+    bool available = true;      /*!< True when the API runtime is ready to use. */
+    std::string message;        /*!< Human-readable reason if not available. */
+    std::string installUrl;     /*!< Installer download URL when a runtime is missing. */
+  };
+
+  //! Query whether an API can be used by this build on this system.
+  /*!
+    Call this before constructing any RtMidiIn / RtMidiOut objects that use the
+    specified API.  When available is false, message says why, and installUrl
+    holds a download URL if a runtime has to be installed.  Windows MIDI Services
+    is available where Windows includes its Windows.Devices.Midi2 API (Windows 11
+    25H2 and later, as Microsoft rolls it out) and the MIDI service runs in its
+    full mode; elsewhere it is reported as unavailable, and another API can be
+    used.  An API that this build does not include is reported as unavailable,
+    and an API that needs no separate runtime is always available.  The check is
+    lightweight and does not open any ports.
+  */
+  static RtMidiApiAvailability checkApiAvailability( RtMidi::Api api );
 
   //! A static function to determine the current RtMidi version.
   static std::string getVersion( void ) throw();

@@ -170,7 +170,7 @@ endif()
 if(RTMIDI_API_WINMM)
   list(APPEND API_DEFS "-D__WINDOWS_MM__")
   list(APPEND API_LIST "winmm")
-  list(APPEND LINKLIBS winmm)
+  list(APPEND LINKLIBS winmm cfgmgr32)
 endif()
 
 # CoreMIDI

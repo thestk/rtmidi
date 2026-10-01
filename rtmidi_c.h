@@ -263,6 +263,25 @@ RTMIDIAPI int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char 
 //! See \ref MidiApi::setErrorCallback().
 RTMIDIAPI void rtmidi_set_error_callback (RtMidiPtr device, RtMidiErrorCCallback callback, void *userData);
 
+/* RtMidi hotplug API */
+
+//! \brief MIDI device change callback. See \ref RtMidi::HotplugCallback.
+typedef void (* RtMidiHotplugCallback) (void *userData);
+
+//! \brief Opaque device change watcher.
+typedef struct RtMidiHotplug RtMidiHotplug;
+
+/*! \brief Watch every compiled API for MIDI ports appearing or disappearing.
+ *
+ * Returns NULL if the operating system refused to deliver notifications.
+ * See \ref RtMidi::createHotplug() for threading rules.
+ */
+RTMIDIAPI RtMidiHotplug *rtmidi_hotplug_create (RtMidiHotplugCallback callback, void *userData);
+
+//! \brief Stop watching; blocks until no callback is running.
+//! See \ref RtMidi::destroyHotplug().
+RTMIDIAPI void rtmidi_hotplug_destroy (RtMidiHotplug *hotplug);
+
 #ifdef __cplusplus
 }
 #endif

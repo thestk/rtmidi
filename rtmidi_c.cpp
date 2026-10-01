@@ -424,3 +424,13 @@ static void rtmidi_set_error_msg (RtMidiPtr device, const char *err)
     }
     device->msg = strdup(err);
 }
+
+::RtMidiHotplug *rtmidi_hotplug_create (RtMidiHotplugCallback callback, void *userData)
+{
+    return reinterpret_cast< ::RtMidiHotplug *>(RtMidi::createHotplug (callback, userData));
+}
+
+void rtmidi_hotplug_destroy (::RtMidiHotplug *hotplug)
+{
+    RtMidi::destroyHotplug (reinterpret_cast<rt::midi::RtMidiHotplug *>(hotplug));
+}

@@ -150,6 +150,7 @@ class RTMIDI_DLL_PUBLIC RtMidiError : public std::exception
 typedef void (*RtMidiErrorCallback)( RtMidiError::Type type, const std::string &errorText, void *userData );
 
 class MidiApi;
+struct RtMidiHotplug;
 
 class RTMIDI_DLL_PUBLIC RtMidi
 {
@@ -203,6 +204,43 @@ class RTMIDI_DLL_PUBLIC RtMidi
     matches. On failure, the function returns UNSPECIFIED.
   */
   static RtMidi::Api getCompiledApiByName( const std::string &name );
+
+  //! MIDI device change callback function prototype.
+  /*!
+    \param userData Optional user data supplied to createHotplug().
+  */
+  typedef void (*HotplugCallback)( void *userData );
+
+  //! Watch every compiled API for MIDI ports appearing or disappearing.
+  /*!
+    The callback fires whenever the set of MIDI input or output ports
+    may have changed.  It carries no payload: re-enumerate the ports
+    with getPortCount() and getPortName().  Notifications can arrive
+    on any thread, can be coalesced, and can be spurious.  Do not
+    create or destroy RtMidi objects inside the callback; signal
+    another thread instead.
+
+    CoreMIDI delivers notifications on the run loop that was current
+    when the process first created a CoreMIDI client, so create the
+    first RtMidiIn/RtMidiOut and the hotplug watcher on the main
+    thread and keep its run loop running.
+
+    The AMIDI backend needs contrib/java/MidiHotplugCallback.java in
+    the APK.  Windows MM links cfgmgr32 (Windows 8 or later).  The
+    Windows UWP and Web MIDI backends do not report changes yet.
+
+    Returns NULL if the operating system refused to deliver
+    notifications.  A backend without devices (dummy) or without a
+    running server (JACK) never fires.
+  */
+  static RtMidiHotplug *createHotplug( HotplugCallback callback, void *userData = 0 );
+
+  //! Stop watching and free the watcher.
+  /*!
+    Blocks until no callback is running.  Do not call this from
+    inside the callback.
+  */
+  static void destroyHotplug( RtMidiHotplug *hotplug );
 
   //! Pure virtual openPort() function.
   virtual void openPort( unsigned int portNumber = 0, const std::string &portName = std::string( "RtMidi" ) ) = 0;

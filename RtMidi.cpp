@@ -1020,6 +1020,18 @@ MidiOutApi :: ~MidiOutApi( void )
 
 // *************************************************** //
 //
+// Device change notification state, shared by all backends.
+//
+// *************************************************** //
+
+struct rt::midi::RtMidiHotplug {
+  RtMidi::HotplugCallback callback;
+  void *userData;
+  void *apiData[RtMidi::NUM_APIS];
+};
+
+// *************************************************** //
+//
 // OS/API-specific methods.
 //
 // *************************************************** //
@@ -1792,6 +1804,34 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
       }
     }
   }
+}
+
+//*********************************************************************//
+//  API: OS-X
+//  Device change notification
+//*********************************************************************//
+
+static void coreHotplugNotify( const MIDINotification *message, void *refCon )
+{
+  if ( message->messageID != kMIDIMsgSetupChanged ) return;
+  RtMidiHotplug *hotplug = static_cast<RtMidiHotplug *> (refCon);
+  hotplug->callback( hotplug->userData );
+}
+
+static int coreHotplugStart( RtMidiHotplug *hotplug )
+{
+  MIDIClientRef client;
+  CFStringRef name = CFStringCreateWithCString( NULL, "RtMidi hotplug", kCFStringEncodingASCII );
+  OSStatus result = MIDIClientCreate( name, coreHotplugNotify, hotplug, &client );
+  CFRelease( name );
+  if ( result != noErr ) return -1;
+  hotplug->apiData[RtMidi::MACOSX_CORE] = reinterpret_cast<void *> ( (uintptr_t) client );
+  return 0;
+}
+
+static void coreHotplugStop( void *apiData )
+{
+  MIDIClientDispose( (MIDIClientRef) reinterpret_cast<uintptr_t> ( apiData ) );
 }
 
 #endif  // __MACOSX_CORE__
@@ -3230,6 +3270,97 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
   snd_seq_drain_output( data->seq );
 }
 
+//*********************************************************************//
+//  API: LINUX ALSA
+//  Device change notification
+//*********************************************************************//
+
+struct AlsaHotplug {
+  RtMidiHotplug *hotplug;
+  snd_seq_t *seq;
+  int wake[2];
+  pthread_t thread;
+};
+
+static void *alsaHotplugThread( void *ptr )
+{
+  AlsaHotplug *data = static_cast<AlsaHotplug *> (ptr);
+  int count = snd_seq_poll_descriptors_count( data->seq, POLLIN );
+  std::vector<struct pollfd> fds( count + 1 );
+  fds[0].fd = data->wake[0];
+  fds[0].events = POLLIN;
+  snd_seq_poll_descriptors( data->seq, &fds[1], count, POLLIN );
+  for (;;) {
+    if ( poll( &fds[0], fds.size(), -1 ) < 0 ) {
+      if ( errno == EINTR ) continue;
+      return 0;
+    }
+    if ( fds[0].revents ) return 0;
+    bool changed = false;
+    snd_seq_event_t *event;
+    int result;
+    while ( (result = snd_seq_event_input( data->seq, &event )) >= 0 ) {
+      switch ( event->type ) {
+      case SND_SEQ_EVENT_CLIENT_START:
+      case SND_SEQ_EVENT_CLIENT_EXIT:
+      case SND_SEQ_EVENT_PORT_START:
+      case SND_SEQ_EVENT_PORT_EXIT:
+        changed = true;
+        break;
+      default:
+        break;
+      }
+      snd_seq_free_event( event );
+    }
+    // An overflow drops announcements, so report a possible change.
+    if ( result == -ENOSPC ) changed = true;
+    else if ( result != -EAGAIN && result != -EINTR ) return 0;
+    if ( changed ) data->hotplug->callback( data->hotplug->userData );
+  }
+}
+
+static int alsaHotplugStart( RtMidiHotplug *hotplug )
+{
+  AlsaHotplug *data = new AlsaHotplug();
+  data->hotplug = hotplug;
+  data->wake[0] = data->wake[1] = -1;
+  int result = snd_seq_open( &data->seq, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK );
+  if ( result < 0 ) data->seq = 0;
+  if ( result >= 0 ) result = snd_seq_set_client_name( data->seq, "RtMidi hotplug" );
+  if ( result >= 0 )
+    result = snd_seq_create_simple_port( data->seq, "Announce",
+      SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE | SND_SEQ_PORT_CAP_NO_EXPORT,
+      SND_SEQ_PORT_TYPE_APPLICATION );
+  if ( result >= 0 )
+    result = snd_seq_connect_from( data->seq, result, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE );
+  if ( result >= 0 ) result = pipe( data->wake );
+  if ( result >= 0 && pthread_create( &data->thread, 0, alsaHotplugThread, data ) != 0 ) result = -1;
+  if ( result < 0 ) {
+    if ( data->wake[0] >= 0 ) {
+      close( data->wake[0] );
+      close( data->wake[1] );
+    }
+    if ( data->seq ) snd_seq_close( data->seq );
+    delete data;
+    return -1;
+  }
+  hotplug->apiData[RtMidi::LINUX_ALSA] = data;
+  return 0;
+}
+
+static void alsaHotplugStop( void *apiData )
+{
+  AlsaHotplug *data = static_cast<AlsaHotplug *> (apiData);
+  char value = 1;
+  ssize_t written;
+  do { written = write( data->wake[1], &value, sizeof(value) ); } while ( written < 0 && errno == EINTR );
+  pthread_join( data->thread, 0 );
+  close( data->wake[0] );
+  close( data->wake[1] );
+  snd_seq_close( data->seq );
+  delete data;
+}
+
 #endif // __LINUX_ALSA__
 
 
@@ -3251,6 +3382,7 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
 // Windows MM MIDI header files.
 #include <windows.h>
 #include <mmsystem.h>
+#include <cfgmgr32.h>
 #include <atomic>
 
 // Convert a null-terminated wide string or ANSI-encoded string to UTF-8.
@@ -3985,6 +4117,72 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
       error( RtMidiError::DRIVER_ERROR, errorString_ );
     }
   }
+}
+
+//*********************************************************************//
+//  API: WINDOWS MM
+//  Device change notification
+//*********************************************************************//
+
+// KSCATEGORY_AUDIO: WinMM MIDI devices are kernel streaming audio interfaces.
+static const GUID winmmHotplugCategory =
+  { 0x6994AD04, 0x93EF, 0x11D0, { 0xA3, 0xCC, 0x00, 0xA0, 0xC9, 0x22, 0x31, 0x96 } };
+
+struct WinMMHotplug {
+  RtMidiHotplug *hotplug;
+  HCMNOTIFICATION notification;
+  HANDLE stop;
+  std::atomic<UINT> inputs;
+  std::atomic<UINT> outputs;
+};
+
+static DWORD CALLBACK winmmHotplugNotify( HCMNOTIFICATION, PVOID context, CM_NOTIFY_ACTION action,
+                                          PCM_NOTIFY_EVENT_DATA, DWORD )
+{
+  if ( action != CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL && action != CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL )
+    return ERROR_SUCCESS;
+  WinMMHotplug *data = static_cast<WinMMHotplug *> (context);
+  // WinMM can update its device list after the interface notification.
+  // Wait (bounded) for the counts to move so the callback sees the change.
+  for ( int attempt = 0; attempt < 20; ++attempt ) {
+    UINT inputs = midiInGetNumDevs();
+    UINT outputs = midiOutGetNumDevs();
+    if ( data->inputs.exchange( inputs ) != inputs | data->outputs.exchange( outputs ) != outputs ) break;
+    if ( WaitForSingleObject( data->stop, 50 ) == WAIT_OBJECT_0 ) return ERROR_SUCCESS;
+  }
+  data->hotplug->callback( data->hotplug->userData );
+  return ERROR_SUCCESS;
+}
+
+static int winmmHotplugStart( RtMidiHotplug *hotplug )
+{
+  WinMMHotplug *data = new WinMMHotplug();
+  data->hotplug = hotplug;
+  data->inputs = midiInGetNumDevs();
+  data->outputs = midiOutGetNumDevs();
+  data->stop = CreateEvent( NULL, TRUE, FALSE, NULL );
+  CM_NOTIFY_FILTER filter;
+  ZeroMemory( &filter, sizeof(filter) );
+  filter.cbSize = sizeof(filter);
+  filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
+  filter.u.DeviceInterface.ClassGuid = winmmHotplugCategory;
+  if ( !data->stop ||
+       CM_Register_Notification( &filter, data, winmmHotplugNotify, &data->notification ) != CR_SUCCESS ) {
+    if ( data->stop ) CloseHandle( data->stop );
+    delete data;
+    return -1;
+  }
+  hotplug->apiData[RtMidi::WINDOWS_MM] = data;
+  return 0;
+}
+
+static void winmmHotplugStop( void *apiData )
+{
+  WinMMHotplug *data = static_cast<WinMMHotplug *> (apiData);
+  SetEvent( data->stop );
+  CM_Unregister_Notification( data->notification );
+  CloseHandle( data->stop );
+  delete data;
 }
 
 #endif  // __WINDOWS_MM__
@@ -5283,6 +5481,38 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
   jack_ringbuffer_write( data->buff, ( const char * ) message, nBytes );
 }
 
+//*********************************************************************//
+//  API: JACK
+//  Device change notification
+//*********************************************************************//
+
+static void jackHotplugRegistration( jack_port_id_t, int, void *arg )
+{
+  RtMidiHotplug *hotplug = static_cast<RtMidiHotplug *> (arg);
+  hotplug->callback( hotplug->userData );
+}
+
+static int jackHotplugStart( RtMidiHotplug *hotplug )
+{
+  // Without a running server there are no JACK ports to watch.
+  jack_client_t *client = jack_client_open( "RtMidi hotplug", JackNoStartServer, NULL );
+  if ( !client ) return 0;
+  if ( jack_set_port_registration_callback( client, jackHotplugRegistration, hotplug ) != 0 ||
+       jack_activate( client ) != 0 ) {
+    jack_client_close( client );
+    return -1;
+  }
+  hotplug->apiData[RtMidi::UNIX_JACK] = client;
+  return 0;
+}
+
+static void jackHotplugStop( void *apiData )
+{
+  jack_client_t *client = static_cast<jack_client_t *> (apiData);
+  jack_deactivate( client );
+  jack_client_close( client );
+}
+
 #endif  // __UNIX_JACK__
 
 //*********************************************************************//
@@ -5612,7 +5842,9 @@ void MidiOutWeb::initialize( const std::string& clientName )
 
 #if defined(__AMIDI__)
 
+#include <algorithm>
 #include <cstdint>
+#include <mutex>
 
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
@@ -6106,6 +6338,120 @@ void MidiOutAndroid :: sendMessage( const unsigned char *message, size_t size ) 
   AMidiInputPort_send(midiInputPort, (uint8_t*)message, size);
 }
 
+//*********************************************************************//
+//  API: Android AMIDI
+//  Device change notification
+//*********************************************************************//
+
+struct AndroidHotplug {
+  RtMidiHotplug *hotplug;
+  jobject midiManager;
+  jobject callback;
+};
+
+// Java may still deliver a queued notification after unregistering, so
+// notifications only reach watchers that are still registered here.
+static std::mutex androidHotplugLock;
+static std::vector<AndroidHotplug *> androidHotplugs;
+
+static void JNICALL androidHotplugChanged( JNIEnv *, jclass, jlong id )
+{
+  std::lock_guard<std::mutex> lock( androidHotplugLock );
+  AndroidHotplug *data = reinterpret_cast<AndroidHotplug *> (id);
+  if ( std::find( androidHotplugs.begin(), androidHotplugs.end(), data ) == androidHotplugs.end() ) return;
+  data->hotplug->callback( data->hotplug->userData );
+}
+
+static void androidHotplugForget( AndroidHotplug *data )
+{
+  std::lock_guard<std::mutex> lock( androidHotplugLock );
+  androidHotplugs.erase( std::remove( androidHotplugs.begin(), androidHotplugs.end(), data ), androidHotplugs.end() );
+}
+
+static int androidHotplugStart( RtMidiHotplug *hotplug )
+{
+  JNIEnv *env = androidGetThreadEnv();
+  if ( !env ) return -1;
+  jobject context = androidGetContext( env );
+  if ( !context ) return -1;
+
+  // FindClass on a native thread only sees the system class loader.
+  jclass contextClass = env->GetObjectClass( context );
+  jobject loader = env->CallObjectMethod( context, env->GetMethodID( contextClass, "getClassLoader", "()Ljava/lang/ClassLoader;" ) );
+  jclass loaderClass = env->GetObjectClass( loader );
+  jstring className = env->NewStringUTF( "com.yellowlab.rtmidi.MidiHotplugCallback" );
+  jclass callbackClass = (jclass) env->CallObjectMethod( loader, env->GetMethodID( loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;" ), className );
+  env->DeleteLocalRef( className );
+  env->DeleteLocalRef( loaderClass );
+  env->DeleteLocalRef( loader );
+  env->DeleteLocalRef( contextClass );
+  if ( env->ExceptionCheck() || !callbackClass ) {
+    env->ExceptionClear();
+    LOGE("Midi hotplug class not found com.yellowlab.rtmidi.MidiHotplugCallback. Did you forget to add it to your APK?");
+    return -1;
+  }
+  JNINativeMethod method = { "devicesChanged", "(J)V", (void *) androidHotplugChanged };
+  if ( env->RegisterNatives( callbackClass, &method, 1 ) != JNI_OK ) {
+    env->ExceptionClear();
+    env->DeleteLocalRef( callbackClass );
+    return -1;
+  }
+
+  AndroidHotplug *data = new AndroidHotplug();
+  data->hotplug = hotplug;
+  jobject callback = env->NewObject( callbackClass, env->GetMethodID( callbackClass, "<init>", "(J)V" ), reinterpret_cast<jlong> (data) );
+  env->DeleteLocalRef( callbackClass );
+  jobject midiManager = androidGetMidiManager( env, context );
+  if ( env->ExceptionCheck() || !callback || !midiManager ) {
+    env->ExceptionClear();
+    delete data;
+    return -1;
+  }
+  data->callback = env->NewGlobalRef( callback );
+  data->midiManager = env->NewGlobalRef( midiManager );
+  env->DeleteLocalRef( callback );
+  env->DeleteLocalRef( midiManager );
+  {
+    std::lock_guard<std::mutex> lock( androidHotplugLock );
+    androidHotplugs.push_back( data );
+  }
+
+  // A null Handler delivers the notifications on a binder thread.
+  jclass midiManagerClass = env->GetObjectClass( data->midiManager );
+  jmethodID registerMethod = env->GetMethodID( midiManagerClass, "registerDeviceCallback",
+    "(Landroid/media/midi/MidiManager$DeviceCallback;Landroid/os/Handler;)V" );
+  env->DeleteLocalRef( midiManagerClass );
+  env->CallVoidMethod( data->midiManager, registerMethod, data->callback, (jobject) NULL );
+  if ( env->ExceptionCheck() ) {
+    env->ExceptionClear();
+    androidHotplugForget( data );
+    env->DeleteGlobalRef( data->callback );
+    env->DeleteGlobalRef( data->midiManager );
+    delete data;
+    return -1;
+  }
+  hotplug->apiData[RtMidi::ANDROID_AMIDI] = data;
+  return 0;
+}
+
+static void androidHotplugStop( void *apiData )
+{
+  AndroidHotplug *data = static_cast<AndroidHotplug *> (apiData);
+  androidHotplugForget( data );
+  JNIEnv *env = androidGetThreadEnv();
+  if ( env ) {
+    jclass midiManagerClass = env->GetObjectClass( data->midiManager );
+    jmethodID unregisterMethod = env->GetMethodID( midiManagerClass, "unregisterDeviceCallback",
+      "(Landroid/media/midi/MidiManager$DeviceCallback;)V" );
+    env->DeleteLocalRef( midiManagerClass );
+    env->CallVoidMethod( data->midiManager, unregisterMethod, data->callback );
+    env->ExceptionClear();
+    env->DeleteGlobalRef( data->callback );
+    env->DeleteGlobalRef( data->midiManager );
+  }
+  delete data;
+}
+
 #endif  // __AMIDI__
 
 // Optional backend features use non-virtual dispatch to preserve the existing
@@ -6138,4 +6484,58 @@ bool MidiApi :: isAutoReconnectEnabled( void ) const
     return static_cast<AlsaMidiData *>(apiData_)->reconnect.isEnabled();
 #endif
   return false;
+}
+
+//*********************************************************************//
+//  Device change notification
+//*********************************************************************//
+
+RtMidiHotplug *RtMidi :: createHotplug( HotplugCallback callback, void *userData )
+{
+  if ( !callback ) return 0;
+  RtMidiHotplug *hotplug = new RtMidiHotplug();
+  hotplug->callback = callback;
+  hotplug->userData = userData;
+  int result = 0;
+#if defined(__MACOSX_CORE__)
+  if ( result == 0 ) result = coreHotplugStart( hotplug );
+#endif
+#if defined(__LINUX_ALSA__)
+  if ( result == 0 ) result = alsaHotplugStart( hotplug );
+#endif
+#if defined(__UNIX_JACK__)
+  if ( result == 0 ) result = jackHotplugStart( hotplug );
+#endif
+#if defined(__WINDOWS_MM__)
+  if ( result == 0 ) result = winmmHotplugStart( hotplug );
+#endif
+#if defined(__AMIDI__)
+  if ( result == 0 ) result = androidHotplugStart( hotplug );
+#endif
+  if ( result != 0 ) {
+    destroyHotplug( hotplug );
+    return 0;
+  }
+  return hotplug;
+}
+
+void RtMidi :: destroyHotplug( RtMidiHotplug *hotplug )
+{
+  if ( !hotplug ) return;
+#if defined(__MACOSX_CORE__)
+  if ( hotplug->apiData[MACOSX_CORE] ) coreHotplugStop( hotplug->apiData[MACOSX_CORE] );
+#endif
+#if defined(__LINUX_ALSA__)
+  if ( hotplug->apiData[LINUX_ALSA] ) alsaHotplugStop( hotplug->apiData[LINUX_ALSA] );
+#endif
+#if defined(__UNIX_JACK__)
+  if ( hotplug->apiData[UNIX_JACK] ) jackHotplugStop( hotplug->apiData[UNIX_JACK] );
+#endif
+#if defined(__WINDOWS_MM__)
+  if ( hotplug->apiData[WINDOWS_MM] ) winmmHotplugStop( hotplug->apiData[WINDOWS_MM] );
+#endif
+#if defined(__AMIDI__)
+  if ( hotplug->apiData[ANDROID_AMIDI] ) androidHotplugStop( hotplug->apiData[ANDROID_AMIDI] );
+#endif
+  delete hotplug;
 }

@@ -2215,6 +2215,8 @@ struct AlsaMidiData {
   unsigned int bufferSize;
   unsigned int requestedBufferSize;
   unsigned char *buffer;
+  // The input thread, or dummy_thread_id when there is none to join. Only the
+  // thread that owns the MidiInAlsa writes it (see joinInputThread()).
   pthread_t thread;
   pthread_t dummy_thread_id;
   snd_seq_real_time_t lastTime;
@@ -2225,6 +2227,19 @@ struct AlsaMidiData {
 } // namespace
 
 #define PORT_TYPE( pinfo, bits ) ((snd_seq_port_info_get_capability(pinfo) & (bits)) == (bits))
+
+// Joins the input thread, if one was started and has not been joined yet.
+// The input thread must not reset data->thread itself when it exits: a reset
+// between the check and the join below would make the owner join
+// dummy_thread_id, i.e. the thread that created the MidiInAlsa, which hangs;
+// a reset before the check leaves the thread unjoined.
+static void joinInputThread( AlsaMidiData *data )
+{
+  if ( !pthread_equal( data->thread, data->dummy_thread_id ) ) {
+    pthread_join( data->thread, NULL );
+    data->thread = data->dummy_thread_id;
+  }
+}
 
 //*********************************************************************//
 //  API: LINUX ALSA
@@ -2441,7 +2456,6 @@ static void *alsaMidiHandler( void *ptr )
   if ( buffer ) free( buffer );
   snd_midi_event_free( apiData->coder );
   apiData->coder = 0;
-  apiData->thread = apiData->dummy_thread_id;
   return 0;
 }
 
@@ -2462,9 +2476,8 @@ MidiInAlsa :: ~MidiInAlsa()
     inputData_.doInput = false;
     int res = write( data->trigger_fds[1], &inputData_.doInput, sizeof( inputData_.doInput ) );
     (void) res;
-    if ( !pthread_equal(data->thread, data->dummy_thread_id) )
-      pthread_join( data->thread, NULL );
   }
+  joinInputThread( data );
 
   // Cleanup.
   close ( data->trigger_fds[0] );
@@ -2680,6 +2693,9 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string &portNam
   }
 
   if ( inputData_.doInput == false ) {
+    // Wait for old thread to stop, if still running
+    joinInputThread( data );
+
     // Start the input queue
 #ifndef AVOID_TIMESTAMPING
     snd_seq_start_queue( data->seq, data->queue_id, NULL );
@@ -2695,6 +2711,7 @@ void MidiInAlsa :: openPort( unsigned int portNumber, const std::string &portNam
     int err = pthread_create( &data->thread, &attr, alsaMidiHandler, &inputData_ );
     pthread_attr_destroy( &attr );
     if ( err ) {
+      data->thread = data->dummy_thread_id; // undefined after a failed pthread_create()
       data->reconnect.stop();
       snd_seq_unsubscribe_port( data->seq, data->subscription );
       snd_seq_port_subscribe_free( data->subscription );
@@ -2742,8 +2759,7 @@ void MidiInAlsa :: openVirtualPort( const std::string &portName )
 
   if ( inputData_.doInput == false ) {
     // Wait for old thread to stop, if still running
-    if ( !pthread_equal( data->thread, data->dummy_thread_id ) )
-      pthread_join( data->thread, NULL );
+    joinInputThread( data );
 
     // Start the input queue
 #ifndef AVOID_TIMESTAMPING
@@ -2760,6 +2776,7 @@ void MidiInAlsa :: openVirtualPort( const std::string &portName )
     int err = pthread_create( &data->thread, &attr, alsaMidiHandler, &inputData_ );
     pthread_attr_destroy( &attr );
     if ( err ) {
+      data->thread = data->dummy_thread_id; // undefined after a failed pthread_create()
       if ( data->subscription ) {
         snd_seq_unsubscribe_port( data->seq, data->subscription );
         snd_seq_port_subscribe_free( data->subscription );
@@ -2797,9 +2814,8 @@ void MidiInAlsa :: closePort( void )
     inputData_.doInput = false;
     int res = write( data->trigger_fds[1], &inputData_.doInput, sizeof( inputData_.doInput ) );
     (void) res;
-    if ( !pthread_equal( data->thread, data->dummy_thread_id ) )
-      pthread_join( data->thread, NULL );
   }
+  joinInputThread( data );
 }
 
 void MidiInAlsa :: setClientName( const std::string &clientName )

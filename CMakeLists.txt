@@ -20,9 +20,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Check for Jack (any OS)
-find_library(JACK_LIB jack)
+#
+# When cross-compiling, confine both probes to the target.  pkg-config
+# otherwise answers from the host's PKG_CONFIG_PATH and find_library searches
+# host paths, so a JACK installed on the build machine switches the backend on
+# for a target whose sysroot has no jack/jack.h (issue #383).
 find_package(PkgConfig)
-pkg_check_modules(jack jack)
+if(CMAKE_CROSSCOMPILING)
+  # Only consult .pc files under the target sysroot.  If the toolchain has not
+  # named one, there is nothing target-specific to find and JACK stays off.
+  set(_rtmidi_jack_pkg_libdir)
+  foreach(_root ${CMAKE_FIND_ROOT_PATH} ${CMAKE_SYSROOT})
+    if(_root)
+      list(APPEND _rtmidi_jack_pkg_libdir
+           "${_root}/usr/lib/pkgconfig" "${_root}/usr/share/pkgconfig")
+    endif()
+  endforeach()
+  if(_rtmidi_jack_pkg_libdir)
+    string(REPLACE ";" ":" _rtmidi_jack_pkg_libdir "${_rtmidi_jack_pkg_libdir}")
+    set(ENV{PKG_CONFIG_LIBDIR} "${_rtmidi_jack_pkg_libdir}")
+    unset(ENV{PKG_CONFIG_PATH})
+    pkg_check_modules(jack jack)
+  endif()
+  find_library(JACK_LIB jack ONLY_CMAKE_FIND_ROOT_PATH)
+else()
+  find_library(JACK_LIB jack)
+  pkg_check_modules(jack jack)
+endif()
 if(JACK_LIB OR jack_FOUND)
   set(HAVE_JACK TRUE)
 endif()
@@ -80,6 +104,7 @@ set(rtmidi_SOURCES RtMidi.cpp RtMidi.h rtmidi_c.cpp rtmidi_c.h)
 set(LINKLIBS)
 set(PUBLICLINKLIBS)
 set(INCDIRS)
+set(LINKDIRS)
 set(PKGCONFIG_REQUIRES)
 set(LIBS_REQUIRES)
 set(API_DEFS)
@@ -98,8 +123,14 @@ if(RTMIDI_API_JACK)
   list(APPEND API_DEFS "-D__UNIX_JACK__")
   list(APPEND API_LIST "jack")
   if(jack_FOUND)
+    # jack_LIBRARIES is the bare name ("jack"), so on an installation that
+    # keeps libjack somewhere the linker does not search by default -- the
+    # pipewire-jack layout, /usr/lib*/pipewire-0.3/jack -- the link fails even
+    # though pkg-config reported the right -L.  Carry the directories too
+    # (issue #319).
     list(APPEND LINKLIBS ${jack_LIBRARIES})
-    list(APPEND INCDIRS ${jack_INCLUDEDIR})
+    list(APPEND LINKDIRS ${jack_LIBRARY_DIRS})
+    list(APPEND INCDIRS ${jack_INCLUDE_DIRS})
   else()
     list(APPEND LINKLIBS ${JACK_LIB})
   endif()
@@ -108,7 +139,13 @@ if(RTMIDI_API_JACK)
   include(CheckSymbolExists)
   set(tmp_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
   list(APPEND CMAKE_REQUIRED_LIBRARIES jack)
-  check_symbol_exists(jack_port_rename ${jack_INCLUDEDIR}/jack/jack.h JACK_HAS_PORT_RENAME)
+  # Look the header up on the include path rather than building an absolute
+  # path from jack_INCLUDEDIR, which is empty when JACK was found by
+  # find_library rather than pkg-config.
+  set(tmp_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
+  list(APPEND CMAKE_REQUIRED_INCLUDES ${jack_INCLUDE_DIRS})
+  check_symbol_exists(jack_port_rename jack/jack.h JACK_HAS_PORT_RENAME)
+  set(CMAKE_REQUIRED_INCLUDES ${tmp_CMAKE_REQUIRED_INCLUDES})
   set(CMAKE_REQUIRED_LIBRARIES ${tmp_CMAKE_REQUIRED_LIBRARIES})
   if(JACK_HAS_PORT_RENAME)
     list(APPEND API_DEFS "-DJACK_HAS_PORT_RENAME")
@@ -223,6 +260,9 @@ target_include_directories(rtmidi PRIVATE ${INCDIRS}
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
+if(LINKDIRS)
+  target_link_directories(rtmidi PRIVATE ${LINKDIRS})
+endif()
 target_link_libraries(rtmidi PUBLIC ${PUBLICLINKLIBS}
                              PRIVATE ${LINKLIBS})
 

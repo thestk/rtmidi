@@ -278,28 +278,43 @@ string(REPLACE ";" " " api "${API_DEFS}")
 set(prefix ${CMAKE_INSTALL_PREFIX})
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/rtmidi.pc.in" "rtmidi.pc" @ONLY)
 
-# Add install rule.
-install(TARGETS ${LIB_TARGETS}
-        EXPORT RtMidiTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtmidi)
+# Install rules.  A project that vendors RtMidi as a subdirectory usually does
+# not want RtMidi's files in its own `make install`, so they can be turned off
+# wholesale.  On by default, so a standalone build is unchanged.
+option(RTMIDI_INSTALL "Generate install rules for RtMidi" ON)
 
-# Store the package in the user registry.
-export(PACKAGE RtMidi)
+if(RTMIDI_INSTALL)
+  install(TARGETS ${LIB_TARGETS}
+          EXPORT RtMidiTargets
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtmidi)
+endif()
 
 # Set installation path for CMake files.
 set(RTMIDI_CMAKE_DESTINATION share/rtmidi)
 
-# Export library target (build-tree).
-export(EXPORT RtMidiTargets
-       NAMESPACE RtMidi::)
+# Store the package in the user registry, and export the target set for the
+# build tree.  Both describe the set created by install(TARGETS ... EXPORT)
+# above, so they follow the same option: exporting a set that was never
+# installed is a configure error.
+if(RTMIDI_INSTALL)
+  export(PACKAGE RtMidi)
 
-# Export library target (install-tree).
-install(EXPORT RtMidiTargets
-        DESTINATION ${RTMIDI_CMAKE_DESTINATION}
-        NAMESPACE RtMidi::)
+  # Export library target (build-tree).
+  export(EXPORT RtMidiTargets
+         NAMESPACE RtMidi::)
+endif()
+
+# Export library target (install-tree).  This exports the set created by the
+# install(TARGETS ... EXPORT RtMidiTargets) above, so it has to follow the same
+# option: exporting a set that was never installed is a configure error.
+if(RTMIDI_INSTALL)
+  install(EXPORT RtMidiTargets
+          DESTINATION ${RTMIDI_CMAKE_DESTINATION}
+          NAMESPACE RtMidi::)
+endif()
 
 # Configure uninstall target.
 configure_file(
@@ -315,9 +330,11 @@ if(NOT TARGET ${RTMIDI_TARGETNAME_UNINSTALL})
       COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/RtMidiConfigUninstall.cmake)
 endif()
 
-install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/rtmidi.pc
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+if(RTMIDI_INSTALL)
+  install(
+      FILES ${CMAKE_CURRENT_BINARY_DIR}/rtmidi.pc
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
 
 # Set up CMake package
 include(CMakePackageConfigHelpers)
@@ -339,10 +356,12 @@ configure_package_config_file(
 )
 
 # Install package files
-install(
-    FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config-version.cmake"
-    DESTINATION
-        "${RTMIDI_CMAKE_DESTINATION}"
-)
+if(RTMIDI_INSTALL)
+  install(
+      FILES
+          "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config.cmake"
+          "${CMAKE_CURRENT_BINARY_DIR}/rtmidi-config-version.cmake"
+      DESTINATION
+          "${RTMIDI_CMAKE_DESTINATION}"
+  )
+endif()

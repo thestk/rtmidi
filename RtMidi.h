@@ -77,6 +77,7 @@
                         "." RTMIDI_TOSTRING(RTMIDI_VERSION_PATCH)
 #endif
 
+#include <atomic>
 #include <exception>
 #include <iostream>
 #include <string>
@@ -383,6 +384,11 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
   /*!
     Subsequent incoming MIDI messages will be written to the queue
     and can be retrieved with the \e getMessage function.
+
+    The callback runs on the backend's input thread, and this function
+    does not wait for it: a message that is being delivered while it is
+    called may still reach the callback after it returns. Keep the
+    callback's user data valid until the port is closed.
   */
   void cancelCallback();
 
@@ -683,9 +689,11 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     bool doInput;
     bool firstMessage;
     void *apiData;
-    bool usingCallback;
-    RtMidiIn::RtMidiCallback userCallback;
-    void *userData;
+    // Read by the input thread while the user may change them; see
+    // callUserCallback(), MidiInApi::setCallback() and cancelCallback().
+    std::atomic<bool> usingCallback;
+    std::atomic<RtMidiIn::RtMidiCallback> userCallback;
+    std::atomic<void *> userData;
     bool continueSysex;
     unsigned int bufferSize;
     unsigned int bufferCount;
@@ -694,6 +702,18 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     RtMidiInData()
       : ignoreFlags(7), doInput(false), firstMessage(true), apiData(0), usingCallback(false),
         userCallback(0), userData(0), continueSysex(false), bufferSize(1024), bufferCount(4) {}
+
+    // Called by the backends' input threads: passes the message to the user
+    // callback and returns true, or returns false if none is set (the message
+    // then belongs in the queue). cancelCallback() only clears usingCallback,
+    // so a thread that has just seen it set still reads a valid callback.
+    bool callUserCallback( double timeStamp, std::vector<unsigned char> *message )
+    {
+      if ( !usingCallback.load( std::memory_order_acquire ) ) return false;
+      RtMidiIn::RtMidiCallback callback = userCallback.load( std::memory_order_relaxed );
+      callback( timeStamp, message, userData.load( std::memory_order_relaxed ) );
+      return true;
+    }
   };
 
  protected:

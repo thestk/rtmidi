@@ -368,6 +368,7 @@ class MidiOutWeb: public MidiOutApi
 
 #define LOG_TAG "RtMidi"
 #include <amidi/AMidi.h>
+#include <dlfcn.h>
 #include <android/log.h>
 #include <pthread.h>
 #include <atomic>
@@ -5549,13 +5550,56 @@ static std::vector<jobject> androidMidiDevices;
 //  Class Definitions: MidiInAndroid
 //*********************************************************************//
 
+// The JVM running the app.  Set by JNI_OnLoad when the runtime loads the
+// library this backend is built into, and resolved on demand otherwise.
+//
+// JNI_GetCreatedJavaVMs() is deliberately not linked: it lives in
+// libnativehelper, which the NDK ships only from API 31, while AMidi itself is
+// available from API 29.  Linking it would raise this backend's minimum to 31
+// for no reason, so it is resolved with dlsym() in the cases where JNI_OnLoad
+// has not already supplied the pointer.
+static JavaVM* androidJvm = NULL;
+
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad( JavaVM* vm, void* /*reserved*/ )
+{
+  androidJvm = vm;
+  return JNI_VERSION_1_6;
+}
+
+static JavaVM* androidGetJvm() {
+  if ( androidJvm ) return androidJvm;
+
+  // JNI_OnLoad has not run, so this is a static initializer or a library the
+  // runtime did not load itself.
+  typedef jint (*GetCreatedJavaVMsFn)( JavaVM**, jsize, jsize* );
+  static GetCreatedJavaVMsFn getCreatedJavaVMs =
+    (GetCreatedJavaVMsFn) dlsym( RTLD_DEFAULT, "JNI_GetCreatedJavaVMs" );
+
+  if ( !getCreatedJavaVMs ) {
+    void *handle = dlopen( "libnativehelper.so", RTLD_NOW );
+    if ( handle )
+      getCreatedJavaVMs =
+        (GetCreatedJavaVMsFn) dlsym( handle, "JNI_GetCreatedJavaVMs" );
+  }
+  if ( !getCreatedJavaVMs ) {
+    LOGE( "Unable to resolve JNI_GetCreatedJavaVMs" );
+    return NULL;
+  }
+
+  jsize found = 0;
+  JavaVM *vm = NULL;
+  if ( getCreatedJavaVMs( &vm, 1, &found ) != JNI_OK || found != 1 ) {
+    LOGE( "No JVM found" );
+    return NULL;
+  }
+  androidJvm = vm;
+  return androidJvm;
+}
+
 static JNIEnv* androidGetThreadEnv() {
-  // Every Android app has only one JVM. Calling JNI_GetCreatedJavaVMs
-  // will retrieve the JVM running the app.
-  jsize jvmsFound = 0;
-  JavaVM jvms[1];
-  JavaVM* pjvms = jvms;
-  jint result = JNI_GetCreatedJavaVMs(&pjvms, 1, &jvmsFound);
+  JavaVM* pjvms = androidGetJvm();
+  jsize jvmsFound = pjvms ? 1 : 0;
+  jint result = pjvms ? JNI_OK : JNI_ERR;
 
   // Something went terribly wrong, no JVM was found
   if (jvmsFound != 1 || result != JNI_OK) {
@@ -5581,6 +5625,11 @@ static JNIEnv* androidGetThreadEnv() {
 }
 
 static jobject androidGetContext(JNIEnv *env) {
+  if (env == NULL) {
+    LOGE("androidGetContext: no JNI environment");
+    return NULL;
+  }
+
   auto activityThread = env->FindClass("android/app/ActivityThread");
   auto currentActivityThread = env->GetStaticMethodID(activityThread, "currentActivityThread", "()Landroid/app/ActivityThread;");
   auto at = env->CallStaticObjectMethod(activityThread, currentActivityThread);
@@ -5711,6 +5760,7 @@ static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
   }
   
   auto portNameChars = env->GetStringUTFChars(jPortName, NULL);
+  if (portNameChars == NULL) return "";
   auto name = std::string(portNameChars);
   env->ReleaseStringUTFChars(jPortName, portNameChars);
 
@@ -5729,7 +5779,11 @@ void MidiInAndroid :: initialize( const std::string& clientName ) {
 
 void MidiInAndroid :: connect() {
   auto env = androidGetThreadEnv();
+  if (env == NULL) return;
+
   auto context = androidGetContext(env);
+  if (context == NULL) return;
+
   androidRefreshMidiDevices(env, context, true);
 
   env->DeleteLocalRef(context);
@@ -5737,6 +5791,7 @@ void MidiInAndroid :: connect() {
 
 MidiInAndroid :: ~MidiInAndroid() {
   auto env = androidGetThreadEnv();
+  if (env == NULL) return;
 
   // Remove all midi devices
   for (jobject jMidiDevice : androidMidiDevices) {
@@ -5777,6 +5832,7 @@ unsigned int MidiInAndroid :: getPortCount() {
 
 std::string MidiInAndroid :: getPortName(unsigned int portNumber) {
   auto env = androidGetThreadEnv();
+  if (env == NULL) return "";
   return androidPortName(env, portNumber);
 }
 
@@ -5907,7 +5963,11 @@ void MidiOutAndroid :: initialize( const std::string& clientName ) {
 
 void MidiOutAndroid :: connect() {
   auto env = androidGetThreadEnv();
+  if (env == NULL) return;
+
   auto context = androidGetContext(env);
+  if (context == NULL) return;
+
   androidRefreshMidiDevices(env, context, false);
 
   env->DeleteLocalRef(context);
@@ -5915,6 +5975,7 @@ void MidiOutAndroid :: connect() {
 
 MidiOutAndroid :: ~MidiOutAndroid() {
   auto env = androidGetThreadEnv();
+  if (env == NULL) return;
 
   // Remove all midi devices
   for (jobject jMidiDevice : androidMidiDevices) {
@@ -5948,6 +6009,7 @@ unsigned int MidiOutAndroid :: getPortCount() {
 
 std::string MidiOutAndroid :: getPortName( unsigned int portNumber ) {
   auto env = androidGetThreadEnv();
+  if (env == NULL) return "";
   return androidPortName(env, portNumber);
 }
 

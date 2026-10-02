@@ -1,0 +1,29 @@
+name: RtMidiExample
+configs:
+  Debug: debug
+  Release: release
+targets:
+  RtMidiExample:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: RtMidiExample
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.rtmidi.RtMidiExample
+        SWIFT_OBJC_BRIDGING_HEADER: RtMidiExample/RtMidiExample-Bridging-Header.h
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) __MACOSX_CORE__=1"
+        CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+        CLANG_CXX_LIBRARY: "libc++"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Connects to Bluetooth MIDI devices."
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - sdk: CoreMIDI.framework
+      - sdk: CoreAudio.framework
+      - sdk: AVFoundation.framework

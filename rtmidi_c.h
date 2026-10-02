@@ -49,6 +49,16 @@ struct RtMidiWrapper {
     char* msg;
 };
 
+/*! \brief Error reporting.
+ *
+ * Every function taking a device clears \ref RtMidiWrapper::ok and
+ * \ref RtMidiWrapper::msg on entry, so they describe that call alone. Read them
+ * before calling anything else on the same device. An error delivered to a
+ * callback set with rtmidi_set_error_callback() is not cleared this way.
+ *
+ * Clearing frees the previous message, so a device belongs to one thread.
+ */
+
 //! \brief Typedef for a generic RtMidi pointer.
 typedef struct RtMidiWrapper* RtMidiPtr;
 

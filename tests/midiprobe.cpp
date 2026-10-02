@@ -16,6 +16,7 @@ int main()
   apiMap[RtMidi::MACOSX_CORE] = "OS-X CoreMIDI";
   apiMap[RtMidi::WINDOWS_MM] = "Windows MultiMedia";
   apiMap[RtMidi::WINDOWS_UWP] = "Windows UWP";
+  apiMap[RtMidi::WINDOWS_MIDI_SERVICES] = "Windows MIDI Services";
   apiMap[RtMidi::UNIX_JACK] = "Jack Client";
   apiMap[RtMidi::LINUX_ALSA] = "Linux ALSA";
   apiMap[RtMidi::RTMIDI_DUMMY] = "RtMidi Dummy";

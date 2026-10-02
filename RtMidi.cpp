@@ -808,9 +808,21 @@ void MidiApi :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userD
     errorCallbackUserData_ = userData;
 }
 
+RtMidiErrorCallback MidiApi :: defaultErrorCallback_ = 0;
+void *MidiApi :: defaultErrorCallbackUserData_ = 0;
+
+void MidiApi :: setDefaultErrorCallback( RtMidiErrorCallback errorCallback, void *userData )
+{
+  defaultErrorCallback_ = errorCallback;
+  defaultErrorCallbackUserData_ = userData;
+}
+
 void MidiApi :: error( RtMidiError::Type type, std::string errorString )
 {
-  if ( errorCallback_ ) {
+  RtMidiErrorCallback callback = errorCallback_ ? errorCallback_ : defaultErrorCallback_;
+  void *userData = errorCallback_ ? errorCallbackUserData_ : defaultErrorCallbackUserData_;
+
+  if ( callback ) {
 
     if ( firstErrorOccurred_ )
       return;
@@ -818,7 +830,7 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
     firstErrorOccurred_ = true;
     const std::string errorMessage = errorString;
 
-    errorCallback_( type, errorMessage, errorCallbackUserData_ );
+    callback( type, errorMessage, userData );
     firstErrorOccurred_ = false;
     return;
   }

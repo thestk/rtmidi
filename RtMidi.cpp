@@ -38,6 +38,7 @@
 /**********************************************************************/
 
 #include "RtMidi.h"
+#include <algorithm>
 #include <sstream>
 
 using namespace rt::midi;
@@ -645,20 +646,43 @@ RTMIDI_DLL_PUBLIC RtMidiIn :: RtMidiIn( RtMidi::Api api, const std::string &clie
     std::cerr << "\nRtMidiIn: no compiled support for specified API argument!\n\n" << std::endl;
   }
 
-  // Iterate through the compiled APIs and return as soon as we find
-  // one with at least one port or we reach the end of the list.
+  // Iterate through the compiled APIs and return as soon as we find one with
+  // at least one port.  If none of them has a port right now -- a machine with
+  // nothing plugged in yet -- fall back to the first API that opened, so that
+  // devices connected later are seen.
   std::vector< RtMidi::Api > apis;
   getCompiledApi( apis );
+
+  // The dummy backend reports no ports and never will, so selecting it here
+  // would leave the object permanently deaf (#398).  Drop it from the
+  // candidates unless it is the only thing compiled in, which also keeps it
+  // from being constructed and announcing itself on a machine with no ports.
+  if ( apis.size() > 1 )
+    apis.erase( std::remove( apis.begin(), apis.end(), RTMIDI_DUMMY ), apis.end() );
+
+  // Keep the *first* API that opened, not the last: the compiled order is a
+  // preference order, so a portless machine must still end up on the most
+  // preferred real backend rather than whichever one happened to be tried last.
+  RtMidi::Api firstWorkingApi = RtMidi::UNSPECIFIED;
   for ( unsigned int i=0; i<apis.size(); i++ ) {
     openMidiApi( apis[i], clientName, queueSizeLimit );
-    if ( rtapi_ && rtapi_->getPortCount() ) break;
+    if ( rtapi_ && rtapi_->getPortCount() ) return;
+    if ( rtapi_ && firstWorkingApi == RtMidi::UNSPECIFIED )
+      firstWorkingApi = apis[i];
+  }
+
+  // No API had a port.  Reopen the first one that worked, unless that is
+  // already the one still open from the last iteration.
+  if ( firstWorkingApi != RtMidi::UNSPECIFIED ) {
+    if ( rtapi_ && rtapi_->getCurrentApi() == firstWorkingApi ) return;
+    openMidiApi( firstWorkingApi, clientName, queueSizeLimit );
+    if ( rtapi_ ) return;
   }
 
   if ( rtapi_ ) return;
 
-  // It should not be possible to get here because the preprocessor
-  // definition __RTMIDI_DUMMY__ is automatically defined if no
-  // API-specific definitions are passed to the compiler. But just in
+  // It should not be possible to get here: the dummy backend is always
+  // compiled in, so the loop above always opens something. But just in
   // case something weird happens, we'll throw an error.
   std::string errorText = "RtMidiIn: no compiled API support found ... critical error!!";
   throw( RtMidiError( errorText, RtMidiError::UNSPECIFIED ) );
@@ -728,16 +752,33 @@ RTMIDI_DLL_PUBLIC RtMidiOut :: RtMidiOut( RtMidi::Api api, const std::string &cl
   // one with at least one port or we reach the end of the list.
   std::vector< RtMidi::Api > apis;
   getCompiledApi( apis );
+
+  // As in the RtMidiIn constructor above: the dummy is not a candidate unless
+  // it is the only thing compiled in, and the first API that opens wins so the
+  // compiled preference order is honoured on a portless machine (#398).
+  if ( apis.size() > 1 )
+    apis.erase( std::remove( apis.begin(), apis.end(), RTMIDI_DUMMY ), apis.end() );
+
+  RtMidi::Api firstWorkingApi = RtMidi::UNSPECIFIED;
   for ( unsigned int i=0; i<apis.size(); i++ ) {
     openMidiApi( apis[i], clientName );
-    if ( rtapi_ && rtapi_->getPortCount() ) break;
+    if ( rtapi_ && rtapi_->getPortCount() ) return;
+    if ( rtapi_ && firstWorkingApi == RtMidi::UNSPECIFIED )
+      firstWorkingApi = apis[i];
+  }
+
+  // No API had a port.  Reopen the first one that worked, unless that is
+  // already the one still open from the last iteration.
+  if ( firstWorkingApi != RtMidi::UNSPECIFIED ) {
+    if ( rtapi_ && rtapi_->getCurrentApi() == firstWorkingApi ) return;
+    openMidiApi( firstWorkingApi, clientName );
+    if ( rtapi_ ) return;
   }
 
   if ( rtapi_ ) return;
 
-  // It should not be possible to get here because the preprocessor
-  // definition __RTMIDI_DUMMY__ is automatically defined if no
-  // API-specific definitions are passed to the compiler. But just in
+  // It should not be possible to get here: the dummy backend is always
+  // compiled in, so the loop above always opens something. But just in
   // case something weird happens, we'll thrown an error.
   std::string errorText = "RtMidiOut: no compiled API support found ... critical error!!";
   throw( RtMidiError( errorText, RtMidiError::UNSPECIFIED ) );

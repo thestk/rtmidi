@@ -46,7 +46,7 @@ TESTS = apinames
 if HAVE_ALSA
 noinst_PROGRAMS += alsahotplug
 alsahotplug_SOURCES = alsahotplug.cpp $(top_srcdir)/RtMidi.cpp
-alsahotplug_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS) -U__UNIX_JACK__ -D__RTMIDI_DUMMY__
+alsahotplug_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS) -U__UNIX_JACK__
 alsahotplug_LDFLAGS = -Wl,--wrap=snd_seq_client_info_get_card -Wl,--wrap=realpath \
   -Wl,--wrap=__realpath_chk -Wl,--wrap=pipe2 -Wl,--wrap=pthread_create \
   -Wl,--wrap=snd_seq_open -Wl,--wrap=snd_seq_event_input -Wl,--wrap=snd_seq_subscribe_port \

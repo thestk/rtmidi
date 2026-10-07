@@ -53,7 +53,7 @@ Open your project's **Property Pages** (**Project → Properties**) and set the 
 |---|---|---|
 | **C/C++ → General** | Additional Include Directories | Path to the directory containing `RtMidi.h` (the repository root) |
 | **Linker → General** | Additional Library Directories | Path to the directory containing `rtmidilib.lib` (e.g. `tests/x64/Release/`) |
-| **Linker → Input** | Additional Dependencies | `rtmidilib.lib` |
+| **Linker → Input** | Additional Dependencies | `rtmidilib.lib; winmm.lib; windowsapp.lib` |
 
 > [!IMPORTANT]
 > Make sure the **Configuration** and **Platform** dropdowns in Property Pages match the build you intend to run (e.g. **Release / x64**).

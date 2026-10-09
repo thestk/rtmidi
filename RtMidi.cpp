@@ -1096,6 +1096,12 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
       continue;
     }
 
+    // A status byte (not F7 or real-time) here means the SysEx lost its end: drop it.
+    if ( continueSysex && packet->data[0] >= 0x80 && packet->data[0] < 0xF8 && packet->data[0] != 0xF7 ) {
+      continueSysex = false;
+      message.bytes.clear();
+    }
+
     // Calculate time stamp.
     if ( data->firstMessage ) {
       message.timeStamp = 0.0;
@@ -2449,6 +2455,10 @@ static void *alsaMidiHandler( void *ptr )
         // than this, they are segmented into 256 byte chunks.  So,
         // we'll watch for this and concatenate sysex chunks into a
         // single sysex message if necessary.
+        // A status byte (not F7 or real-time) here means the SysEx lost its end: drop it.
+        if ( continueSysex && buffer[0] >= 0x80 && buffer[0] < 0xF8 && buffer[0] != 0xF7 )
+          continueSysex = false;
+
         if ( !continueSysex )
           message.bytes.assign( buffer, &buffer[nBytes] );
         else
@@ -4817,6 +4827,11 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
       message.timeStamp = ( time - jData->lastTime ) * 0.000001;
 
     jData->lastTime = time;
+
+    // A status byte (not F7 or real-time) here means the SysEx lost its end: drop it.
+    if ( continueSysex && event.size > 0 && event.buffer[0] >= 0x80 &&
+         event.buffer[0] < 0xF8 && event.buffer[0] != 0xF7 )
+      continueSysex = false;
 
     if ( !continueSysex )
       message.bytes.clear();

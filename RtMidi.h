@@ -730,11 +730,11 @@ class RTMIDI_DLL_PUBLIC MidiInApi : public MidiApi
     // callback and returns true, or returns false if none is set (the message
     // then belongs in the queue). cancelCallback() only clears usingCallback,
     // so a thread that has just seen it set still reads a valid callback.
-    bool callUserCallback( double timeStamp, std::vector<unsigned char> *message )
+    bool callUserCallback( double timeStamp, std::vector<unsigned char> *bytes )
     {
       if ( !usingCallback.load( std::memory_order_acquire ) ) return false;
       RtMidiIn::RtMidiCallback callback = userCallback.load( std::memory_order_relaxed );
-      callback( timeStamp, message, userData.load( std::memory_order_relaxed ) );
+      callback( timeStamp, bytes, userData.load( std::memory_order_relaxed ) );
       return true;
     }
   };

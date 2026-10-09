@@ -221,7 +221,7 @@ AS_CASE(["$systems"], [*" winmm "*], [
      need_ole32=yes
      found="$found WinMM"
      api="$api -D__WINDOWS_MM__"
-     LIBS="-lwinmm ${LIBS}"])
+     LIBS="-lwinmm -lcfgmgr32 ${LIBS}"])
 ])
 
 AS_CASE(["$systems"], [*" winks "*], [

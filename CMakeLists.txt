@@ -292,10 +292,11 @@ if(RTMIDI_BUILD_TESTING)
   add_executable(midiprobe  tests/midiprobe.cpp)
   add_executable(qmidiin    tests/qmidiin.cpp)
   add_executable(sysextest  tests/sysextest.cpp)
+  add_executable(sysexchunked tests/sysexchunked.cpp)
   add_executable(apinames   tests/apinames.cpp)
   add_executable(testcapi   tests/testcapi.c)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest apinames testcapi
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest sysexchunked apinames testcapi
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})

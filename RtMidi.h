@@ -618,8 +618,10 @@ class RTMIDI_DLL_PUBLIC MidiApi
   /*!
     Applies to every RtMidi object, including errors raised during
     construction, which a per-object callback cannot see. An object's own
-    callback takes precedence. Not synchronized: set it once before creating
-    any RtMidi object.
+    callback takes precedence. Unlike an object's own callback, this one does
+    not stop fatal errors: after it returns, anything other than a WARNING or
+    DEBUG_WARNING is still thrown as an RtMidiError. Not synchronized: set it
+    once before creating any RtMidi object.
   */
   static void setDefaultErrorCallback( RtMidiErrorCallback errorCallback = NULL,
                                        void *userData = 0 );

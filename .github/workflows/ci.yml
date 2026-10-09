@@ -72,3 +72,27 @@ jobs:
         && mkdir bld-automake && cd bld-automake
         && (../configure --host=${{matrix.host}} --with-${{matrix.api}} CPPFLAGS=${{matrix.cppflags}} || (cat config.log; false))
         && make V=1
+
+  Windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: actions/checkout@v2
+    - name: Windows MIDI Services metadata
+      # Not in any Windows SDK yet; Microsoft publishes it only as a release asset.
+      shell: pwsh
+      run: |
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest https://github.com/microsoft/MIDI/releases/download/inbox-preview-10/Windows.Devices.Midi2.0.99.88-preview.10.nupkg -OutFile midi2.nupkg
+        if ((Get-FileHash midi2.nupkg).Hash -ne '6DAF121A3F76A4A1E0D46521C5072AC576477448C9332048383BB58960A4CE69') { throw 'checksum mismatch' }
+        New-Item -ItemType Directory wms | Out-Null
+        C:\Windows\System32\tar.exe -xf midi2.nupkg -C wms ref/native
+    - name: CMake
+      env:
+        WindowsMidiServices_ROOT: ${{ github.workspace }}/wms/ref/native
+      run:
+        cmake -B bld-cmake -A x64 -DRTMIDI_API_WMS=ON -DBUILD_SHARED_LIBS=OFF
+        && cmake --build bld-cmake --config Release
+        && ctest --test-dir bld-cmake -C Release --output-on-failure

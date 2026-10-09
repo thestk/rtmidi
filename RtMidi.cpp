@@ -6356,12 +6356,7 @@ void WinMidiServicesClass::midi_in_callback(MidiMessageReceivedEventArgs const& 
     }
     last_timestamp_ = ts;
 
-    if (input_data_->usingCallback)
-    {
-        (input_data_->userCallback)(message.timeStamp, &message.bytes,
-                                    input_data_->userData);
-    }
-    else
+    if (!input_data_->callUserCallback(message.timeStamp, &message.bytes))
     {
         std::lock_guard<std::mutex> lock(mtx_queue_);
         if (!input_data_->queue.push(message))

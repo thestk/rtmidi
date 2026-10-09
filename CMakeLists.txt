@@ -185,9 +185,9 @@ if(RTMIDI_API_WMS)
     message(FATAL_ERROR "RTMIDI_API_WMS requires the MSVC toolset (C++/WinRT)")
   endif()
 
-  # WMS requires C++17 for C++/WinRT
-  if(CMAKE_CXX_STANDARD VERSION_LESS 17)
-    set(CMAKE_CXX_STANDARD 17)
+  # C++/WinRT needs C++20 coroutines; VS 2026 rejects the experimental ones
+  if(CMAKE_CXX_STANDARD VERSION_LESS 20)
+    set(CMAKE_CXX_STANDARD 20)
   endif()
 
   find_package(CppWinRT REQUIRED)

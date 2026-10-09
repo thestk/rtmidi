@@ -57,6 +57,7 @@ class CallbackProxyUserData
 extern "C" const unsigned int rtmidi_num_compiled_apis;
 
 static void rtmidi_set_error_msg (RtMidiPtr device, const char *err);
+static void rtmidi_clear_error (RtMidiPtr device);
 
 /* RtMidi API */
 const char* rtmidi_get_version()
@@ -98,6 +99,7 @@ enum RtMidiApi rtmidi_compiled_api_by_name(const char *name) {
 
 void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *portName)
 {
+    rtmidi_clear_error (device);
     std::string name = portName;
     try {
         ((RtMidi*) device->ptr)->openPort (portNumber, name);
@@ -110,6 +112,7 @@ void rtmidi_open_port (RtMidiPtr device, unsigned int portNumber, const char *po
 
 void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
 {
+    rtmidi_clear_error (device);
     std::string name = portName;
     try {
         ((RtMidi*) device->ptr)->openVirtualPort (name);
@@ -123,6 +126,7 @@ void rtmidi_open_virtual_port (RtMidiPtr device, const char *portName)
 
 void rtmidi_close_port (RtMidiPtr device)
 {
+    rtmidi_clear_error (device);
     try {
         ((RtMidi*) device->ptr)->closePort ();
 
@@ -134,6 +138,7 @@ void rtmidi_close_port (RtMidiPtr device)
 
 unsigned int rtmidi_get_port_count (RtMidiPtr device)
 {
+    rtmidi_clear_error (device);
     try {
         return ((RtMidi*) device->ptr)->getPortCount ();
 
@@ -146,6 +151,7 @@ unsigned int rtmidi_get_port_count (RtMidiPtr device)
 
 int rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber, char * bufOut, int * bufLen)
 {
+    rtmidi_clear_error (device);
     if (bufOut == nullptr && bufLen == nullptr) {
         return -1;
     }
@@ -231,6 +237,7 @@ void rtmidi_in_free (RtMidiInPtr device)
 
 enum RtMidiApi rtmidi_in_get_current_api (RtMidiPtr device)
 {
+    rtmidi_clear_error (device);
     try {
         return (RtMidiApi) ((RtMidiIn*) device->ptr)->getCurrentApi ();
 
@@ -258,6 +265,7 @@ void error_callback_proxy (RtMidiError::Type type, const std::string &errorText,
 
 void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void *userData)
 {
+    rtmidi_clear_error (device);
     device->callback_proxy = (void*) new CallbackProxyUserData<RtMidiCCallback> (callback, userData);
     try {
         ((RtMidiIn*) device->ptr)->setCallback (callback_proxy, device->callback_proxy);
@@ -271,6 +279,7 @@ void rtmidi_in_set_callback (RtMidiInPtr device, RtMidiCCallback callback, void 
 
 void rtmidi_in_cancel_callback (RtMidiInPtr device)
 {
+    rtmidi_clear_error (device);
     try {
         ((RtMidiIn*) device->ptr)->cancelCallback ();
         delete (CallbackProxyUserData<RtMidiCCallback>*) device->callback_proxy;
@@ -303,6 +312,7 @@ double rtmidi_in_get_message (RtMidiInPtr device,
                               unsigned char *message,
                               size_t *size)
 {
+    rtmidi_clear_error (device);
     try {
         // FIXME: use allocator to achieve efficient buffering
         std::vector<unsigned char> v;
@@ -388,6 +398,7 @@ void rtmidi_out_free (RtMidiOutPtr device)
 
 enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 {
+    rtmidi_clear_error (device);
     try {
         return (RtMidiApi) ((RtMidiOut*) device->ptr)->getCurrentApi ();
 
@@ -401,6 +412,7 @@ enum RtMidiApi rtmidi_out_get_current_api (RtMidiPtr device)
 
 int rtmidi_out_send_message (RtMidiOutPtr device, const unsigned char *message, int length)
 {
+    rtmidi_clear_error (device);
     try {
         ((RtMidiOut*) device->ptr)->sendMessage (message, length);
         return 0;
@@ -423,4 +435,13 @@ static void rtmidi_set_error_msg (RtMidiPtr device, const char *err)
         free (device->msg);
     }
     device->msg = strdup(err);
+}
+
+static void rtmidi_clear_error (RtMidiPtr device)
+{
+    device->ok = true;
+    if (device->msg) {
+        free (device->msg);
+        device->msg = 0;
+    }
 }

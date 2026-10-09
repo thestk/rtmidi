@@ -3,11 +3,12 @@
 //  by Eric Bateman, 2026.
 //
 //  Sends a SysEx of any size in pieces and checks it arrives whole (#214).
+//  --resync checks that a SysEx whose end was lost doesn't corrupt the next one.
 //  Exits 0 when the message comes back identical.
 //
 //  Measured limits on one sendMessage(), which sending in pieces avoids:
 //    ALSA seq   16355 bytes (alsa-lib's output buffer; snd_seq_set_output_buffer_size() raises it)
-//    JACK       32720 bytes each way; a 66 kB dump from a device never arrived
+//    JACK       16379 bytes (RtMidi's output ringbuffer), dropped silently past that
 //    CoreMIDI   about 117 MB on macOS, 19 MB on iOS, dropped silently past that;
 //               in pieces, about 650 to 760 pieces per message
 //    WinMM      none found (256 MB), but sendMessage() blocks until the data is sent
@@ -49,13 +50,16 @@ void usage( void )
 {
   std::cout << "\nusage: sysexchunked N [out in]\n";
   std::cout << "       sysexchunked -l\n";
-  std::cout << "       sysexchunked --listen [seconds [in]]\n\n";
+  std::cout << "       sysexchunked --listen [seconds [in]]\n";
+  std::cout << "       sysexchunked --resync [out in]\n\n";
   std::cout << "    N         length of the SysEx message to send.  Try a size a\n";
   std::cout << "              single sendMessage() cannot carry, such as 66312,\n";
   std::cout << "              the size of a real firmware dump.\n";
   std::cout << "    --listen  receive only, and report what arrives.  Useful for\n";
   std::cout << "              checking what a device actually sends, and whether\n";
   std::cout << "              a large message survives the transport.\n";
+  std::cout << "    --resync  send the start of a SysEx with no F7, then a whole one,\n";
+  std::cout << "              and check that only the whole one arrives.\n";
   std::cout << "    out in    port numbers, on APIs without virtual ports (Windows, Android).\n";
   std::cout << "              The default is port 0, which is rarely a loopback.\n";
   std::cout << "    -l        list port numbers; they can change when devices are replugged.\n\n";
@@ -94,6 +98,7 @@ int main( int argc, char *argv[] )
   }
 
   bool listen = ( std::string( argv[1] ) == "--listen" );
+  bool resync = ( std::string( argv[1] ) == "--resync" );
   size_t nBytes = 0;
   int seconds = 30;
   int result = 1;
@@ -104,7 +109,7 @@ int main( int argc, char *argv[] )
     if ( argc > 3 ) inPort = (unsigned int) atoi( argv[3] );
   } else {
     if ( argc != 2 && argc != 4 ) usage();
-    nBytes = (size_t) atoi( argv[1] );
+    nBytes = resync ? 6 : (size_t) atoi( argv[1] );
     if ( nBytes < 3 ) usage();
     if ( argc == 4 ) {
       outPort = (unsigned int) atoi( argv[2] );
@@ -184,9 +189,18 @@ int main( int argc, char *argv[] )
         message.push_back( (unsigned char) ( message.size() & 0x7F ) );
       message.push_back( 0xF7 );
 
-      std::cout << "Sending " << message.size() << " bytes in "
-                << kSysExSpan << "-byte pieces...\n";
-      sendLargeSysEx( *midiout, message );
+      if ( resync ) {
+        std::vector<unsigned char> truncated = { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F };
+        std::cout << "Sending the start of a SysEx with no F7, then a whole one...\n";
+        midiout->sendMessage( &truncated );
+        SLEEP( 50 );
+        midiout->sendMessage( &message );
+      }
+      else {
+        std::cout << "Sending " << message.size() << " bytes in "
+                  << kSysExSpan << "-byte pieces...\n";
+        sendLargeSysEx( *midiout, message );
+      }
 
       for ( int i = 0; i < 2000 && !complete; i++ ) SLEEP( 5 );
 

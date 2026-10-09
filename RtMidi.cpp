@@ -1136,8 +1136,12 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
         // If not a continuing sysex message, invoke the user callback function or queue the message.
         if ( !data->callUserCallback( message.timeStamp, &message.bytes ) ) {
           // As long as we haven't reached our queue size limit, push the message.
-          if ( !data->queue.push( message ) )
+          if (!data->queue.push(message))
+          {
+#if defined(__RTMIDI_DEBUG__)
             std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
+#endif
+          }
         }
         message.bytes.clear();
       }
@@ -1191,8 +1195,12 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
             // If not a continuing sysex message, invoke the user callback function or queue the message.
             if ( !data->callUserCallback( message.timeStamp, &message.bytes ) ) {
               // As long as we haven't reached our queue size limit, push the message.
-              if ( !data->queue.push( message ) )
+              if (!data->queue.push(message))
+              {
+#if defined(__RTMIDI_DEBUG__)
                 std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
+#endif
+              }
             }
             message.bytes.clear();
             // All subsequent messages within same MIDI packet will have time delta 0
@@ -2521,8 +2529,12 @@ static void *alsaMidiHandler( void *ptr )
 
     if ( !data->callUserCallback( message.timeStamp, &message.bytes ) ) {
       // As long as we haven't reached our queue size limit, push the message.
-      if ( !data->queue.push( message ) )
+      if (!data->queue.push(message))
+      {
+#if defined(__RTMIDI_DEBUG__)
         std::cerr << "\nMidiInAlsa: message queue limit reached!!\n\n";
+#endif
+      }
     }
   }
 
@@ -3418,8 +3430,12 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
 
   if ( !data->callUserCallback( apiData->message.timeStamp, &apiData->message.bytes ) ) {
     // As long as we haven't reached our queue size limit, push the message.
-    if ( !data->queue.push( apiData->message ) )
+    if (!data->queue.push(apiData->message))
+    {
+#if defined(__RTMIDI_DEBUG__)
       std::cerr << "\nMidiInWinMM: message queue limit reached!!\n\n";
+#endif
+    }
   }
 
   // Clear the vector for the next input message.
@@ -4872,8 +4888,12 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
       // invoke the user callback function or queue the message.
       if ( !rtData->callUserCallback( message.timeStamp, &message.bytes ) ) {
         // As long as we haven't reached our queue size limit, push the message.
-        if ( !rtData->queue.push( message ) )
+        if (!rtData->queue.push(message))
+        {
+#if defined(__RTMIDI_DEBUG__)
           std::cerr << "\nMidiInJack: message queue limit reached!!\n\n";
+#endif
+        }
       }
     }
   }

@@ -863,9 +863,22 @@ void MidiApi :: setErrorCallback( RtMidiErrorCallback errorCallback, void *userD
     errorCallbackUserData_ = userData;
 }
 
+RtMidiErrorCallback MidiApi :: defaultErrorCallback_ = 0;
+void *MidiApi :: defaultErrorCallbackUserData_ = 0;
+
+void MidiApi :: setDefaultErrorCallback( RtMidiErrorCallback errorCallback, void *userData )
+{
+  defaultErrorCallback_ = errorCallback;
+  defaultErrorCallbackUserData_ = userData;
+}
+
 void MidiApi :: error( RtMidiError::Type type, std::string errorString )
 {
-  if ( errorCallback_ ) {
+  bool usingDefault = !errorCallback_;
+  RtMidiErrorCallback callback = usingDefault ? defaultErrorCallback_ : errorCallback_;
+  void *userData = usingDefault ? defaultErrorCallbackUserData_ : errorCallbackUserData_;
+
+  if ( callback ) {
 
     if ( firstErrorOccurred_ )
       return;
@@ -873,9 +886,13 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
     firstErrorOccurred_ = true;
     const std::string errorMessage = errorString;
 
-    errorCallback_( type, errorMessage, errorCallbackUserData_ );
+    callback( type, errorMessage, userData );
     firstErrorOccurred_ = false;
-    return;
+
+    // Without its own callback the object may be half-built, so fatal errors still throw.
+    if ( !usingDefault || type == RtMidiError::WARNING || type == RtMidiError::DEBUG_WARNING )
+      return;
+    throw RtMidiError( errorString, type );
   }
 
   if ( type == RtMidiError::WARNING ) {

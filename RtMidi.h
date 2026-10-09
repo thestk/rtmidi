@@ -637,6 +637,18 @@ class RTMIDI_DLL_PUBLIC MidiApi
   inline bool isPortOpen() const { return connected_; }
   void setErrorCallback( RtMidiErrorCallback errorCallback, void *userData );
 
+  //! Set a callback for objects that have none of their own.
+  /*!
+    Applies to every RtMidi object, including errors raised during
+    construction, which a per-object callback cannot see. An object's own
+    callback takes precedence. Unlike an object's own callback, this one does
+    not stop fatal errors: after it returns, anything other than a WARNING or
+    DEBUG_WARNING is still thrown as an RtMidiError. Not synchronized: set it
+    once before creating any RtMidi object.
+  */
+  static void setDefaultErrorCallback( RtMidiErrorCallback errorCallback = NULL,
+                                       void *userData = 0 );
+
   //! A basic error reporting function for RtMidi classes.
   void error( RtMidiError::Type type, std::string errorString );
 
@@ -654,6 +666,10 @@ protected:
   RtMidiErrorCallback errorCallback_;
   bool firstErrorOccurred_;
   void *errorCallbackUserData_;
+
+  // Static, so they add nothing to any object's layout.
+  static RtMidiErrorCallback defaultErrorCallback_;
+  static void *defaultErrorCallbackUserData_;
 
 };
 

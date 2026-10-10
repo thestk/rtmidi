@@ -6,6 +6,7 @@ typedef void (^RtMidiReceiveBlock)(NSData *bytes, double deltaTime);
 
 @interface RtMidiBridge : NSObject
 
+// Opens "RtMidi In" and "RtMidi Out" at launch as a thru for other apps.
 - (NSArray<NSString *> *)outputPortNames;
 - (NSArray<NSString *> *)inputPortNames;
 

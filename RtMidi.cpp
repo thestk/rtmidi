@@ -1415,7 +1415,9 @@ void MidiInCore :: openVirtualPort( const std::string &portName )
   CFRelease( portNameRef );
 
   if ( result != noErr ) {
-    errorString_ = "MidiInCore::openVirtualPort: error creating virtual OS-X MIDI destination.";
+    std::ostringstream ost;
+    ost << "MidiInCore::openVirtualPort: error creating virtual OS-X MIDI destination (OSStatus " << result << ").";
+    errorString_ = ost.str();
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }
@@ -1806,7 +1808,9 @@ void MidiOutCore :: openVirtualPort( const std::string &portName )
   CFRelease( portNameRef );
 
   if ( result != noErr ) {
-    errorString_ = "MidiOutCore::initialize: error creating OS-X virtual MIDI source.";
+    std::ostringstream ost;
+    ost << "MidiOutCore::openVirtualPort: error creating OS-X virtual MIDI source (OSStatus " << result << ").";
+    errorString_ = ost.str();
     error( RtMidiError::DRIVER_ERROR, errorString_ );
     return;
   }

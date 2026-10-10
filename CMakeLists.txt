@@ -76,7 +76,11 @@ option(RTMIDI_API_JACK "Compile with JACK support." ${HAVE_JACK})
 option(RTMIDI_API_WINMM "Compile with WINMM support." ${WIN32})
 option(RTMIDI_API_WMS "Compile with Windows MIDI Services support (the in-box Windows.Devices.Midi2 API, Windows 11 25H2 and later; unavailable elsewhere at run time)." OFF)
 option(RTMIDI_API_CORE "Compile with CoreMIDI support." ${APPLE})
-option(RTMIDI_API_ALSA "Compile with ALSA support." ${ALSA})
+# ALSA defaults on when its development files are found, like JACK above.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT ANDROID)
+  find_package(ALSA QUIET)
+endif()
+option(RTMIDI_API_ALSA "Compile with ALSA support." ${ALSA_FOUND})
 option(RTMIDI_API_AMIDI "Compile with Android support." ${ANDROID})
 
 # Module options
@@ -158,15 +162,18 @@ endif()
 # ALSA
 if(RTMIDI_API_ALSA)
   find_package(ALSA)
-  if(ALSA_FOUND)
-    set(NEED_PTHREAD ON)
-    list(APPEND INCDIRS ${ALSA_INCLUDE_DIR})
-    list(APPEND LINKLIBS ALSA::ALSA)
-    list(APPEND PKGCONFIG_REQUIRES "alsa")
-    list(APPEND API_DEFS "-D__LINUX_ALSA__")
-    list(APPEND API_LIST "alsa")
-    list(APPEND PACKAGE_DEPENDENCIES "find_dependency(ALSA)")
+  if(NOT ALSA_FOUND)
+    message(FATAL_ERROR "RTMIDI_API_ALSA is ON but ALSA was not found. Install its development files (e.g. libasound2-dev or alsa-lib-devel).")
   endif()
+  set(NEED_PTHREAD ON)
+  list(APPEND INCDIRS ${ALSA_INCLUDE_DIR})
+  list(APPEND LINKLIBS ALSA::ALSA)
+  list(APPEND PKGCONFIG_REQUIRES "alsa")
+  list(APPEND API_DEFS "-D__LINUX_ALSA__")
+  list(APPEND API_LIST "alsa")
+  list(APPEND PACKAGE_DEPENDENCIES "find_dependency(ALSA)")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT ANDROID AND NOT ALSA_FOUND)
+  message(WARNING "Building without ALSA: its development files were not found (e.g. libasound2-dev or alsa-lib-devel).")
 endif()
 
 # WinMM
@@ -310,7 +317,8 @@ include(GNUInstallDirs)
 target_include_directories(rtmidi PRIVATE ${INCDIRS}
                                   PUBLIC
                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/rtmidi>)
 
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})

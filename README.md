@@ -18,6 +18,8 @@ If you checked out the code from git, please run `./autogen.sh` before `./config
 
 `./configure --help` lists the available MIDI API options (`--with-alsa`, `--with-jack`, `--with-core`, `--with-winmm`); by default those appropriate to the system are selected.  RtMidi can also be built with CMake.
 
+On Linux, ALSA support needs its development files (`libasound2-dev` on Debian and Ubuntu, `alsa-lib-devel` on Fedora); without them `./configure` finds no MIDI API and CMake builds without ALSA.
+
 Android support uses the AMidi API and must be built with CMake.  See [android/README.md](android/README.md).
 
 ## Overview

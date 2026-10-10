@@ -108,18 +108,32 @@ int main( void )
   receive( in, buf, sizeof buf, &size );
   check( in->ok && size == sizeof noteA && memcmp( buf, noteA, size ) == 0, "a 3-byte message into a 1024-byte buffer" );
 
-  /* A buffer that is too small: the loss has to be reported. */
+  /* A buffer that is too small: reported, and the message is kept. */
   rtmidi_out_send_message( out, sysex, sizeof sysex );
   rtmidi_out_send_message( out, noteB, sizeof noteB );
   delta = receive( in, buf, 16, &size );
   check( !in->ok && in->msg && in->msg[0], "a 600-byte SysEx into a 16-byte buffer sets ok to false with a message" );
   printf( "       msg: %s\n", in->msg ? in->msg : "(null)" );
-  check( size == sizeof sysex, "  ...and *size gives the length the buffer would have needed" );
+  check( size == sizeof sysex, "  ...and *size gives the length the buffer needs" );
   check( delta == -1, "  ...and it returns -1" );
 
-  /* The queue carries on: the SysEx is gone, the next message is the note. */
+  /* Calling again with a big enough buffer returns the SysEx, then the note. */
   receive( in, buf, sizeof buf, &size );
-  check( in->ok && size == sizeof noteB && memcmp( buf, noteB, size ) == 0, "the next call returns the message after the SysEx" );
+  check( in->ok && size == sizeof sysex && memcmp( buf, sysex, size ) == 0, "the next call returns the whole SysEx" );
+  receive( in, buf, sizeof buf, &size );
+  check( in->ok && size == sizeof noteB && memcmp( buf, noteB, size ) == 0, "and the call after that returns the next message" );
+
+  /* A NULL buffer asks for the length without taking the message. */
+  rtmidi_out_send_message( out, noteA, sizeof noteA );
+  for ( int t = 0; t < 2000; t += 10 ) {
+    size = 0;
+    delta = rtmidi_in_get_message( in, NULL, &size );
+    if ( size > 0 || !in->ok ) break;
+    SLEEP_MS( 10 );
+  }
+  check( in->ok && size == sizeof noteA && delta == 0, "a NULL buffer reports the next message's length" );
+  receive( in, buf, sizeof buf, &size );
+  check( in->ok && size == sizeof noteA && memcmp( buf, noteA, size ) == 0, "  ...and leaves the message for the next call" );
 
   rtmidi_close_port( out );
   rtmidi_close_port( in );

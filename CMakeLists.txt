@@ -317,7 +317,8 @@ include(GNUInstallDirs)
 target_include_directories(rtmidi PRIVATE ${INCDIRS}
                                   PUBLIC
                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/rtmidi>)
 
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})

@@ -7021,6 +7021,11 @@ void MidiInJack :: openPort( unsigned int portNumber, const std::string &portNam
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   connect();
+  if ( !data->client ) {
+    errorString_ = "MidiInJack::openPort: JACK server not running?";
+    error( RtMidiError::DRIVER_ERROR, errorString_ );
+    return;
+  }
 
   // Creating new port
   if ( data->port == NULL )
@@ -7047,6 +7052,11 @@ void MidiInJack :: openVirtualPort( const std::string &portName )
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   connect();
+  if ( !data->client ) {
+    errorString_ = "MidiInJack::openVirtualPort: JACK server not running?";
+    error( RtMidiError::DRIVER_ERROR, errorString_ );
+    return;
+  }
   if ( data->port == NULL )
     data->port = jack_port_register( data->client, portName.c_str(),
                                      JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0 );
@@ -7243,6 +7253,11 @@ void MidiOutJack :: openPort( unsigned int portNumber, const std::string &portNa
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   connect();
+  if ( !data->client ) {
+    errorString_ = "MidiOutJack::openPort: JACK server not running?";
+    error( RtMidiError::DRIVER_ERROR, errorString_ );
+    return;
+  }
 
   // Creating new port
   if ( data->port == NULL )
@@ -7269,6 +7284,11 @@ void MidiOutJack :: openVirtualPort( const std::string &portName )
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   connect();
+  if ( !data->client ) {
+    errorString_ = "MidiOutJack::openVirtualPort: JACK server not running?";
+    error( RtMidiError::DRIVER_ERROR, errorString_ );
+    return;
+  }
   if ( data->port == NULL )
     data->port = jack_port_register( data->client, portName.c_str(),
                                      JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput, 0 );

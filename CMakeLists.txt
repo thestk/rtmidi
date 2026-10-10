@@ -352,12 +352,16 @@ if(RTMIDI_BUILD_TESTING)
   add_executable(sysexchunked tests/sysexchunked.cpp)
   add_executable(apinames   tests/apinames.cpp)
   add_executable(testcapi   tests/testcapi.c)
+  add_executable(cgetmessage tests/cgetmessage.c)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest sysexchunked apinames testcapi
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest sysexchunked apinames testcapi cgetmessage
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})
   add_test(NAME apinames COMMAND apinames)
+  # Skipped (exit 77) where there is no MIDI loopback; see tests/cgetmessage.c.
+  add_test(NAME cgetmessage COMMAND cgetmessage)
+  set_tests_properties(cgetmessage PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 
 # Set standard installation directories.

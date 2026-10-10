@@ -176,12 +176,25 @@ int rtmidi_get_port_name (RtMidiPtr device, unsigned int portNumber, char * bufO
 }
 
 /* RtMidiIn API */
+
+// The RtMidiIn behind an RtMidiInPtr. It holds on to a message that did not fit
+// the caller's buffer, so rtmidi_in_get_message() can return it on the next
+// call. Kept here rather than in RtMidiWrapper so that struct does not change.
+namespace {
+struct RtMidiInC : public RtMidiIn
+{
+    using RtMidiIn::RtMidiIn;
+    std::vector<unsigned char> pending;
+    double pendingDelta = 0;
+};
+}
+
 RtMidiInPtr rtmidi_in_create_default ()
 {
     RtMidiWrapper* wrp = new RtMidiWrapper{};
 
     try {
-        RtMidiIn* rIn = new RtMidiIn ();
+        RtMidiIn* rIn = new RtMidiInC ();
 
         wrp->ptr = (void*) rIn;
         wrp->callback_proxy = 0;
@@ -206,7 +219,7 @@ RtMidiInPtr rtmidi_in_create (enum RtMidiApi api, const char *clientName, unsign
     RtMidiWrapper* wrp = new RtMidiWrapper{};
 
     try {
-        RtMidiIn* rIn = new RtMidiIn ((RtMidi::Api) api, name, queueSizeLimit);
+        RtMidiIn* rIn = new RtMidiInC ((RtMidi::Api) api, name, queueSizeLimit);
 
         wrp->ptr = (void*) rIn;
         wrp->callback_proxy = 0;
@@ -316,16 +329,39 @@ double rtmidi_in_get_message (RtMidiInPtr device,
 {
     rtmidi_clear_error (device);
     try {
-        // FIXME: use allocator to achieve efficient buffering
-        std::vector<unsigned char> v;
-        double ret = ((RtMidiIn*) device->ptr)->getMessage (&v);
+        RtMidiInC *in = static_cast<RtMidiInC *> ((RtMidiIn*) device->ptr);
 
-        if (v.size () > 0 && v.size() <= *size) {
-            memcpy (message, v.data (), (int) v.size ());
+        // Take the next message from the queue, unless one is still waiting
+        // from a call whose buffer was too small.
+        if (in->pending.empty ()) {
+            in->pendingDelta = in->getMessage (&in->pending);
+        }
+        const size_t length = in->pending.size ();
+
+        // With no buffer, report the length and leave the message for the next call.
+        if (message == NULL) {
+            *size = length;
+            return 0;
         }
 
-        *size = v.size();
-        return ret;
+        // Too small: keep the message, and say how big the buffer has to be.
+        if (length > *size) {
+            std::string err = "rtmidi_in_get_message: a " + std::to_string (length)
+                + "-byte message did not fit the " + std::to_string (*size)
+                + "-byte buffer; it is kept for the next call.";
+            *size = length;
+            device->ok  = false;
+            rtmidi_set_error_msg (device, err.c_str ());
+            return -1;
+        }
+
+        if (length > 0) {
+            memcpy (message, in->pending.data (), length);
+        }
+        in->pending.clear ();
+
+        *size = length;
+        return in->pendingDelta;
     }
     catch (const RtMidiError & err) {
         device->ok  = false;

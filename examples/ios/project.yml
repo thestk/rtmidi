@@ -9,6 +9,8 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: RtMidiExample
+        excludes:
+          - Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.rtmidi.RtMidiExample
@@ -18,10 +20,7 @@ targets:
         GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) __MACOSX_CORE__=1"
         CLANG_CXX_LANGUAGE_STANDARD: "c++17"
         CLANG_CXX_LIBRARY: "libc++"
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Connects to Bluetooth MIDI devices."
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_FILE: RtMidiExample/Info.plist
         SWIFT_VERSION: "5.0"
     dependencies:
       - sdk: CoreMIDI.framework

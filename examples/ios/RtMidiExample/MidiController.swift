@@ -93,6 +93,18 @@ final class MidiController: ObservableObject {
         }
     }
 
+    func closeOutput() {
+        bridge?.closeOutputPort()
+        if let name = openedOutputPortName { appendLog("Closed output port: \(name)") }
+        openedOutputPortName = nil
+    }
+
+    func closeInput() {
+        bridge?.closeInputPort()
+        if let name = openedInputPortName { appendLog("Closed input port: \(name)") }
+        openedInputPortName = nil
+    }
+
     func sendNoteOn() { send([0x90, 0x3C, 0x60], label: "Note On") }
     func sendNoteOff() { send([0x80, 0x3C, 0x60], label: "Note Off") }
     func sendSysex() { send([0xF0, 0x7D, 0x01, 0x02, 0x03, 0xF7], label: "SysEx") }
@@ -103,6 +115,7 @@ final class MidiController: ObservableObject {
     func clearMonitor() {
         midiMonitor.removeAll()
         receivedCount = 0
+        log.removeAll()
     }
 
     private func send(_ bytes: [UInt8], label: String) {

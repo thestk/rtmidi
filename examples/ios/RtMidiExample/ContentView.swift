@@ -45,20 +45,7 @@ struct ContentView: View {
 
     private var controlsArea: some View {
         Form {
-            Section("Output port\(midi.openedOutputPortName.map { " — \($0)" } ?? "")") {
-                Picker("Output", selection: $outputSelection) {
-                    Text("None").tag(-1)
-                    ForEach(Array(midi.outputPorts.enumerated()), id: \.offset) { i, name in
-                        Text(name).tag(i)
-                    }
-                }
-                .onChange(of: outputSelection) { newValue in
-                    midi.selectedOutputIndex = newValue >= 0 ? newValue : nil
-                    if newValue >= 0 { midi.openSelectedOutput() }
-                }
-            }
-
-            Section("Input port\(midi.openedInputPortName.map { " — \($0)" } ?? "")") {
+            Section {
                 Picker("Input", selection: $inputSelection) {
                     Text("None").tag(-1)
                     ForEach(Array(midi.inputPorts.enumerated()), id: \.offset) { i, name in
@@ -67,7 +54,18 @@ struct ContentView: View {
                 }
                 .onChange(of: inputSelection) { newValue in
                     midi.selectedInputIndex = newValue >= 0 ? newValue : nil
-                    if newValue >= 0 { midi.openSelectedInput() }
+                    if newValue >= 0 { midi.openSelectedInput() } else { midi.closeInput() }
+                }
+
+                Picker("Output", selection: $outputSelection) {
+                    Text("None").tag(-1)
+                    ForEach(Array(midi.outputPorts.enumerated()), id: \.offset) { i, name in
+                        Text(name).tag(i)
+                    }
+                }
+                .onChange(of: outputSelection) { newValue in
+                    midi.selectedOutputIndex = newValue >= 0 ? newValue : nil
+                    if newValue >= 0 { midi.openSelectedOutput() } else { midi.closeOutput() }
                 }
             }
 
@@ -83,8 +81,7 @@ struct ContentView: View {
     private var statusLogArea: some View {
         VStack(spacing: 0) {
             Text("Status")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
                 .padding(.top, 4)

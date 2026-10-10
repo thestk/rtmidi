@@ -70,7 +70,6 @@ AC_ARG_WITH(jack, [AS_HELP_STRING([--with-jack], [choose JACK server support])])
 AC_ARG_WITH(alsa, [AS_HELP_STRING([--with-alsa], [choose native ALSA sequencer API support (linux only)])])
 AC_ARG_WITH(core, [AS_HELP_STRING([--with-core], [ choose CoreMIDI API support (mac only)])])
 AC_ARG_WITH(winmm, [AS_HELP_STRING([--with-winmm], [ choose Windows MultiMedia (MM) API support (win32 only)])])
-AC_ARG_WITH(winks, [AS_HELP_STRING([--with-winks], [  choose kernel streaming support (win32 only)])])
 AC_ARG_WITH(webmidi, [AS_HELP_STRING([--with-webmidi], [  choose Web MIDI support])])
 AC_ARG_WITH(android, [AS_HELP_STRING([--with-android], [  choose Android support])])
 
@@ -145,7 +144,6 @@ AS_IF([test "x$with_jack"   = "xyes"], [systems="$systems jack"])
 AS_IF([test "x$with_alsa"   = "xyes"], [systems="$systems alsa"])
 AS_IF([test "x$with_core"   = "xyes"], [systems="$systems core"])
 AS_IF([test "x$with_winmm"  = "xyes"], [systems="$systems winmm"])
-AS_IF([test "x$with_winks"  = "xyes"], [systems="$systems winks"])
 AS_IF([test "x$with_webmidi" = "xyes"], [systems="$systems webmidi"])
 AS_IF([test "x$with_android" = "xyes"], [systems="$systems android"])
 AS_IF([test "x$with_dummy"  = "xyes"], [systems="$systems dummy"])
@@ -155,19 +153,19 @@ required=" $systems "
 # User must specified with-* options for any unknown OS.
 AS_IF([test "x$systems" = "x"],
   AS_CASE([$host],
+    [*-*-android*],       [systems="android"],
     [*-*-linux*],         [systems="alsa jack"],
     [*-*-gnu],            [systems="jack"],
     [*-*-kfreebsd*-gnu],  [systems="jack"],
     [*-apple*],           [systems="core jack"],
-    [*-mingw32*],         [systems="winmm winks jack"],
-    [*-mingw64*],         [systems="winmm winks jack"]
+    [*-mingw32*],         [systems="winmm jack"],
+    [*-mingw64*],         [systems="winmm jack"]
   ))
 
 # If any were specifically requested disabled, do it.
 AS_IF([test "x$with_jack"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v jack`])
 AS_IF([test "x$with_alsa"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v alsa`])
 AS_IF([test "x$with_winmm"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v winmm`])
-AS_IF([test "x$with_winks"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v winks`])
 AS_IF([test "x$with_core"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v core`])
 AS_IF([test "x$with_webmidi" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v webmidi`])
 AS_IF([test "x$with_android" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v android`])
@@ -215,23 +213,13 @@ AS_CASE(["$systems"], [*" core "*], [
 ])
 
 AS_CASE(["$systems"], [*" winmm "*], [
-  AC_CHECK_HEADERS(windows.h mmsystem.h,
+  AC_CHECK_HEADER(mmsystem.h,
     [api="$api -D__WINDOWS_MM__"
      CPPFLAGS="-I$srcdir/include $CPPFLAGS"
      need_ole32=yes
      found="$found WinMM"
-     api="$api -D__WINDOWS_MM__"
-     LIBS="-lwinmm ${LIBS}"])
-])
-
-AS_CASE(["$systems"], [*" winks "*], [
-  AC_CHECK_HEADERS(windows.h audioclient.h avrt.h mmdeviceapi.h,
-    [api="$api -D__WINDOWS_WINKS__"
-     CPPFLAGS="-I$srcdir/include $CPPFLAGS"
-     need_ole32=yes
-     found="$found kernel-streaming"
-     api="$api -D__WINDOWS_WINKS__"
-     LIBS="-lsetupapi -lksuser ${LIBS}"])
+     LIBS="-lwinmm ${LIBS}"],
+    [], [#include <windows.h>])
 ])
 
 AS_CASE(["$systems"], [*" webmidi "*], [

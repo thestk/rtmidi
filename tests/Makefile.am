@@ -1,6 +1,6 @@
 
 noinst_PROGRAMS = midiprobe midiout qmidiin cmidiin sysextest sysexchunked midiclock_in midiclock_out	\
-	apinames testcapi
+	apinames testcapi cgetmessage
 
 AM_CXXFLAGS = -Wall -I$(top_srcdir)
 AM_CFLAGS = -Wall -I$(top_srcdir)
@@ -41,10 +41,15 @@ testcapi_LDADD = $(top_builddir)/librtmidi.la
 # the C++ linker in both cases.  The file is never compiled and need not exist.
 nodist_EXTRA_testcapi_SOURCES = dummy.cxx
 
+# Exits 77 (skipped) where there is no MIDI loopback; see cgetmessage.c.
+cgetmessage_SOURCES = cgetmessage.c
+cgetmessage_LDADD = $(top_builddir)/librtmidi.la
+nodist_EXTRA_cgetmessage_SOURCES = dummy.cxx
+
 EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
 	sysextest.dsp RtMidi.dsw AlsaHotplug.cmake RunAlsaHotplug.cmake README-hotplug.md
 
-TESTS = apinames
+TESTS = apinames cgetmessage
 
 if HAVE_ALSA
 noinst_PROGRAMS += alsahotplug

@@ -320,8 +320,20 @@ double rtmidi_in_get_message (RtMidiInPtr device,
         std::vector<unsigned char> v;
         double ret = ((RtMidiIn*) device->ptr)->getMessage (&v);
 
-        if (v.size () > 0 && v.size() <= *size) {
-            memcpy (message, v.data (), (int) v.size ());
+        // The message has already left the queue, so a buffer too small for it
+        // has to be reported, or the caller never learns that it was lost.
+        if (v.size () > *size) {
+            std::string err = "rtmidi_in_get_message: a " + std::to_string (v.size ())
+                + "-byte message did not fit the " + std::to_string (*size)
+                + "-byte buffer and was discarded.";
+            *size = v.size ();
+            device->ok  = false;
+            rtmidi_set_error_msg (device, err.c_str ());
+            return -1;
+        }
+
+        if (v.size () > 0) {
+            memcpy (message, v.data (), v.size ());
         }
 
         *size = v.size();

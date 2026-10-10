@@ -233,12 +233,16 @@ RTMIDIAPI void rtmidi_in_ignore_types (RtMidiInPtr device, bool midiSysex, bool 
 /*! Fill the user-provided array with the data bytes for the next available
  * MIDI message in the input queue and return the event delta-time in seconds.
  *
- * \param message   Must point to a char* that is already allocated.
- *                  SYSEX messages maximum size being 1024, a statically
- *                  allocated array could
- *                  be sufficient.
- * \param size      Is used to return the size of the message obtained.
- *                  Must be set to the size of \ref message when calling.
+ * \param message   A buffer of at least \p *size bytes.
+ * \param size      In: the size of \p message in bytes. Out: the length of
+ *                  the message, or 0 if the queue was empty. Set it again
+ *                  before every call.
+ *
+ * A message longer than \p *size is removed from the queue and discarded:
+ * \ref RtMidiWrapper::ok is set to false, \ref RtMidiWrapper::msg says so,
+ * \p *size is set to the message's length and -1 is returned. SysEx messages
+ * can be much longer than 1024 bytes, so size the buffer for the largest one
+ * you expect.
  *
  * See RtMidiIn::getMessage().
  */

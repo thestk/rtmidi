@@ -8,8 +8,7 @@ Before building, ensure the following are installed via the **Visual Studio Inst
 |---|---|
 | **Visual Studio 2019 or newer** | Visual Studio 2019 or newer will work |
 | **Desktop development with C++** | Core workload required for the build |
-| **Windows 11 SDK** | Select the latest available version |
-| **MSVC v142 build tools** | Required even when using a newer Visual Studio version |
+| **Windows SDK 22000 or newer** | Required; select version 10.0.22000.0 or later in the Visual Studio Installer |
 
 ---
 
@@ -23,14 +22,17 @@ tests/RtMidi.sln
 ```
 
 1. Open `tests/RtMidi.sln` in Visual Studio.
-2. Set the configuration to **Release** and the platform to **x64**.
+2. Select the desired configuration and platform from the toolbar:
+   - **Release | x64** (recommended for production use)
+   - **Debug | x64** (recommended during development)
 3. Build the solution (**Build → Build Solution** or <kbd>Ctrl+Shift+B</kbd>).
 
 After a successful build, the compiled static library will be at:
 
-```
-tests/x64/Release/rtmidilib.lib
-```
+| Configuration | Output path |
+|---|---|
+| Release \| x64 | `tests/x64/Release/rtmidilib.lib` |
+| Debug \| x64 | `tests/x64/Debug/rtmidilib.lib` |
 
 The RtMidi library build is now complete.
 
@@ -43,7 +45,7 @@ Building RtMidi and linking it into your own project are two separate steps. Onc
 | File | Purpose |
 |---|---|
 | `RtMidi.h` | Header — add its containing directory as an include path |
-| `tests/x64/Release/rtmidilib.lib` | Static library — link it into your project |
+| `tests/x64/Release/rtmidilib.lib` or `tests/x64/Debug/rtmidilib.lib` | Static library matching your chosen configuration — link it into your project |
 
 ### Visual Studio Project Configuration
 
@@ -52,11 +54,13 @@ Open your project's **Property Pages** (**Project → Properties**) and set the 
 | Property Page | Setting | Value |
 |---|---|---|
 | **C/C++ → General** | Additional Include Directories | Path to the directory containing `RtMidi.h` (the repository root) |
-| **Linker → General** | Additional Library Directories | Path to the directory containing `rtmidilib.lib` (e.g. `tests/x64/Release/`) |
+| **Linker → General** | Additional Library Directories | `tests/x64/$(Configuration)` |
 | **Linker → Input** | Additional Dependencies | `rtmidilib.lib; winmm.lib; windowsapp.lib` |
 
 > [!IMPORTANT]
-> Make sure the **Configuration** and **Platform** dropdowns in Property Pages match the build you intend to run (e.g. **Release / x64**).
+> - `$(Configuration)` is a Visual Studio macro that resolves automatically to `Debug` or `Release` to match the active build configuration.
+> - Your consuming application must target **x64** to match the library architecture.
+> - The application and the library must use the **same configuration**. Linking a Debug application against the Release `rtmidilib.lib` (or vice versa) will cause an **LNK2038** runtime-library mismatch error.
 
 ---
 

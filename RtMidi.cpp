@@ -1159,6 +1159,7 @@ struct CoreMidiData {
   MIDIEndpointRef destinationId;
   unsigned long long lastTime;
   MIDISysexSendRequest sysexreq;
+  bool sysexOpen = false; // output: a SysEx has started and not yet ended
 };
 
 static MIDIClientRef CoreMidiClientSingleton = 0;
@@ -1240,19 +1241,19 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
     if ( continueSysex ) {
       // We have a continuing, segmented sysex message.
       if ( !( data->ignoreFlags & 0x01 ) ) {
-        // If we're not ignoring sysex messages, copy the entire packet.
+        // If we're not ignoring sysex messages, copy the entire packet, then
+        // split out any real-time bytes mixed into it (#247): they may sit
+        // inside a SysEx without ending it, and are delivered on their own.
+        size_t from = message.bytes.size();
         for ( unsigned int j=0; j<nBytes; ++j )
           message.bytes.push_back( packet->data[j] );
+        rtmidiSplitRealtime( data, message.bytes, from, message.timeStamp, "MidiInCore" );
       }
       continueSysex = packet->data[nBytes-1] != 0xF7;
 
       if ( !( data->ignoreFlags & 0x01 ) && !continueSysex ) {
         // If not a continuing sysex message, invoke the user callback function or queue the message.
-        if ( !data->callUserCallback( message.timeStamp, &message.bytes ) ) {
-          // As long as we haven't reached our queue size limit, push the message.
-          if ( !data->queue.push( message ) )
-            std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
-        }
+        rtmidiDeliver( data, message, "MidiInCore" );
         message.bytes.clear();
       }
     }
@@ -1301,13 +1302,14 @@ static void midiInputCallback( const MIDIPacketList *list, void *procRef, void *
         if ( size ) {
           foundNonFiltered = true;
           message.bytes.assign( &packet->data[iByte], &packet->data[iByte+size] );
+          // A fresh SysEx may have real-time bytes mixed into the same
+          // packet (#247): split them out, delivered on their own, before
+          // deciding whether the rest is complete.
+          if ( status == 0xF0 )
+            rtmidiSplitRealtime( data, message.bytes, 0, message.timeStamp, "MidiInCore" );
           if ( !continueSysex ) {
             // If not a continuing sysex message, invoke the user callback function or queue the message.
-            if ( !data->callUserCallback( message.timeStamp, &message.bytes ) ) {
-              // As long as we haven't reached our queue size limit, push the message.
-              if ( !data->queue.push( message ) )
-                std::cerr << "\nMidiInCore: message queue limit reached!!\n\n";
-            }
+            rtmidiDeliver( data, message, "MidiInCore" );
             message.bytes.clear();
             // All subsequent messages within same MIDI packet will have time delta 0
             message.timeStamp = 0.0;
@@ -1872,9 +1874,39 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
     return;
   }
 
-  MIDITimeStamp timeStamp = AudioGetCurrentHostTime();
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
+
+  // CoreMIDI's own MIDI1/UMP translation mis-splits a single MIDISend() call
+  // whose bytes mix a real-time byte with surrounding data: it inserts an
+  // unwanted synthetic F7/F0 pair and loses bytes doing so (confirmed with a
+  // raw CoreMIDI probe, independent of this code). Never hand it such a
+  // mix: a real-time byte that is not the entire message is sent on its own,
+  // splitting the call around it, exactly as if the caller had sent it that
+  // way itself, which CoreMIDI transmits faithfully.
+  if ( nBytes > 1 ) {
+    for ( unsigned int i = 0; i < nBytes; ++i ) {
+      if ( message[i] < 0xF8 ) continue;
+      if ( i > 0 ) sendMessage( message, i );
+      sendMessage( &message[i], 1 );
+      if ( i + 1 < nBytes ) sendMessage( message + i + 1, nBytes - i - 1 );
+      return;
+    }
+  }
+
+  MIDITimeStamp timeStamp = AudioGetCurrentHostTime();
   OSStatus result;
+
+  // A message that ends an open SysEx (anything but F0, F7 or real-time)
+  // closes the abandoned one first, so every receiver drops it the same
+  // way; a real-time message keeps it open and goes out as itself.
+  if ( data->sysexOpen && rtmidiEndsSysex( message[0] ) ) {
+    static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
+    sendMessage( closeSysex, 2 );
+  }
+  for ( unsigned int i = 0; i < nBytes; ++i ) {
+    if ( message[i] == 0xF0 ) data->sysexOpen = true;
+    else if ( message[i] >= 0x80 && message[i] < 0xF8 ) data->sysexOpen = false;
+  }
 
   ByteCount bufsize = nBytes > 65535 ? 65535 : nBytes;
   std::vector<Byte> buffer( bufsize + 16 ); // pad for other struct members

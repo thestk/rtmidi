@@ -361,8 +361,9 @@ if(RTMIDI_BUILD_TESTING)
   add_executable(apinames   tests/apinames.cpp)
   add_executable(testcapi   tests/testcapi.c)
   add_executable(cgetmessage tests/cgetmessage.c)
+  add_executable(sysexinterleaved tests/sysexinterleaved.cpp)
   list(GET LIB_TARGETS 0 LIBRTMIDI)
-  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest sysexchunked apinames testcapi cgetmessage
+  set_target_properties(cmidiin midiclock midiout midiprobe qmidiin sysextest sysexchunked apinames testcapi cgetmessage sysexinterleaved
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY tests
                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
                LINK_LIBRARIES ${LIBRTMIDI})
@@ -370,6 +371,8 @@ if(RTMIDI_BUILD_TESTING)
   # Skipped (exit 77) where there is no MIDI loopback; see tests/cgetmessage.c.
   add_test(NAME cgetmessage COMMAND cgetmessage)
   set_tests_properties(cgetmessage PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME sysexinterleaved COMMAND sysexinterleaved)
+  set_tests_properties(sysexinterleaved PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 
 # Set standard installation directories.

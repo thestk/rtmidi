@@ -1,6 +1,6 @@
 
 noinst_PROGRAMS = midiprobe midiout qmidiin cmidiin sysextest sysexchunked midiclock_in midiclock_out	\
-	apinames testcapi cgetmessage
+	apinames testcapi cgetmessage sysexinterleaved
 
 AM_CXXFLAGS = -Wall -I$(top_srcdir)
 AM_CFLAGS = -Wall -I$(top_srcdir)
@@ -46,10 +46,14 @@ cgetmessage_SOURCES = cgetmessage.c
 cgetmessage_LDADD = $(top_builddir)/librtmidi.la
 nodist_EXTRA_cgetmessage_SOURCES = dummy.cxx
 
+# Exits 77 (skipped) where there is no MIDI loopback; see sysexinterleaved.cpp.
+sysexinterleaved_SOURCES = sysexinterleaved.cpp
+sysexinterleaved_LDADD = $(top_builddir)/librtmidi.la
+
 EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
 	sysextest.dsp RtMidi.dsw AlsaHotplug.cmake RunAlsaHotplug.cmake README-hotplug.md
 
-TESTS = apinames cgetmessage
+TESTS = apinames cgetmessage sysexinterleaved
 
 if HAVE_ALSA
 noinst_PROGRAMS += alsahotplug

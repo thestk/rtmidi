@@ -982,6 +982,48 @@ void MidiInApi :: cancelCallback()
   inputData_.usingCallback = false;
 }
 
+// Helpers the backends share for SysEx framing.
+
+// Passes a message to the user callback, or queues it.
+static inline void rtmidiDeliver( MidiInApi::RtMidiInData *data, MidiInApi::MidiMessage &message, const char *who )
+{
+  if ( !data->callUserCallback( message.timeStamp, &message.bytes ) && !data->queue.push( message ) )
+    std::cerr << "\n" << who << ": message queue limit reached!!\n\n";
+}
+
+// True if ignoreTypes() drops this real-time byte.
+static inline bool rtmidiIgnoredRealtime( unsigned char byte, unsigned char ignoreFlags )
+{
+  if ( byte == 0xF8 || byte == 0xF9 ) return ( ignoreFlags & 0x02 ) != 0;
+  if ( byte == 0xFE ) return ( ignoreFlags & 0x04 ) != 0;
+  return false;
+}
+
+// Real-time bytes may sit inside a SysEx without ending it. Takes those from
+// bytes[from] on out of the SysEx and delivers each as its own message.
+static inline void rtmidiSplitRealtime( MidiInApi::RtMidiInData *data, std::vector<unsigned char> &bytes,
+                                        size_t from, double timeStamp, const char *who )
+{
+  size_t kept = from;
+  for ( size_t i = from; i < bytes.size(); i++ ) {
+    unsigned char byte = bytes[i];
+    if ( byte < 0xF8 ) { bytes[kept++] = byte; continue; }
+    if ( rtmidiIgnoredRealtime( byte, data->ignoreFlags ) ) continue;
+    MidiInApi::MidiMessage realtime;
+    realtime.bytes.assign( 1, byte );
+    realtime.timeStamp = timeStamp;
+    rtmidiDeliver( data, realtime, who );
+  }
+  bytes.resize( kept );
+}
+
+// A message that starts with this byte ends an open SysEx: a status byte other
+// than F0 (a new SysEx), F7 (its end) or real-time.
+static inline bool rtmidiEndsSysex( unsigned char first )
+{
+  return first >= 0x80 && first < 0xF7 && first != 0xF0;
+}
+
 void MidiInApi :: ignoreTypes( bool midiSysex, bool midiTime, bool midiSense )
 {
   inputData_.ignoreFlags = 0;
@@ -2395,13 +2437,57 @@ static void joinInputThread( AlsaMidiData *data )
 //  Class Definitions: MidiInAlsa
 //*********************************************************************//
 
+// The time since the last message delivered, from the event's time stamp.
+static double alsaDeltaTime( AlsaMidiData *apiData, MidiInApi::RtMidiInData *data, snd_seq_event_t *ev )
+{
+  double time;
+
+  // Method 1: Use the system time.
+  //(void)gettimeofday(&tv, (struct timezone *)NULL);
+  //time = (tv.tv_sec * 1000000) + tv.tv_usec;
+
+  // Method 2: Use the ALSA sequencer event time data.
+  // (thanks to Pedro Lopez-Cabanillas!).
+
+  // Using method from:
+  // https://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
+
+  // Perform the carry for the later subtraction by updating y.
+  // Temp var y is timespec because computation requires signed types,
+  // while snd_seq_real_time_t has unsigned types.
+  snd_seq_real_time_t &x( ev->time.time );
+  struct timespec y;
+  y.tv_nsec = apiData->lastTime.tv_nsec;
+  y.tv_sec = apiData->lastTime.tv_sec;
+  if ( x.tv_nsec < y.tv_nsec ) {
+      int nsec = (y.tv_nsec - (int)x.tv_nsec) / 1000000000 + 1;
+      y.tv_nsec -= 1000000000 * nsec;
+      y.tv_sec += nsec;
+  }
+  if ( x.tv_nsec - y.tv_nsec > 1000000000 ) {
+      int nsec = ((int)x.tv_nsec - y.tv_nsec) / 1000000000;
+      y.tv_nsec += 1000000000 * nsec;
+      y.tv_sec -= nsec;
+  }
+
+  // Compute the time difference.
+  time = (int)x.tv_sec - y.tv_sec + ((int)x.tv_nsec - y.tv_nsec)*1e-9;
+
+  apiData->lastTime = ev->time.time;
+
+  if ( data->firstMessage == true ) {
+    data->firstMessage = false;
+    return 0.0;
+  }
+  return time;
+}
+
 static void *alsaMidiHandler( void *ptr )
 {
   MidiInApi::RtMidiInData *data = static_cast<MidiInApi::RtMidiInData *> (ptr);
   AlsaMidiData *apiData = static_cast<AlsaMidiData *> (data->apiData);
 
   long nBytes;
-  double time;
   bool continueSysex = false;
   bool doDecode = false;
   MidiInApi::MidiMessage message;
@@ -2525,6 +2611,14 @@ static void *alsaMidiHandler( void *ptr )
     if ( doDecode ) {
 
       nBytes = snd_midi_event_decode( apiData->coder, buffer, apiData->bufferSize, ev );
+      if ( nBytes == 1 && buffer[0] >= 0xF8 && continueSysex ) {
+        // A real-time event in the middle of a SysEx: deliver it on its own.
+        MidiInApi::MidiMessage realtime;
+        realtime.bytes.assign( 1, buffer[0] );
+        realtime.timeStamp = alsaDeltaTime( apiData, data, ev );
+        rtmidiDeliver( data, realtime, "MidiInAlsa" );
+        nBytes = 0;
+      }
       if ( nBytes > 0 ) {
         // The ALSA sequencer has a maximum buffer size for MIDI sysex
         // events of 256 bytes.  If a device sends sysex messages larger
@@ -2535,54 +2629,22 @@ static void *alsaMidiHandler( void *ptr )
         if ( continueSysex && buffer[0] >= 0x80 && buffer[0] < 0xF8 && buffer[0] != 0xF7 )
           continueSysex = false;
 
+        size_t from = continueSysex ? message.bytes.size() : 0;
         if ( !continueSysex )
           message.bytes.assign( buffer, &buffer[nBytes] );
         else
           message.bytes.insert( message.bytes.end(), buffer, &buffer[nBytes] );
+        if ( ev->type == SND_SEQ_EVENT_SYSEX )
+          for ( size_t i = from; i < message.bytes.size(); i++ )
+            if ( message.bytes[i] >= 0xF8 ) {
+              rtmidiSplitRealtime( data, message.bytes, from, alsaDeltaTime( apiData, data, ev ), "MidiInAlsa" );
+              break;
+            }
 
-        continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && ( message.bytes.back() != 0xF7 ) );
+        continueSysex = ( ( ev->type == SND_SEQ_EVENT_SYSEX ) && !message.bytes.empty() && ( message.bytes.back() != 0xF7 ) );
         if ( !continueSysex ) {
 
-          // Calculate the time stamp:
-          message.timeStamp = 0.0;
-
-          // Method 1: Use the system time.
-          //(void)gettimeofday(&tv, (struct timezone *)NULL);
-          //time = (tv.tv_sec * 1000000) + tv.tv_usec;
-
-          // Method 2: Use the ALSA sequencer event time data.
-          // (thanks to Pedro Lopez-Cabanillas!).
-
-          // Using method from:
-          // https://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
-
-          // Perform the carry for the later subtraction by updating y.
-          // Temp var y is timespec because computation requires signed types,
-          // while snd_seq_real_time_t has unsigned types.
-          snd_seq_real_time_t &x( ev->time.time );
-          struct timespec y;
-          y.tv_nsec = apiData->lastTime.tv_nsec;
-          y.tv_sec = apiData->lastTime.tv_sec;
-          if ( x.tv_nsec < y.tv_nsec ) {
-              int nsec = (y.tv_nsec - (int)x.tv_nsec) / 1000000000 + 1;
-              y.tv_nsec -= 1000000000 * nsec;
-              y.tv_sec += nsec;
-          }
-          if ( x.tv_nsec - y.tv_nsec > 1000000000 ) {
-              int nsec = ((int)x.tv_nsec - y.tv_nsec) / 1000000000;
-              y.tv_nsec += 1000000000 * nsec;
-              y.tv_sec -= nsec;
-          }
-
-          // Compute the time difference.
-          time = (int)x.tv_sec - y.tv_sec + ((int)x.tv_nsec - y.tv_nsec)*1e-9;
-
-          apiData->lastTime = ev->time.time;
-
-          if ( data->firstMessage == true )
-            data->firstMessage = false;
-          else
-            message.timeStamp = time;
+          message.timeStamp = alsaDeltaTime( apiData, data, ev );
         }
         else {
 #if defined(__RTMIDI_DEBUG__)
@@ -3225,7 +3287,13 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
   // way; this brings ALSA into line with them.
   if ( nBytes > 0 ) {
     const unsigned char first = message[0];
-    if ( data->sysexInProgress || first == 0xF0 ) {
+    if ( data->sysexInProgress && rtmidiEndsSysex( first ) ) {
+      // Close the abandoned SysEx first, so every receiver drops it the same way.
+      static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
+      sendMessage( closeSysex, 2 );
+    }
+    // A real-time message keeps an open SysEx open, but goes out as itself.
+    if ( ( data->sysexInProgress && first < 0xF8 ) || first == 0xF0 ) {
       // Work out the framing state this buffer leaves behind, but commit it
       // only once the event has been accepted (below). If the send fails, the
       // state stays as it was, so a caller that retries the same span gets it
@@ -6900,6 +6968,7 @@ struct JackMidiData {
   jack_ringbuffer_t *buff;
   int buffMaxWrite; // actual writable size, usually 1 less than ringbuffer
   jack_time_t lastTime;
+  bool sysexOpen = false; // output: a SysEx has started and not yet ended
 #ifdef HAVE_SEMAPHORE
   sem_t sem_cleanup;
   sem_t sem_needpost;
@@ -6942,6 +7011,17 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
 
     jData->lastTime = time;
 
+    // A real-time message in the middle of a SysEx is delivered on its own.
+    if ( continueSysex && event.size == 1 && event.buffer[0] >= 0xF8 ) {
+      if ( !rtmidiIgnoredRealtime( event.buffer[0], ignoreFlags ) ) {
+        MidiInApi::MidiMessage realtime;
+        realtime.bytes.assign( 1, event.buffer[0] );
+        realtime.timeStamp = message.timeStamp;
+        rtmidiDeliver( rtData, realtime, "MidiInJack" );
+      }
+      continue;
+    }
+
     // A status byte (not F7 or real-time) here means the SysEx lost its end: drop it.
     if ( continueSysex && event.size > 0 && event.buffer[0] >= 0x80 &&
          event.buffer[0] < 0xF8 && event.buffer[0] != 0xF7 )
@@ -6953,8 +7033,11 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
     if ( !( ( continueSysex || event.buffer[0] == 0xF0 ) && ( ignoreFlags & 0x01 ) ) ) {
       // Unless this is a (possibly continued) SysEx message and we're ignoring SysEx,
       // copy the event buffer into the MIDI message struct.
+      size_t from = message.bytes.size();
       for ( unsigned int i = 0; i < event.size; i++ )
         message.bytes.push_back( event.buffer[i] );
+      if ( !message.bytes.empty() && message.bytes[0] == 0xF0 )
+        rtmidiSplitRealtime( rtData, message.bytes, from, message.timeStamp, "MidiInJack" );
     }
 
     switch ( event.buffer[0] ) {
@@ -7423,6 +7506,18 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
 
   if ( size + sizeof(nBytes) > (size_t) data->buffMaxWrite )
       return;
+
+  if ( size > 0 ) {
+    if ( data->sysexOpen && rtmidiEndsSysex( message[0] ) ) {
+      // Close the abandoned SysEx first, so every receiver drops it the same way.
+      static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
+      sendMessage( closeSysex, 2 );
+    }
+    for ( size_t i = 0; i < size; i++ ) {
+      if ( message[i] == 0xF0 ) data->sysexOpen = true;
+      else if ( message[i] >= 0x80 && message[i] < 0xF8 ) data->sysexOpen = false;
+    }
+  }
 
   while ( jack_ringbuffer_write_space(data->buff) < sizeof(nBytes) + size )
       sched_yield();

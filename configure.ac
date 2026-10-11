@@ -29,10 +29,13 @@ SO_VERSION=lt_version_info
 AC_SUBST(SO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(api)
+AC_SUBST(api_old)
 AC_SUBST(req)
 AC_SUBST(req_libs)
 
 api=""
+# The old names, for rtmidi.pc only, until 7.0.0 removes them (#133).
+api_old=""
 req=""
 req_libs=""
 
@@ -104,7 +107,7 @@ object_path=Release
 AS_CASE([${enable_debug}],
   [ yes ], [
     AC_MSG_RESULT([yes])
-    CPPFLAGS="-D__RTMIDI_DEBUG__ ${CPPFLAGS}"
+    CPPFLAGS="-DRTMIDI_DEBUG ${CPPFLAGS}"
     debugflags="${debugflags} -g"
     object_path=Debug
   ],
@@ -179,19 +182,21 @@ systems=" `echo $systems|tr \\\\n ' '` "
 
 AS_CASE(["$systems"], [*" jack "*], [
   AC_CHECK_LIB(jack, jack_client_open,
-    [api="$api -D__UNIX_JACK__"
+    [api="$api -DRTMIDI_API_JACK"
+     api_old="$api_old -D__UNIX_JACK__"
      req="$req jack"
      need_pthread=yes
      found="$found Jack"
      LIBS="-ljack $LIBS"],
     AS_CASE(["$required"], [*" jack "*],
       AC_MSG_ERROR([JACK support requires the jack library!])))
-  AC_CHECK_LIB(jack, jack_port_rename, AC_DEFINE(JACK_HAS_PORT_RENAME), )
+  AC_CHECK_LIB(jack, jack_port_rename, AC_DEFINE(RTMIDI_JACK_HAS_PORT_RENAME), )
 ])
 
 AS_CASE(["$systems"], [*" alsa "*], [
   AC_CHECK_LIB(asound, snd_seq_open,
-    [api="$api -D__LINUX_ALSA__"
+    [api="$api -DRTMIDI_API_ALSA"
+     api_old="$api_old -D__LINUX_ALSA__"
      have_alsa=yes
      req="$req alsa"
      need_pthread=yes
@@ -203,7 +208,8 @@ AS_CASE(["$systems"], [*" alsa "*], [
 
 AS_CASE(["$systems"], [*" core "*], [
   AC_CHECK_HEADER(CoreMIDI/CoreMIDI.h,
-    [api="$api -D__MACOSX_CORE__"
+    [api="$api -DRTMIDI_API_CORE"
+     api_old="$api_old -D__MACOSX_CORE__"
      req_libs="$req_libs -framework CoreMIDI -framework CoreAudio -framework CoreFoundation"
      need_pthread=yes
      found="$found CoreMIDI",
@@ -214,7 +220,8 @@ AS_CASE(["$systems"], [*" core "*], [
 
 AS_CASE(["$systems"], [*" winmm "*], [
   AC_CHECK_HEADER(mmsystem.h,
-    [api="$api -D__WINDOWS_MM__"
+    [api="$api -DRTMIDI_API_WINMM"
+     api_old="$api_old -D__WINDOWS_MM__"
      CPPFLAGS="-I$srcdir/include $CPPFLAGS"
      need_ole32=yes
      found="$found WinMM"
@@ -224,7 +231,8 @@ AS_CASE(["$systems"], [*" winmm "*], [
 
 AS_CASE(["$systems"], [*" webmidi "*], [
   AC_CHECK_HEADERS(emscripten.h,
-    [api="$api -D__WEB_MIDI_API__"
+    [api="$api -DRTMIDI_API_WEBMIDI"
+     api_old="$api_old -D__WEB_MIDI_API__"
      found="$found Web MIDI"])
 ])
 

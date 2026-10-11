@@ -5,8 +5,8 @@ function(rtmidi_add_hotplug_test library source_dir)
   find_package(Threads REQUIRED)
   add_executable(rtmidi_alsahotplug
     "${source_dir}/tests/alsahotplug.cpp" "${source_dir}/RtMidi.cpp")
-  target_compile_definitions(rtmidi_alsahotplug PRIVATE __LINUX_ALSA__)
-  target_compile_options(rtmidi_alsahotplug PRIVATE -U__UNIX_JACK__)
+  target_compile_definitions(rtmidi_alsahotplug PRIVATE RTMIDI_API_ALSA)
+  target_compile_options(rtmidi_alsahotplug PRIVATE -URTMIDI_API_JACK -U__UNIX_JACK__)
   target_link_libraries(rtmidi_alsahotplug PRIVATE ALSA::ALSA Threads::Threads)
   target_link_options(rtmidi_alsahotplug PRIVATE
     -Wl,--wrap=snd_seq_client_info_get_card -Wl,--wrap=realpath -Wl,--wrap=__realpath_chk

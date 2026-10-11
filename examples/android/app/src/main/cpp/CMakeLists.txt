@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("midireader")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__AMIDI__")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRTMIDI_API_AMIDI")
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.

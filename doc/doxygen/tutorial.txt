@@ -49,7 +49,7 @@ be displayed but an exception is not thrown.  A client error callback
 function can be specified (via the RtMidi::setErrorCallback function)
 that is invoked when an error occurs. By default, error messages are
 not automatically displayed in RtMidi unless the preprocessor
-definition __RTMIDI_DEBUG__ is defined during compilation.  Messages
+definition RTMIDI_DEBUG is defined during compilation.  Messages
 associated with caught exceptions can be displayed with, for example,
 the RtMidiError::printMessage() function.
 
@@ -335,28 +335,28 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 <TR>
   <TD>Linux</TD>
   <TD>ALSA Sequencer</TD>
-  <TD>__LINUX_ALSA__</TD>
+  <TD>RTMIDI_API_ALSA</TD>
   <TD><TT>asound, pthread</TT></TD>
-  <TD><TT>g++ -Wall -D__LINUX_ALSA__ -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
+  <TD><TT>g++ -Wall -DRTMIDI_API_ALSA -o midiprobe midiprobe.cpp RtMidi.cpp -lasound -lpthread</TT></TD>
 </TR>
 <TR>
   <TD>Linux or Mac</TD>
   <TD>JACK MIDI</TD>
-  <TD>__UNIX_JACK__</TD>
+  <TD>RTMIDI_API_JACK</TD>
   <TD><TT>jack</TT></TD>
-  <TD><TT>g++ -Wall -D__UNIX_JACK__ -o midiprobe midiprobe.cpp RtMidi.cpp -ljack</TT></TD>
+  <TD><TT>g++ -Wall -DRTMIDI_API_JACK -o midiprobe midiprobe.cpp RtMidi.cpp -ljack</TT></TD>
 </TR>
 <TR>
   <TD>Macintosh OS X</TD>
   <TD>CoreMIDI</TD>
-  <TD>__MACOSX_CORE__</TD>
+  <TD>RTMIDI_API_CORE</TD>
   <TD><TT>CoreMIDI, CoreAudio, CoreFoundation</TT></TD>
-  <TD><TT>g++ -Wall -D__MACOSX_CORE__ -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation</TT></TD>
+  <TD><TT>g++ -Wall -DRTMIDI_API_CORE -o midiprobe midiprobe.cpp RtMidi.cpp -framework CoreMIDI -framework CoreAudio -framework CoreFoundation</TT></TD>
 </TR>
 <TR>
   <TD>Windows</TD>
   <TD>Multimedia Library</TD>
-  <TD>__WINDOWS_MM__</TD>
+  <TD>RTMIDI_API_WINMM</TD>
   <TD><TT>winmm.lib, multithreaded</TT></TD>
   <TD><I>compiler specific</I></TD>
 </TR>
@@ -365,9 +365,11 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 
 The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT> and <TT>RtMidi.cpp</TT> all exist in the same directory.
 
+The other backends are RTMIDI_API_WMS (Windows MIDI Services), RTMIDI_API_UWP (Windows UWP), RTMIDI_API_WEBMIDI (Web MIDI) and RTMIDI_API_AMIDI (Android). Before 6.1.0 these definitions were __LINUX_ALSA__, __UNIX_JACK__, __MACOSX_CORE__, __WINDOWS_MM__, __WINDOWS_MIDI_SERVICES__, __WINDOWS_UWP__, __WEB_MIDI_API__ and __AMIDI__, and __RTMIDI_DEBUG__ and JACK_HAS_PORT_RENAME became RTMIDI_DEBUG and RTMIDI_JACK_HAS_PORT_RENAME. Names starting with underscores are reserved in C++, so the old ones are deprecated: they still work in 6.x and will be removed in 7.0.0.
+
 \section debug Debugging
 
-If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>__RTMIDI_DEBUG__</TT> to the compiler (or define it in RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>tests</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
+If you are having problems getting RtMidi to run on your system, try passing the preprocessor definition <TT>RTMIDI_DEBUG</TT> to the compiler (or define it in RtMidi.h).  A variety of warning messages will be displayed that may help in determining the problem.  Also try using the programs included in the <tt>tests</tt> directory.  The program <tt>midiprobe</tt> displays the queried capabilities of all MIDI ports found.
 
 \section multi Using Simultaneous Multiple APIs
 

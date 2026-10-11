@@ -17,7 +17,7 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: RtMidiExample/RtMidiExample-Bridging-Header.h
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
-        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) __MACOSX_CORE__=1"
+        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) RTMIDI_API_CORE=1"
         CLANG_CXX_LANGUAGE_STANDARD: "c++17"
         CLANG_CXX_LIBRARY: "libc++"
         INFOPLIST_FILE: RtMidiExample/Info.plist

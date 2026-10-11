@@ -1,6 +1,6 @@
 // ALSA integration test. USB identity is simulated; all sequencer events are real.
 /* Run from the RtMidi directory on Linux with /dev/snd/seq available:
-   g++ -std=c++11 -D__LINUX_ALSA__ -D__RTMIDI_DUMMY__ tests/alsahotplug.cpp RtMidi.cpp -lasound -pthread \
+   g++ -std=c++11 -DRTMIDI_API_ALSA tests/alsahotplug.cpp RtMidi.cpp -lasound -pthread \
      -Wl,--wrap=snd_seq_client_info_get_card -Wl,--wrap=realpath \
      -Wl,--wrap=__realpath_chk -Wl,--wrap=pipe2 -Wl,--wrap=pthread_create -Wl,--wrap=snd_seq_open \
      -Wl,--wrap=snd_seq_event_input -Wl,--wrap=snd_seq_subscribe_port \
@@ -9,7 +9,7 @@
    No USB device is unplugged or written to by this test.
 */
 #include "../RtMidi.h"
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
 #include <alsa/asoundlib.h>
 #endif
 #include <iostream>
@@ -36,7 +36,7 @@ static void checkUnsupportedBackend()
   check( !input.isAutoReconnectEnabled() && !output.isAutoReconnectEnabled(), "unsupported backend ignores disable" );
 }
 
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
 #include <atomic>
 #include <chrono>
 #include <cstdio>

@@ -12,7 +12,7 @@ This distribution of RtMidi contains the following:
 - `doc`:      RtMidi documentation (also online at https://caml.music.mcgill.ca/~gary/rtmidi/)
 - `tests`:    example RtMidi programs
 
-On Unix systems, run `./configure` and then `make` in the top level directory.  This builds both the library and the test programs in `tests/`.  In Windows, open the Visual C++ workspace file located in the `tests/` directory.
+On Unix systems, run `./configure` and then `make` in the top level directory.  This builds both the library and the test programs in `tests/`.  For installation and building on Windows, refer to [WINDOWS.md](WINDOWS.md).
 
 If you checked out the code from git, please run `./autogen.sh` before `./configure`.
 

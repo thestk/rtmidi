@@ -13,6 +13,10 @@
 //  Exits 0 if every case passes, 1 if one fails, 77 if there is no loop.
 //*****************************************//
 
+#if defined(_MSC_VER)
+  #define _CRT_SECURE_NO_WARNINGS  // getenv(); the VS projects build with /sdl, which makes C4996 an error
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

@@ -4,6 +4,7 @@
 //
 //  Sends a SysEx of any size in pieces and checks it arrives whole (#214).
 //  --resync checks that a SysEx whose end was lost doesn't corrupt the next one.
+//  --interrupt checks that a note sent after a SysEx whose end was lost still arrives.
 //  Exits 0 when the message comes back identical.
 //
 //  Measured limits on one sendMessage(), which sending in pieces avoids:
@@ -52,7 +53,8 @@ void usage( void )
   std::cout << "\nusage: sysexchunked N [out in]\n";
   std::cout << "       sysexchunked -l\n";
   std::cout << "       sysexchunked --listen [seconds [in]]\n";
-  std::cout << "       sysexchunked --resync [out in]\n\n";
+  std::cout << "       sysexchunked --resync [out in]\n";
+  std::cout << "       sysexchunked --interrupt [out in]\n\n";
   std::cout << "    N         length of the SysEx message to send.  Try a size a\n";
   std::cout << "              single sendMessage() cannot carry, such as 66312,\n";
   std::cout << "              the size of a real firmware dump.\n";
@@ -61,6 +63,8 @@ void usage( void )
   std::cout << "              a large message survives the transport.\n";
   std::cout << "    --resync  send the start of a SysEx with no F7, then a whole one,\n";
   std::cout << "              and check that only the whole one arrives.\n";
+  std::cout << "    --interrupt  send the start of a SysEx with no F7, then a note on,\n";
+  std::cout << "              and check that the note arrives.\n";
   std::cout << "    out in    port numbers, on APIs without virtual ports (Windows, Android).\n";
   std::cout << "              The default is port 0, which is rarely a loopback.\n";
   std::cout << "    -l        list port numbers; they can change when devices are replugged.\n\n";
@@ -80,9 +84,11 @@ void listPorts( void )
 static std::vector<unsigned char> received;
 static bool complete = false;
 static unsigned int callbacks = 0;
+static bool gotNote = false;
 
 void mycallback( double /*deltatime*/, std::vector<unsigned char> *message, void * /*userData*/ )
 {
+  if ( !message->empty() && ( *message )[0] == 0x90 ) { gotNote = true; return; }
   received.insert( received.end(), message->begin(), message->end() );
   callbacks++;
   if ( !received.empty() && received.back() == 0xF7 ) complete = true;
@@ -100,6 +106,7 @@ int main( int argc, char *argv[] )
 
   bool listen = ( std::string( argv[1] ) == "--listen" );
   bool resync = ( std::string( argv[1] ) == "--resync" );
+  bool interrupt = ( std::string( argv[1] ) == "--interrupt" );
   size_t nBytes = 0;
   int seconds = 30;
   int result = 1;
@@ -110,7 +117,7 @@ int main( int argc, char *argv[] )
     if ( argc > 3 ) inPort = (unsigned int) atoi( argv[3] );
   } else {
     if ( argc != 2 && argc != 4 ) usage();
-    nBytes = resync ? 6 : (size_t) atoi( argv[1] );
+    nBytes = ( resync || interrupt ) ? 6 : (size_t) atoi( argv[1] );
     if ( nBytes < 3 ) usage();
     if ( argc == 4 ) {
       outPort = (unsigned int) atoi( argv[2] );
@@ -128,6 +135,7 @@ int main( int argc, char *argv[] )
     // Windows and Android have no virtual ports, so use real ports there.
     if ( midiin->getCurrentApi() == RtMidi::WINDOWS_MM ||
          midiin->getCurrentApi() == RtMidi::WINDOWS_UWP ||
+         midiin->getCurrentApi() == RtMidi::WINDOWS_MIDI_SERVICES ||
          midiin->getCurrentApi() == RtMidi::ANDROID_AMIDI ) {
       if ( inPort >= midiin->getPortCount() || outPort >= midiout->getPortCount() ) {
         std::cout << "No such MIDI port.\n";
@@ -187,6 +195,19 @@ int main( int argc, char *argv[] )
       while ( message.size() < nBytes - 1 )
         message.push_back( (unsigned char) ( message.size() & 0x7F ) );
       message.push_back( 0xF7 );
+
+      if ( interrupt ) {
+        std::vector<unsigned char> truncated = { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F };
+        std::vector<unsigned char> note = { 0x90, 0x3C, 0x40 };
+        std::cout << "Sending the start of a SysEx with no F7, then a note on...\n";
+        midiout->sendMessage( &truncated );
+        SLEEP( 50 );
+        midiout->sendMessage( &note );
+        for ( int i = 0; i < 400 && !gotNote; i++ ) SLEEP( 5 );
+        std::cout << ( gotNote ? "The note arrived.\n" : "The note was lost.\n" );
+        result = gotNote ? 0 : 1;
+        goto cleanup;
+      }
 
       if ( resync ) {
         std::vector<unsigned char> truncated = { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F };

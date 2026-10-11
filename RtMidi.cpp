@@ -3375,6 +3375,9 @@ struct WinMidiData {
   DWORD lastTime;
   MidiInApi::MidiMessage message;
   std::vector<LPMIDIHDR> sysexBuffer;
+  // A SysEx longer than one input buffer arrives one buffer at a time; the
+  // pieces collect here until the F7 arrives (#370).
+  std::vector<unsigned char> sysexPartial;
   // WinMM calls midiInputCallback() on a thread it owns, because midiInOpen()
   // is called with CALLBACK_FUNCTION, and that callback requeues sysex buffers
   // with midiInAddBuffer().  Meanwhile closePort() runs on the caller's thread
@@ -3415,18 +3418,14 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
   MidiInApi::RtMidiInData *data = (MidiInApi::RtMidiInData *)instancePtr;
   WinMidiData *apiData = static_cast<WinMidiData *> (data->apiData);
 
-  // Calculate time stamp.
-  if ( data->firstMessage == true ) {
-    apiData->message.timeStamp = 0.0;
-    data->firstMessage = false;
-  }
-  else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
-
   if ( inputStatus == MIM_DATA ) { // Channel or system message
 
     // Make sure the first byte is a status byte.
     unsigned char status = (unsigned char) (midiMessage & 0x000000FF);
     if ( !(status & 0x80) ) return;
+
+    // A status byte (not real-time) in the middle of a SysEx means the SysEx lost its end: drop it.
+    if ( status < 0xF8 ) apiData->sysexPartial.clear();
 
     // Determine the number of bytes in the MIDI message.
     unsigned short nBytes = 1;
@@ -3454,10 +3453,26 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
   }
   else { // Sysex message ( MIM_LONGDATA or MIM_LONGERROR )
     MIDIHDR *sysex = ( MIDIHDR *) midiMessage;
-    if ( !( data->ignoreFlags & 0x01 ) && inputStatus != MIM_LONGERROR ) {
-      // Sysex message and we're not ignoring it
-      for ( int i=0; i<(int)sysex->dwBytesRecorded; ++i )
-        apiData->message.bytes.push_back( sysex->lpData[i] );
+    const unsigned char *bytes = (const unsigned char *) sysex->lpData;
+    const DWORD nBytes = sysex->dwBytesRecorded;
+    std::vector<unsigned char> &partial = apiData->sysexPartial;
+    bool complete = false;
+
+    // WinMM returns a buffer when it fills or when the F7 arrives, so a SysEx
+    // longer than one buffer comes in pieces.  Join them and deliver the whole
+    // message once its F7 arrives, as the other backends do.
+    if ( ( data->ignoreFlags & 0x01 ) || inputStatus == MIM_LONGERROR ) {
+      partial.clear();
+    }
+    else if ( nBytes > 0 ) {
+      // An F0 starts a new SysEx, so one still pending lost its end: drop it.
+      if ( bytes[0] == 0xF0 ) partial.clear();
+
+      // A piece with no start before it (the port opened mid-SysEx) is dropped.
+      if ( bytes[0] == 0xF0 || !partial.empty() ) {
+        partial.insert( partial.end(), bytes, bytes + nBytes );
+        complete = bytes[nBytes - 1] == 0xF7;
+      }
     }
 
     // The WinMM API requires that the sysex buffer be requeued after
@@ -3483,11 +3498,20 @@ static void CALLBACK midiInputCallback( HMIDIIN /*hmin*/,
           if ( result != MMSYSERR_NOERROR )
               std::cerr << "\nRtMidiIn::midiInputCallback: error sending sysex to Midi device!!\n\n";
       }
-
-      if ( data->ignoreFlags & 0x01 ) return;
     }
-    else return;
+
+    if ( !complete ) return;
+    apiData->message.bytes.swap( partial );
+    partial.clear();
   }
+
+  // Calculate time stamp.  This is done only for a message that is delivered,
+  // so a SysEx in pieces is timed by its last piece, as on ALSA.
+  if ( data->firstMessage == true ) {
+    apiData->message.timeStamp = 0.0;
+    data->firstMessage = false;
+  }
+  else apiData->message.timeStamp = (double) ( timestamp - apiData->lastTime ) * 0.001;
 
   // Save the time of the last non-filtered message
   apiData->lastTime = timestamp;
@@ -3541,6 +3565,7 @@ static MMRESULT releaseWinMMInput( WinMidiData *data )
     delete data->sysexBuffer[i];
   }
   data->sysexBuffer.clear();
+  data->sysexPartial.clear();
   data->closing = false;
 
   return firstFailure;

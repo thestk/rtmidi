@@ -104,7 +104,7 @@ object_path=Release
 AS_CASE([${enable_debug}],
   [ yes ], [
     AC_MSG_RESULT([yes])
-    CPPFLAGS="-D__RTMIDI_DEBUG ${CPPFLAGS}"
+    CPPFLAGS="-D__RTMIDI_DEBUG__ ${CPPFLAGS}"
     debugflags="${debugflags} -g"
     object_path=Debug
   ],

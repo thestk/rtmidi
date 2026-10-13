@@ -7461,6 +7461,7 @@ void MidiOutJack :: initialize( const std::string& clientName )
 
   data->port = NULL;
   data->client = NULL;
+  data->buff = NULL;
 #ifdef HAVE_SEMAPHORE
   sem_init( &data->sem_cleanup, 0, 0 );
   sem_init( &data->sem_needpost, 0, 0 );
@@ -7476,9 +7477,11 @@ void MidiOutJack :: connect()
   if ( data->client )
     return;
 
-  // Initialize output ringbuffers
-  data->buff = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
-  data->buffMaxWrite = (int) jack_ringbuffer_write_space( data->buff );
+  // Initialize output ringbuffers, once: connect() runs again while the server is down.
+  if ( data->buff == NULL ) {
+    data->buff = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
+    data->buffMaxWrite = (int) jack_ringbuffer_write_space( data->buff );
+  }
 
   // Initialize JACK client
   if ( ( data->client = jack_client_open( clientName.c_str(), JackNoStartServer, NULL ) ) == 0 ) {

@@ -15,7 +15,7 @@
 //               To a hardware port, 4096 bytes (snd-seq-midi's buffer), cut off with no
 //               error past that; pieces must also be paced to the device. The 512 B / 2 ms
 //               default here suits apps and USB; DIN (3125 B/s) needs about 512 B / 170 ms.
-//    JACK       16379 bytes (RtMidi's output ringbuffer), dropped silently past that. JACK's
+//    JACK       16379 bytes (RtMidi's output ringbuffer), refused with a warning past that. JACK's
 //               own port buffer limits what goes out in one period: 32720 bytes on JACK2 at
 //               these settings; on JACK1 it depends on the period size and can be smaller
 //    CoreMIDI   about 117 MB on macOS, 19 MB on iOS, dropped silently past that;

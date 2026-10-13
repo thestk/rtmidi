@@ -7666,8 +7666,14 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
   int nBytes = static_cast<int>(size);
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  if ( size + sizeof(nBytes) > (size_t) data->buffMaxWrite )
-      return;
+  if ( size + sizeof(nBytes) > (size_t) data->buffMaxWrite ) {
+    std::ostringstream ost;
+    ost << "MidiOutJack::sendMessage: a message over " << data->buffMaxWrite - sizeof(nBytes)
+        << " bytes doesn't fit RtMidi's output buffer; send a large SysEx in pieces. Message dropped.";
+    errorString_ = ost.str();
+    error( RtMidiError::WARNING, errorString_ );
+    return;
+  }
 
   // Only the process callback empties the ringbuffer, so don't queue what it won't send.
   if ( data->port == NULL ) {

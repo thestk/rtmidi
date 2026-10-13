@@ -161,6 +161,18 @@ if(RTMIDI_API_JACK)
     list(APPEND API_DEFS "-DRTMIDI_JACK_HAS_PORT_RENAME")
     list(APPEND API_DEFS_OLD "-DJACK_HAS_PORT_RENAME")
   endif()
+
+  # POSIX semaphores let closePort() wait for queued output, as configure.ac does. Check for
+  # sem_timedwait(): macOS has sem_init() (it fails at run time) but no sem_timedwait().
+  include(CheckIncludeFile)
+  include(CheckLibraryExists)
+  check_include_file(semaphore.h HAVE_SEMAPHORE_H)
+  if(HAVE_SEMAPHORE_H)
+    check_library_exists(pthread sem_timedwait "" HAVE_SEMAPHORE)
+  endif()
+  if(NOT HAVE_SEMAPHORE)
+    message(WARNING "POSIX semaphore support not found; data may be lost on closePort")
+  endif()
 endif()
 
 # ALSA
@@ -332,6 +344,9 @@ target_include_directories(rtmidi PRIVATE ${INCDIRS}
 # Set compile-time definitions
 target_compile_definitions(rtmidi PRIVATE ${API_DEFS})
 target_compile_definitions(rtmidi PRIVATE RTMIDI_EXPORT)
+if(HAVE_SEMAPHORE)
+  target_compile_definitions(rtmidi PRIVATE HAVE_SEMAPHORE)
+endif()
 if(LINKDIRS)
   target_link_directories(rtmidi PRIVATE ${LINKDIRS})
 endif()

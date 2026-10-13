@@ -1816,6 +1816,7 @@ void MidiOutCore :: closePort( void )
     data->port = 0;
   }
 
+  data->sysexOpen = false;
   connected_ = false;
 }
 
@@ -1902,17 +1903,27 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
   if ( data->sysexOpen && rtmidiEndsSysex( message[0] ) ) {
     static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
     sendMessage( closeSysex, 2 );
+    // If the close failed (already reported), this message would land
+    // inside the still-open SysEx.
+    if ( data->sysexOpen ) return;
   }
+
+  // Work out the framing state this call leaves behind, but commit it only
+  // once every packet has been accepted (below). If a send fails, the state
+  // stays as it was, so a caller that retries the same message gets it
+  // routed the same way, and an aborted close is not forced shut.
+  bool nextSysexOpen = data->sysexOpen;
   for ( unsigned int i = 0; i < nBytes; ++i ) {
-    if ( message[i] == 0xF0 ) data->sysexOpen = true;
-    else if ( message[i] >= 0x80 && message[i] < 0xF8 ) data->sysexOpen = false;
+    if ( message[i] == 0xF0 ) nextSysexOpen = true;
+    else if ( message[i] >= 0x80 && message[i] < 0xF8 ) nextSysexOpen = false;
   }
 
   ByteCount bufsize = nBytes > 65535 ? 65535 : nBytes;
   std::vector<Byte> buffer( bufsize + 16 ); // pad for other struct members
   ByteCount listSize = buffer.size();
   MIDIPacketList *packetList = (MIDIPacketList*)buffer.data();
-  
+
+  bool accepted = true;
   ByteCount remainingBytes = nBytes;
   while ( remainingBytes ) {
     MIDIPacket *packet = MIDIPacketListInit( packetList );
@@ -1934,6 +1945,7 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
     if ( data->endpoint ) {
       result = MIDIReceived( data->endpoint, packetList );
       if ( result != noErr ) {
+        accepted = false;
         errorString_ = "MidiOutCore::sendMessage: error sending MIDI to virtual destinations.";
         error( RtMidiError::WARNING, errorString_ );
       }
@@ -1943,11 +1955,14 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
     if ( connected_ ) {
       result = MIDISend( data->port, data->destinationId, packetList );
       if ( result != noErr ) {
+        accepted = false;
         errorString_ = "MidiOutCore::sendMessage: error sending MIDI message to port.";
         error( RtMidiError::WARNING, errorString_ );
       }
     }
   }
+
+  if ( accepted ) data->sysexOpen = nextSysexOpen;
 }
 
 #endif  // __MACOSX_CORE__
@@ -3323,6 +3338,8 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
       // Close the abandoned SysEx first, so every receiver drops it the same way.
       static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
       sendMessage( closeSysex, 2 );
+      // If the close failed (already reported), this message would land inside the open SysEx.
+      if ( data->sysexInProgress ) return;
     }
     // A real-time message keeps an open SysEx open, but goes out as itself.
     if ( ( data->sysexInProgress && first < 0xF8 ) || first == 0xF0 ) {
@@ -4079,7 +4096,8 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
     // it drops everything else sent on it, short or long, until F7 or F0.
     static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
     sendMessage( closeSysex, 2 );
-    data->sysexInProgress = false;
+    // If the close failed (already reported), this message would land inside the open SysEx.
+    if ( data->sysexInProgress ) return;
   }
   // A real-time message keeps an open SysEx open, but goes out as itself.
   bool isSysex = ( data->sysexInProgress && first < 0xF8 ) || first == 0xF0;
@@ -4565,6 +4583,8 @@ void UWPMidiClass::close()
         out_port_.Close();
         out_port_ = nullptr;
     }
+    // A SysEx left open here must not be closed on the next port opened.
+    sysex_open_ = false;
 }
 
 // MessageReceived event handler
@@ -4680,6 +4700,9 @@ bool UWPMidiClass::send_buffer(const unsigned char* buff, size_t len)
         // Close the abandoned SysEx first, so every receiver drops it the same way.
         static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
         send_buffer(closeSysex, 2);
+        // If the close failed (already reported), this message would land inside the open SysEx.
+        if (sysex_open_)
+            return true;
     }
 
     try
@@ -7551,6 +7574,7 @@ void MidiOutJack :: closePort()
 
   jack_port_unregister( data->client, data->port );
   data->port = NULL;
+  data->sysexOpen = false;
 
   connected_ = false;
 }

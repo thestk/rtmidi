@@ -40,6 +40,7 @@ struct Case {
   bool ignoreTiming;                 // ignoreTypes() for timing and sensing
   std::vector<Bytes> send;           // one sendMessage() call each
   std::vector<Bytes> expect;         // the messages the input should deliver
+  int reopenAfter;                   // close and reopen the output after this send (-1: never)
 };
 
 static std::mutex lock;
@@ -86,24 +87,29 @@ static int run( RtMidi::Api api, const Case &c, int index )
   in.setCallback( &onMessage );
 
   const char *outName = getenv( "RTMIDI_TEST_OUT" ), *inName = getenv( "RTMIDI_TEST_IN" );
+  std::string port = "sysexinterleaved in " + std::to_string( index );
   if ( outName && inName ) {
-    if ( !openContaining( in, inName, "sysexinterleaved in" ) || !openContaining( out, outName, "sysexinterleaved out" ) )
-      return -1;
+    if ( !openContaining( in, inName, "sysexinterleaved in" ) ) return -1;
+    port = outName;
   }
   else {
-    std::string port = "sysexinterleaved in " + std::to_string( index );
     try { in.openVirtualPort( port ); } catch ( RtMidiError & ) { return -1; }
-    if ( !openContaining( out, port.c_str(), "sysexinterleaved out" ) ) return -1;
   }
+  if ( !openContaining( out, port.c_str(), "sysexinterleaved out" ) ) return -1;
   SLEEP_MS( 300 );
   {
     std::lock_guard<std::mutex> g( lock );
     received.clear();
   }
 
-  for ( const Bytes &m : c.send ) {
-    out.sendMessage( &m );
+  for ( size_t i = 0; i < c.send.size(); i++ ) {
+    out.sendMessage( &c.send[i] );
     SLEEP_MS( 20 );
+    if ( (int) i == c.reopenAfter ) {
+      out.closePort();
+      if ( !openContaining( out, port.c_str(), "sysexinterleaved out" ) ) return -1;
+      SLEEP_MS( 300 );
+    }
   }
   for ( int t = 0; t < 100; t++ ) {        // up to 1 s for everything, then 200 ms for strays
     { std::lock_guard<std::mutex> g( lock ); if ( received.size() >= c.expect.size() ) break; }
@@ -129,28 +135,31 @@ int main()
   const std::vector<Case> cases = {
     { "SysEx sent in two pieces arrives whole", false,
       { { 0xF0, 0x7D, 0x01 }, { 0x02, 0xF7 } },
-      { { 0xF0, 0x7D, 0x01, 0x02, 0xF7 } } },
+      { { 0xF0, 0x7D, 0x01, 0x02, 0xF7 } }, -1 },
     { "clock between two pieces of a SysEx is delivered on its own", false,
       { { 0xF0, 0x7D, 0x01, 0x02 }, { 0xF8 }, { 0x03, 0x04, 0xF7 } },
-      { { 0xF8 }, { 0xF0, 0x7D, 0x01, 0x02, 0x03, 0x04, 0xF7 } } },
+      { { 0xF8 }, { 0xF0, 0x7D, 0x01, 0x02, 0x03, 0x04, 0xF7 } }, -1 },
     { "clock inside a one-call SysEx is delivered on its own", false,
       { { 0xF0, 0x7D, 0x01, 0xF8, 0x02, 0xF7 } },
-      { { 0xF8 }, { 0xF0, 0x7D, 0x01, 0x02, 0xF7 } } },
+      { { 0xF8 }, { 0xF0, 0x7D, 0x01, 0x02, 0xF7 } }, -1 },
     { "ignored active sensing inside a SysEx is dropped", true,
       { { 0xF0, 0x7D, 0x01, 0x02 }, { 0xFE }, { 0x03, 0x04, 0xF7 } },
-      { { 0xF0, 0x7D, 0x01, 0x02, 0x03, 0x04, 0xF7 } } },
+      { { 0xF0, 0x7D, 0x01, 0x02, 0x03, 0x04, 0xF7 } }, -1 },
     { "a SysEx that loses its F7 is dropped, the next one arrives", false,
       { { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F }, { 0xF0, 0x7D, 0x01, 0xF7 } },
-      { { 0xF0, 0x7D, 0x01, 0xF7 } } },
+      { { 0xF0, 0x7D, 0x01, 0xF7 } }, -1 },
     { "a SysEx abandoned for a note is closed with F0 F7, then the note", false,
       { { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F }, note },
-      { empty, note } },
+      { empty, note }, -1 },
     { "a SysEx abandoned for a program change", false,
       { { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F }, { 0xC0, 0x05 }, note },
-      { empty, { 0xC0, 0x05 }, note } },
+      { empty, { 0xC0, 0x05 }, note }, -1 },
     { "a SysEx abandoned for an MTC quarter frame", false,
       { { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F }, { 0xF1, 0x20 }, note },
-      { empty, { 0xF1, 0x20 }, note } },
+      { empty, { 0xF1, 0x20 }, note }, -1 },
+    { "a SysEx left open when the output closes isn't closed on the next open", false,
+      { { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F }, note },
+      { note }, 0 },
   };
 
   int failed = 0, index = 0;

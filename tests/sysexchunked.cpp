@@ -14,7 +14,8 @@
 //    WinMM      none found (256 MB), but sendMessage() blocks until the data is sent
 //  Measured with alsa-lib 1.2.14, JACK 1.9.21, macOS 26.4.1, iPadOS 26.7, Windows 11 25H2.
 //
-//  Receiving needs ignoreTypes( false, ... ) and setBufferSize() larger than the message.
+//  Receiving needs ignoreTypes( false, ... ).  The SysEx must arrive in one callback,
+//  with the default input buffers; WinMM used to deliver one piece per buffer (#370).
 //  On iOS, virtual ports need UIBackgroundModes "audio" in the app's Info.plist.
 //*****************************************//
 
@@ -154,9 +155,7 @@ int main( int argc, char *argv[] )
 
     midiin->ignoreTypes( false, true, true );   // do not ignore SysEx
 
-    // The default 1 kB input buffer can't hold a large SysEx.
-    midiin->setBufferSize( listen ? 1048576 : (unsigned int) nBytes + 1024, 4 );
-
+    // No setBufferSize(): a SysEx longer than WinMM's 1 kB buffers must still arrive whole.
     midiin->setCallback( &mycallback );
 
     if ( listen ) {
@@ -207,9 +206,9 @@ int main( int argc, char *argv[] )
       if ( received.empty() )
         std::cout << "Nothing received. Are the two ports connected?\n";
       else
-        std::cout << "Received " << received.size() << " bytes: "
+        std::cout << "Received " << received.size() << " bytes in " << callbacks << " callback(s): "
                   << ( received == message ? "identical." : "MISMATCH." ) << "\n";
-      result = ( received == message ) ? 0 : 1;
+      result = ( received == message && callbacks == 1 ) ? 0 : 1;
     }
   }
   catch ( RtMidiError &error ) {

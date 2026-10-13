@@ -480,8 +480,10 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     buffer size is 1024 with a count of 4 buffers, which should be sufficient for most
     cases; as mentioned, this does not affect all API backends, since most either support
     dynamically scalable buffers or take care of buffer handling themselves.  It is
-    principally intended for users of the Windows MM backend who must support receiving
-    especially large messages.
+    principally intended for users of the Windows MM backend.  There a SysEx longer than
+    one buffer is received a buffer at a time and delivered as one message once its F7
+    arrives, so the size does not limit the length of a SysEx; more or larger buffers
+    give the driver more room while a long SysEx is being received.
   */
   virtual void setBufferSize( unsigned int size, unsigned int count );
 

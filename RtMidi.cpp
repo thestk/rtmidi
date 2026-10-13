@@ -37,6 +37,39 @@
 */
 /**********************************************************************/
 
+// The old backend and option names start with underscores, which C++ reserves
+// (#133). They still work in 6.1.0 but are deprecated and will be removed in 7.0.0.
+#if defined(__LINUX_ALSA__) && !defined(RTMIDI_API_ALSA)
+  #define RTMIDI_API_ALSA
+#endif
+#if defined(__UNIX_JACK__) && !defined(RTMIDI_API_JACK)
+  #define RTMIDI_API_JACK
+#endif
+#if defined(__MACOSX_CORE__) && !defined(RTMIDI_API_CORE)
+  #define RTMIDI_API_CORE
+#endif
+#if defined(__WINDOWS_MM__) && !defined(RTMIDI_API_WINMM)
+  #define RTMIDI_API_WINMM
+#endif
+#if defined(__WINDOWS_UWP__) && !defined(RTMIDI_API_UWP)
+  #define RTMIDI_API_UWP
+#endif
+#if defined(__WINDOWS_MIDI_SERVICES__) && !defined(RTMIDI_API_WMS)
+  #define RTMIDI_API_WMS
+#endif
+#if defined(__WEB_MIDI_API__) && !defined(RTMIDI_API_WEBMIDI)
+  #define RTMIDI_API_WEBMIDI
+#endif
+#if defined(__AMIDI__) && !defined(RTMIDI_API_AMIDI)
+  #define RTMIDI_API_AMIDI
+#endif
+#if defined(__RTMIDI_DEBUG__) && !defined(RTMIDI_DEBUG)
+  #define RTMIDI_DEBUG
+#endif
+#if defined(JACK_HAS_PORT_RENAME) && !defined(RTMIDI_JACK_HAS_PORT_RENAME)
+  #define RTMIDI_JACK_HAS_PORT_RENAME
+#endif
+
 #include "RtMidi.h"
 #include <algorithm>
 #include <sstream>
@@ -96,9 +129,9 @@ using namespace rt::midi;
 // without touching hardware.  Before, it existed only when no other backend
 // did, so asking for RTMIDI_DUMMY on a machine that had a real backend threw
 // "no compiled API support found" instead.
-#define __RTMIDI_DUMMY__
+#define RTMIDI_API_DUMMY
 
-#if defined(__MACOSX_CORE__)
+#if defined(RTMIDI_API_CORE)
 #include <CoreMIDI/CoreMIDI.h>
 
 class MidiInCore: public MidiInApi
@@ -142,7 +175,7 @@ class MidiOutCore: public MidiOutApi
 
 #endif
 
-#if defined(__UNIX_JACK__)
+#if defined(RTMIDI_API_JACK)
 
 class MidiInJack: public MidiInApi
 {
@@ -189,7 +222,7 @@ class MidiOutJack: public MidiOutApi
 
 #endif
 
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
 
 class MidiInAlsa: public MidiInApi
 {
@@ -230,7 +263,7 @@ class MidiOutAlsa: public MidiOutApi
 
 #endif
 
-#if defined(__WINDOWS_MM__)
+#if defined(RTMIDI_API_WINMM)
 
 class MidiInWinMM: public MidiInApi
 {
@@ -271,7 +304,7 @@ class MidiOutWinMM: public MidiOutApi
 
 #endif
 
-#if defined(__WINDOWS_UWP__)
+#if defined(RTMIDI_API_UWP)
 
 class MidiInWinUWP : public MidiInApi
 {
@@ -313,7 +346,7 @@ protected:
 
 #endif
 
-#if defined(__WEB_MIDI_API__)
+#if defined(RTMIDI_API_WEBMIDI)
 
 class MidiInWeb : public MidiInApi
 {
@@ -364,7 +397,7 @@ class MidiOutWeb: public MidiOutApi
 
 #endif
 
-#if defined(__AMIDI__)
+#if defined(RTMIDI_API_AMIDI)
 
 #define LOG_TAG "RtMidi"
 #include <amidi/AMidi.h>
@@ -426,7 +459,7 @@ class MidiOutAndroid: public MidiOutApi
 
 #endif
 
-#if defined(__WINDOWS_MIDI_SERVICES__)
+#if defined(RTMIDI_API_WMS)
 
 class MidiInWinMidi2 : public MidiInApi
 {
@@ -464,9 +497,9 @@ protected:
     void initialize( const std::string& clientName ) override;
 };
 
-#endif  // __WINDOWS_MIDI_SERVICES__
+#endif  // RTMIDI_API_WMS
 
-#if defined(__RTMIDI_DUMMY__)
+#if defined(RTMIDI_API_DUMMY)
 
 class MidiInDummy: public MidiInApi
 {
@@ -551,37 +584,37 @@ const unsigned int rtmidi_num_api_names =
 // The order here will control the order of RtMidi's API search in
 // the constructor.
 extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
-#if defined(__MACOSX_CORE__)
+#if defined(RTMIDI_API_CORE)
   RtMidi::MACOSX_CORE,
 #endif
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
   RtMidi::LINUX_ALSA,
 #endif
-#if defined(__UNIX_JACK__)
+#if defined(RTMIDI_API_JACK)
   RtMidi::UNIX_JACK,
 #endif
 // WMS is listed before WinMM so that UNSPECIFIED auto-detection picks WMS
 // when the SDK is installed.  If WMS init fails (SDK not present), its
 // getPortCount() returns 0 and the search continues to WinMM.
-#if defined(__WINDOWS_MIDI_SERVICES__)
+#if defined(RTMIDI_API_WMS)
   RtMidi::WINDOWS_MIDI_SERVICES,
 #endif
-#if defined(__WINDOWS_MM__)
+#if defined(RTMIDI_API_WINMM)
   RtMidi::WINDOWS_MM,
 #endif
-#if defined(__WINDOWS_UWP__)
+#if defined(RTMIDI_API_UWP)
   RtMidi::WINDOWS_UWP,
 #endif
-#if defined(__WEB_MIDI_API__)
+#if defined(RTMIDI_API_WEBMIDI)
   RtMidi::WEB_MIDI_API,
 #endif
-#if defined(__WEB_MIDI_API__)
+#if defined(RTMIDI_API_WEBMIDI)
   RtMidi::WEB_MIDI_API,
 #endif
-#if defined(__AMIDI__)
+#if defined(RTMIDI_API_AMIDI)
   RtMidi::ANDROID_AMIDI,
 #endif
-#if defined(__RTMIDI_DUMMY__)
+#if defined(RTMIDI_API_DUMMY)
   RtMidi::RTMIDI_DUMMY,
 #endif
   RtMidi::UNSPECIFIED,
@@ -647,39 +680,39 @@ void RtMidiIn :: openMidiApi( RtMidi::Api api, const std::string &clientName, un
   delete rtapi_;
   rtapi_ = 0;
 
-#if defined(__UNIX_JACK__)
+#if defined(RTMIDI_API_JACK)
   if ( api == UNIX_JACK )
     rtapi_ = new MidiInJack( clientName, queueSizeLimit );
 #endif
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
   if ( api == LINUX_ALSA )
     rtapi_ = new MidiInAlsa( clientName, queueSizeLimit );
 #endif
-#if defined(__WINDOWS_MM__)
+#if defined(RTMIDI_API_WINMM)
   if ( api == WINDOWS_MM )
     rtapi_ = new MidiInWinMM( clientName, queueSizeLimit );
 #endif
-#if defined(__WINDOWS_UWP__)
+#if defined(RTMIDI_API_UWP)
   if (api == WINDOWS_UWP)
       rtapi_ = new MidiInWinUWP(clientName, queueSizeLimit);
 #endif
-#if defined(__WINDOWS_MIDI_SERVICES__)
+#if defined(RTMIDI_API_WMS)
   if (api == WINDOWS_MIDI_SERVICES)
       rtapi_ = new MidiInWinMidi2(clientName, queueSizeLimit);
 #endif
-#if defined(__MACOSX_CORE__)
+#if defined(RTMIDI_API_CORE)
   if ( api == MACOSX_CORE )
     rtapi_ = new MidiInCore( clientName, queueSizeLimit );
 #endif
-#if defined(__WEB_MIDI_API__)
+#if defined(RTMIDI_API_WEBMIDI)
     if ( api == WEB_MIDI_API )
     rtapi_ = new MidiInWeb( clientName, queueSizeLimit );
 #endif
-#if defined(__AMIDI__)
+#if defined(RTMIDI_API_AMIDI)
     if ( api == ANDROID_AMIDI )
     rtapi_ = new MidiInAndroid( clientName, queueSizeLimit );
 #endif
-#if defined(__RTMIDI_DUMMY__)
+#if defined(RTMIDI_API_DUMMY)
   if ( api == RTMIDI_DUMMY )
     rtapi_ = new MidiInDummy( clientName, queueSizeLimit );
 #endif
@@ -754,39 +787,39 @@ void RtMidiOut :: openMidiApi( RtMidi::Api api, const std::string &clientName )
   delete rtapi_;
   rtapi_ = 0;
 
-#if defined(__UNIX_JACK__)
+#if defined(RTMIDI_API_JACK)
   if ( api == UNIX_JACK )
     rtapi_ = new MidiOutJack( clientName );
 #endif
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
   if ( api == LINUX_ALSA )
     rtapi_ = new MidiOutAlsa( clientName );
 #endif
-#if defined(__WINDOWS_MM__)
+#if defined(RTMIDI_API_WINMM)
   if ( api == WINDOWS_MM )
     rtapi_ = new MidiOutWinMM( clientName );
 #endif
-#if defined(__WINDOWS_UWP__)
+#if defined(RTMIDI_API_UWP)
   if (api == WINDOWS_UWP)
       rtapi_ = new MidiOutWinUWP(clientName);
 #endif
-#if defined(__WINDOWS_MIDI_SERVICES__)
+#if defined(RTMIDI_API_WMS)
   if (api == WINDOWS_MIDI_SERVICES)
       rtapi_ = new MidiOutWinMidi2(clientName);
 #endif
-#if defined(__MACOSX_CORE__)
+#if defined(RTMIDI_API_CORE)
   if ( api == MACOSX_CORE )
     rtapi_ = new MidiOutCore( clientName );
 #endif
-#if defined(__WEB_MIDI_API__)
+#if defined(RTMIDI_API_WEBMIDI)
     if ( api == WEB_MIDI_API )
     rtapi_ = new MidiOutWeb( clientName );
 #endif
-#if defined(__AMIDI__)
+#if defined(RTMIDI_API_AMIDI)
     if ( api == ANDROID_AMIDI )
     rtapi_ = new MidiOutAndroid( clientName );
 #endif
-#if defined(__RTMIDI_DUMMY__)
+#if defined(RTMIDI_API_DUMMY)
   if ( api == RTMIDI_DUMMY )
     rtapi_ = new MidiOutDummy( clientName );
 #endif
@@ -899,7 +932,7 @@ void MidiApi :: error( RtMidiError::Type type, std::string errorString )
     std::cerr << '\n' << errorString << "\n\n";
   }
   else if ( type == RtMidiError::DEBUG_WARNING ) {
-#if defined(__RTMIDI_DEBUG__)
+#if defined(RTMIDI_DEBUG)
     std::cerr << '\n' << errorString << "\n\n";
 #endif
   }
@@ -1138,7 +1171,7 @@ MidiOutApi :: ~MidiOutApi( void )
 //
 // *************************************************** //
 
-#if defined(__MACOSX_CORE__)
+#if defined(RTMIDI_API_CORE)
 
 // The CoreMIDI API is based on the use of a callback function for
 // MIDI input.  We convert the system specific time stamps to delta
@@ -1965,7 +1998,7 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
   if ( accepted ) data->sysexOpen = nextSysexOpen;
 }
 
-#endif  // __MACOSX_CORE__
+#endif  // RTMIDI_API_CORE
 
 
 //*********************************************************************//
@@ -1975,7 +2008,7 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
 // API information found at:
 //   - http://www.alsa-project.org/documentation.php#Library
 
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
 
 // The ALSA Sequencer API is based on the use of a callback function for
 // MIDI input.
@@ -2600,7 +2633,7 @@ static void *alsaMidiHandler( void *ptr )
     switch ( ev->type ) {
 
     case SND_SEQ_EVENT_PORT_SUBSCRIBED:
-#if defined(__RTMIDI_DEBUG__)
+#if defined(RTMIDI_DEBUG)
       std::cout << "MidiInAlsa::alsaMidiHandler: port connection made!\n";
 #endif
       break;
@@ -2610,7 +2643,7 @@ static void *alsaMidiHandler( void *ptr )
       message.bytes.clear();
       data->firstMessage = true;
       snd_midi_event_reset_decode( apiData->coder );
-#if defined(__RTMIDI_DEBUG__)
+#if defined(RTMIDI_DEBUG)
       std::cerr << "MidiInAlsa::alsaMidiHandler: port connection has closed!\n";
       std::cout << "sender = " << (int) ev->data.connect.sender.client << ":"
                 << (int) ev->data.connect.sender.port
@@ -2694,7 +2727,7 @@ static void *alsaMidiHandler( void *ptr )
           message.timeStamp = alsaDeltaTime( apiData, data, ev );
         }
         else {
-#if defined(__RTMIDI_DEBUG__)
+#if defined(RTMIDI_DEBUG)
           std::cerr << "\nMidiInAlsa::alsaMidiHandler: event parsing error or not a MIDI event!\n\n";
 #endif
         }
@@ -3433,7 +3466,7 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
   snd_seq_drain_output( data->seq );
 }
 
-#endif // __LINUX_ALSA__
+#endif // RTMIDI_API_ALSA
 
 
 //*********************************************************************//
@@ -3445,7 +3478,7 @@ void MidiOutAlsa :: sendMessage( const unsigned char *message, size_t size )
 
 // Thanks to Jean-Baptiste Berruchon for the sysex code.
 
-#if defined(__WINDOWS_MM__)
+#if defined(RTMIDI_API_WINMM)
 
 // The Windows MM API is based on the use of a callback function for
 // MIDI input.  We convert the system specific time stamps to delta
@@ -4227,7 +4260,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
   }
 }
 
-#endif  // __WINDOWS_MM__
+#endif  // RTMIDI_API_WINMM
 
 
 //*********************************************************************//
@@ -4243,7 +4276,7 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
 // Example implementation using UWP MIDI in C++/WinRT
 //   https://github.com/trueroad/uwp_midiio
 
-#if defined(__WINDOWS_UWP__)
+#if defined(RTMIDI_API_UWP)
 
 #include <algorithm>
 #include <chrono>
@@ -5012,7 +5045,7 @@ void MidiOutWinUWP::sendMessage(const unsigned char* message, size_t size)
     }
 }
 
-#endif  // __WINDOWS_UWP__
+#endif  // RTMIDI_API_UWP
 
 
 //*********************************************************************//
@@ -5025,7 +5058,7 @@ void MidiOutWinUWP::sendMessage(const unsigned char* message, size_t size)
 //
 //*********************************************************************//
 
-#if defined(__WINDOWS_MIDI_SERVICES__)
+#if defined(RTMIDI_API_WMS)
 
 #include <algorithm>
 #include <atomic>
@@ -7020,11 +7053,11 @@ RtMidi::RtMidiApiAvailability RtMidi::checkApiAvailability( RtMidi::Api api )
     return result;
 }
 
-#endif  // __WINDOWS_MIDI_SERVICES__
+#endif  // RTMIDI_API_WMS
 
 // Without the Windows MIDI Services backend, no compiled API depends on a
 // runtime that can be missing, so only WMS itself is reported as unavailable.
-#if !defined(__WINDOWS_MIDI_SERVICES__)
+#if !defined(RTMIDI_API_WMS)
 RtMidi::RtMidiApiAvailability RtMidi::checkApiAvailability( RtMidi::Api api )
 {
     RtMidiApiAvailability result;
@@ -7034,7 +7067,7 @@ RtMidi::RtMidiApiAvailability RtMidi::checkApiAvailability( RtMidi::Api api )
     }
     return result;
 }
-#endif  // !__WINDOWS_MIDI_SERVICES__
+#endif  // !RTMIDI_API_WMS
 
 
 //*********************************************************************//
@@ -7045,7 +7078,7 @@ RtMidi::RtMidiApiAvailability RtMidi::checkApiAvailability( RtMidi::Api api )
 //
 //  *********************************************************************//
 
-#if defined(__UNIX_JACK__)
+#if defined(RTMIDI_API_JACK)
 
 // JACK header files
 #include <jack/jack.h>
@@ -7348,7 +7381,7 @@ void MidiInJack:: setClientName( const std::string& )
 void MidiInJack :: setPortName( const std::string &portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-#ifdef JACK_HAS_PORT_RENAME
+#ifdef RTMIDI_JACK_HAS_PORT_RENAME
   jack_port_rename( data->client, data->port, portName.c_str() );
 #else
   jack_port_set_name( data->port, portName.c_str() );
@@ -7590,7 +7623,7 @@ void MidiOutJack:: setClientName( const std::string& )
 void MidiOutJack :: setPortName( const std::string &portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
-#ifdef JACK_HAS_PORT_RENAME
+#ifdef RTMIDI_JACK_HAS_PORT_RENAME
   jack_port_rename( data->client, data->port, portName.c_str() );
 #else
   jack_port_set_name( data->port, portName.c_str() );
@@ -7625,7 +7658,7 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
   jack_ringbuffer_write( data->buff, ( const char * ) message, nBytes );
 }
 
-#endif  // __UNIX_JACK__
+#endif  // RTMIDI_API_JACK
 
 //*********************************************************************//
 //  API: Web MIDI
@@ -7634,7 +7667,7 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
 //
 //  *********************************************************************//
 
-#if defined(__WEB_MIDI_API__)
+#if defined(RTMIDI_API_WEBMIDI)
 
 #include <emscripten.h>
 
@@ -7942,7 +7975,7 @@ void MidiOutWeb::initialize( const std::string& clientName )
   setClientName( clientName );
 }
 
-#endif  // __WEB_MIDI_API__
+#endif  // RTMIDI_API_WEBMIDI
 
 
 //*********************************************************************//
@@ -7952,7 +7985,7 @@ void MidiOutWeb::initialize( const std::string& clientName )
 //  https://github.com/YellowLabrador/rtmidi
 //  *********************************************************************//
 
-#if defined(__AMIDI__)
+#if defined(RTMIDI_API_AMIDI)
 
 #include <cstdint>
 
@@ -8448,13 +8481,13 @@ void MidiOutAndroid :: sendMessage( const unsigned char *message, size_t size ) 
   AMidiInputPort_send(midiInputPort, (uint8_t*)message, size);
 }
 
-#endif  // __AMIDI__
+#endif  // RTMIDI_API_AMIDI
 
 // Optional backend features use non-virtual dispatch to preserve the existing
 // MidiApi and derived-class vtables. Other backends default to unsupported.
 bool MidiApi :: supportsAutoReconnect( void ) const
 {
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
   if ( const_cast<MidiApi *>(this)->getCurrentApi() == RtMidi::LINUX_ALSA )
     return AlsaMidiReconnect::isSupported();
 #endif
@@ -8463,7 +8496,7 @@ bool MidiApi :: supportsAutoReconnect( void ) const
 
 void MidiApi :: setAutoReconnect( bool enabled )
 {
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
   if ( getCurrentApi() == RtMidi::LINUX_ALSA ) {
     int result = static_cast<AlsaMidiData *>(apiData_)->reconnect.setEnabled( enabled );
     if ( result < 0 ) error( RtMidiError::THREAD_ERROR, "RtMidi ALSA: cannot start hotplug monitor." );
@@ -8475,7 +8508,7 @@ void MidiApi :: setAutoReconnect( bool enabled )
 
 bool MidiApi :: isAutoReconnectEnabled( void ) const
 {
-#if defined(__LINUX_ALSA__)
+#if defined(RTMIDI_API_ALSA)
   if ( const_cast<MidiApi *>(this)->getCurrentApi() == RtMidi::LINUX_ALSA )
     return static_cast<AlsaMidiData *>(apiData_)->reconnect.isEnabled();
 #endif

@@ -4,11 +4,11 @@ package rtmidi
 #cgo CXXFLAGS: -g -std=c++11
 #cgo LDFLAGS: -g
 
-#cgo linux CXXFLAGS: -D__LINUX_ALSA__
+#cgo linux CXXFLAGS: -DRTMIDI_API_ALSA
 #cgo linux LDFLAGS: -lasound -pthread
-#cgo windows CXXFLAGS: -D__WINDOWS_MM__
+#cgo windows CXXFLAGS: -DRTMIDI_API_WINMM
 #cgo windows LDFLAGS: -luuid -lksuser -lwinmm -lole32
-#cgo darwin CXXFLAGS: -D__MACOSX_CORE__
+#cgo darwin CXXFLAGS: -DRTMIDI_API_CORE
 #cgo darwin LDFLAGS: -framework CoreServices -framework CoreAudio -framework CoreMIDI -framework CoreFoundation
 
 #include <stdlib.h>

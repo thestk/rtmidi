@@ -8,8 +8,16 @@
 //  Exits 0 when the message comes back identical.
 //
 //  Measured limits on one sendMessage(), which sending in pieces avoids:
-//    ALSA seq   16355 bytes (alsa-lib's output buffer; snd_seq_set_output_buffer_size() raises it)
-//    JACK       16379 bytes (RtMidi's output ringbuffer), dropped silently past that
+//    ALSA seq   5572 bytes between two applications (the receiver's kernel pool): a larger
+//               SysEx is lost at the receiver, whose error callback reports an input overrun,
+//               and so can a message sent right behind one close to that size. The sender
+//               gets an error only from 16356 bytes (alsa-lib's output buffer).
+//               To a hardware port, 4096 bytes (snd-seq-midi's buffer), cut off with no
+//               error past that; pieces must also be paced to the device. The 512 B / 2 ms
+//               default here suits apps and USB; DIN (3125 B/s) needs about 512 B / 170 ms.
+//    JACK       16379 bytes (RtMidi's output ringbuffer), dropped silently past that. JACK's
+//               own port buffer limits what goes out in one period: 32720 bytes on JACK2 at
+//               these settings; on JACK1 it depends on the period size and can be smaller
 //    CoreMIDI   about 117 MB on macOS, 19 MB on iOS, dropped silently past that;
 //               in pieces, about 650 to 760 pieces per message
 //    WinMM      none found (256 MB), but sendMessage() blocks until the data is sent

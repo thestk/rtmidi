@@ -2493,6 +2493,7 @@ struct AlsaMidiData {
   // other terminating status byte) has arrived yet, so a later call carrying
   // a bare continuation span can be recognized as part of the same message.
   bool sysexInProgress = false;
+  MidiInApi *in = nullptr; // input: the object, so the input thread can report errors
 };
 
 } // namespace
@@ -2601,7 +2602,8 @@ static void *alsaMidiHandler( void *ptr )
 
   while ( data->doInput ) {
 
-    if ( snd_seq_event_input_pending( apiData->seq, 1 ) == 0 ) {
+    int pending = snd_seq_event_input_pending( apiData->seq, 1 );
+    if ( pending == 0 ) {
       // No data pending
       if ( poll( poll_fds, poll_fd_count, -1) >= 0 ) {
         if ( poll_fds[0].revents & POLLIN ) {
@@ -2613,10 +2615,13 @@ static void *alsaMidiHandler( void *ptr )
       continue;
     }
 
-    // If here, there should be data.
-    result = snd_seq_event_input( apiData->seq, &ev );
+    // If here, there should be data. An overrun can show up in either call,
+    // since input_pending reads from the kernel too.
+    result = pending == -ENOSPC ? pending : snd_seq_event_input( apiData->seq, &ev );
     if ( result == -ENOSPC ) {
-      std::cerr << "\nMidiInAlsa::alsaMidiHandler: MIDI input buffer overrun!\n\n";
+      // The kernel dropped the queued input, so a SysEx being assembled lost a piece.
+      continueSysex = false;
+      apiData->in->error( RtMidiError::WARNING, "MidiInAlsa::alsaMidiHandler: MIDI input buffer overrun, messages were lost!" );
       continue;
     }
     else if ( result <= 0 ) {
@@ -2806,6 +2811,7 @@ void MidiInAlsa :: initialize( const std::string& clientName )
   data->trigger_fds[0] = -1;
   data->trigger_fds[1] = -1;
   data->bufferSize = inputData_.bufferSize;
+  data->in = this;
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
 

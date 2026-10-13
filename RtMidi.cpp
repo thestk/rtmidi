@@ -7431,8 +7431,13 @@ static int jackProcessOut( jack_nframes_t nframes, void *arg )
   }
 
 #ifdef HAVE_SEMAPHORE
-  if ( !sem_trywait( &data->sem_needpost ) )
-    sem_post( &data->sem_cleanup );
+  // closePort() is waiting: tell it once everything queued has gone out.
+  if ( !sem_trywait( &data->sem_needpost ) ) {
+    if ( jack_ringbuffer_read_space( data->buff ) == 0 )
+      sem_post( &data->sem_cleanup );
+    else
+      sem_post( &data->sem_needpost );
+  }
 #endif
 
   return 0;
@@ -7619,8 +7624,9 @@ void MidiOutJack :: closePort()
   if ( data->port == NULL ) return;
 
 #ifdef HAVE_SEMAPHORE
+  // Wait for queued output to go out, unless the server is gone and nothing will send it.
   struct timespec ts;
-  if ( clock_gettime( CLOCK_REALTIME, &ts ) != -1 ) {
+  if ( !data->serverGone && clock_gettime( CLOCK_REALTIME, &ts ) != -1 ) {
     ts.tv_sec += 1; // wait max one second
     sem_post( &data->sem_needpost );
     sem_timedwait( &data->sem_cleanup, &ts );

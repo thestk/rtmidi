@@ -7374,8 +7374,11 @@ void MidiInJack :: closePort()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   if ( data->port == NULL ) return;
+  // libjack can crash when a port is unregistered while the client runs, so stop it first.
+  jack_deactivate( data->client );
   jack_port_unregister( data->client, data->port );
   data->port = NULL;
+  jack_activate( data->client );
 
   connected_ = false;
 }
@@ -7636,9 +7639,34 @@ void MidiOutJack :: closePort()
   }
 #endif
 
+  // libjack can crash when a port is unregistered while the client runs, so stop it first.
+  jack_deactivate( data->client );
+
+  // The callback is stopped, so clear what a timed-out wait left behind: the handshake, and
+  // output that never went out, which would otherwise go out on the next port opened.
+#ifdef HAVE_SEMAPHORE
+  while ( sem_trywait( &data->sem_needpost ) == 0 ) {}
+  while ( sem_trywait( &data->sem_cleanup ) == 0 ) {}
+#endif
+  size_t messages = 0, bytes = 0;
+  int length;
+  while ( jack_ringbuffer_read( data->buff, (char *) &length, sizeof( length ) ) == sizeof( length ) ) {
+    jack_ringbuffer_read_advance( data->buff, (size_t) length );
+    messages++;
+    bytes += (size_t) length;
+  }
+  if ( messages > 0 ) {
+    std::ostringstream ost;
+    ost << "MidiOutJack::closePort: " << messages << " message(s), " << bytes
+        << " bytes, never went out and were dropped.";
+    errorString_ = ost.str();
+    error( RtMidiError::WARNING, errorString_ );
+  }
+
   jack_port_unregister( data->client, data->port );
   data->port = NULL;
   data->sysexOpen = false;
+  jack_activate( data->client );
 
   connected_ = false;
 }

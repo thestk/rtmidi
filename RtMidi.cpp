@@ -2676,6 +2676,11 @@ static void *alsaMidiHandler( void *ptr )
 
     case SND_SEQ_EVENT_SYSEX:
       if ( (data->ignoreFlags & 0x01) ) break;
+      // A piece of a SysEx whose start was lost (an overrun, or a sender that never sent
+      // the F0) has nothing to join: drop it rather than deliver it as a message.
+      if ( !continueSysex && ( ev->data.ext.len == 0 ||
+                               static_cast<unsigned char *>( ev->data.ext.ptr )[0] != 0xF0 ) )
+        break;
       if ( ev->data.ext.len > apiData->bufferSize ) {
         apiData->bufferSize = ev->data.ext.len;
         free( buffer );
@@ -7166,6 +7171,10 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
     if ( continueSysex && event.size > 0 && event.buffer[0] >= 0x80 &&
          event.buffer[0] < 0xF8 && event.buffer[0] != 0xF7 )
       continueSysex = false;
+
+    // A data byte with no SysEx in progress is a piece of one whose start was lost: drop it.
+    if ( !continueSysex && event.size > 0 && event.buffer[0] < 0x80 )
+      continue;
 
     if ( !continueSysex )
       message.bytes.clear();

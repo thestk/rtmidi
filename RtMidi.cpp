@@ -7418,13 +7418,16 @@ static int jackProcessOut( jack_nframes_t nframes, void *arg )
 
   while ( jack_ringbuffer_peek( data->buff, (char *) &space, sizeof( space ) ) == sizeof(space) &&
           jack_ringbuffer_read_space( data->buff ) >= sizeof(space) + space ) {
-    jack_ringbuffer_read_advance( data->buff, sizeof(space) );
-
     midiData = jack_midi_event_reserve( buff, 0, space );
-    if ( midiData )
-        jack_ringbuffer_read( data->buff, (char *) midiData, (size_t) space );
-    else
-        jack_ringbuffer_read_advance( data->buff, (size_t) space );
+    if ( midiData == NULL ) {
+      // The port buffer is full: leave the rest for the next period.
+      if ( jack_midi_get_event_count( buff ) > 0 ) break;
+      // Too big even for an empty buffer, so it would never go out.
+      jack_ringbuffer_read_advance( data->buff, sizeof(space) + (size_t) space );
+      continue;
+    }
+    jack_ringbuffer_read_advance( data->buff, sizeof(space) );
+    jack_ringbuffer_read( data->buff, (char *) midiData, (size_t) space );
   }
 
 #ifdef HAVE_SEMAPHORE

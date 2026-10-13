@@ -7489,11 +7489,11 @@ MidiOutJack :: ~MidiOutJack()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   MidiOutJack::closePort();
 
-  // Cleanup
-  jack_ringbuffer_free( data->buff );
+  // Close the client first: its process callback reads the ringbuffer until then.
   if ( data->client ) {
     jack_client_close( data->client );
   }
+  jack_ringbuffer_free( data->buff );
 
 #ifdef HAVE_SEMAPHORE
   sem_destroy( &data->sem_cleanup );

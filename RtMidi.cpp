@@ -409,6 +409,65 @@ class MidiOutWeb: public MidiOutApi
 #include <vector>
 #include <jni.h>
 #include <unistd.h>
+#include <android/api-level.h>
+#include <chrono>
+#include <condition_variable>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+
+// One entry per PORT, not per device: a device with three ports contributes
+// three entries, all sharing its jobject and differing in portIndex.  Android
+// reports the counts per device and AMidi*Port_open() takes a port index, so
+// without this a multi-port device is reachable only through its first port.
+struct AndroidMidiPort {
+  jobject device;
+  int deviceId;    // MidiDeviceInfo.getId(), new for each connection of a device
+  int portIndex;
+  bool isOutput;   // as enumerated: true for host->device ports
+  // From the device's USB descriptors, when they could be read; otherwise -1.
+  int usbInputs;
+  int usbOutputs;
+  // "<product> <jack name>", built from the descriptors when port names are
+  // enabled and the descriptors could be read; otherwise empty.
+  std::string usbName;
+};
+
+// One openPort() call.  MidiManager.openDevice() reports back on a Binder
+// thread, which may happen after openPort() has given up waiting and even
+// after the RtMidi object is gone, so the callback is handed this record (via
+// a heap-allocated shared_ptr) rather than the object itself.
+struct AndroidOpenRequest {
+  std::mutex mutex;
+  std::condition_variable cond;
+  bool done = false;
+  bool abandoned = false;     // openPort() timed out and no longer wants it
+  bool isOutput = false;
+  int portIndex = 0;
+  AMidiDevice *device = NULL;
+  AMidiInputPort *inputPort = NULL;    // host->device, for MidiOutAndroid
+  AMidiOutputPort *outputPort = NULL;  // device->host, for MidiInAndroid
+  jobject javaDevice = NULL;           // global ref to the Java MidiDevice
+  int deviceId = 0;
+  std::string failure;
+};
+
+// Long enough for a USB device that is slow to answer, short enough that a
+// caller is not left wondering.  On Android 10-12 a device with fewer inputs
+// than outputs never answers: the framework blocks forever opening it.
+static const std::chrono::milliseconds kAndroidOpenTimeout( 5000 );
+
+// Port names: "<product> <port name>", from the USB descriptors' jack names,
+// which needs USB permission the application already holds, or from the port
+// names an application's virtual device publishes.  RtMidi 6.0 and earlier named
+// every port after its device, so a three-port device showed three identical
+// names; RTMIDI_ANDROID_LEGACY_PORT_NAMES restores that.
+#if defined(RTMIDI_ANDROID_LEGACY_PORT_NAMES)
+static const bool kAndroidPortNames = false;
+#else
+static const bool kAndroidPortNames = true;
+#endif
 
 class MidiInAndroid : public MidiInApi
 {
@@ -430,10 +489,19 @@ class MidiInAndroid : public MidiInApi
   void connect();
   AMidiDevice* receiveDevice = NULL;
   AMidiOutputPort* midiOutputPort = NULL;
+  jobject javaDevice = NULL;  // the Java MidiDevice, closed with the port
+  // This object's own port list.  It was once shared by MidiInAndroid and
+  // MidiOutAndroid, which rebuilt it with opposite direction filters, so each
+  // overwrote the other's list: invisible when a device's input and output
+  // counts match, wrong whenever they differ.
+  std::vector<AndroidMidiPort> ports_;
   pthread_t readThread;
   std::atomic<bool> reading = ATOMIC_VAR_INIT(false);
   static void* pollMidi(void* context);
+  void parse( const uint8_t *data, size_t count, double time );
+  void deliver( std::vector<unsigned char> &bytes, double time );
   double lastTime;
+  unsigned char runningStatus_ = 0;
 };
 
 class MidiOutAndroid: public MidiOutApi
@@ -455,6 +523,13 @@ class MidiOutAndroid: public MidiOutApi
   void connect();
   AMidiDevice* sendDevice = NULL;
   AMidiInputPort* midiInputPort = NULL;
+  jobject javaDevice = NULL;  // the Java MidiDevice, closed with the port
+  bool sysexOpen = false; // a SysEx has started and not yet ended
+  // This object's own port list.  It was once shared by MidiInAndroid and
+  // MidiOutAndroid, which rebuilt it with opposite direction filters, so each
+  // overwrote the other's list: invisible when a device's input and output
+  // counts match, wrong whenever they differ.
+  std::vector<AndroidMidiPort> ports_;
 };
 
 #endif
@@ -7995,7 +8070,6 @@ void MidiOutWeb::initialize( const std::string& clientName )
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 static std::string androidClientName;
-static std::vector<jobject> androidMidiDevices;
 
 //*********************************************************************//
 //  API: Android AMIDI
@@ -8012,9 +8086,29 @@ static std::vector<jobject> androidMidiDevices;
 // has not already supplied the pointer.
 static JavaVM* androidJvm = NULL;
 
+// The app's com.yellowlab.rtmidi.MidiDeviceOpenedListener (contrib/java), as a
+// global ref.  Looked up once, see androidGetListenerClass().
+static jclass androidListenerClass = NULL;
+static std::mutex androidListenerMutex;
+
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad( JavaVM* vm, void* /*reserved*/ )
 {
   androidJvm = vm;
+
+  // FindClass() sees the app's classes here, but not on a thread attached
+  // natively.  An app that never calls openPort() need not bundle the class.
+  JNIEnv *env = NULL;
+  if ( vm->GetEnv( (void**) &env, JNI_VERSION_1_6 ) == JNI_OK ) {
+    jclass listenerClass = env->FindClass( "com/yellowlab/rtmidi/MidiDeviceOpenedListener" );
+    if ( listenerClass ) {
+      std::lock_guard<std::mutex> lock( androidListenerMutex );
+      if ( !androidListenerClass )
+        androidListenerClass = (jclass) env->NewGlobalRef( listenerClass );
+      env->DeleteLocalRef( listenerClass );
+    } else {
+      env->ExceptionClear();
+    }
+  }
   return JNI_VERSION_1_6;
 }
 
@@ -8082,11 +8176,17 @@ static jobject androidGetContext(JNIEnv *env) {
     return NULL;
   }
 
+  // Native threads have no frame of their own to free local references.
+  if (env->PushLocalFrame(8) != JNI_OK) {
+    env->ExceptionClear();
+    return NULL;
+  }
   auto activityThread = env->FindClass("android/app/ActivityThread");
   auto currentActivityThread = env->GetStaticMethodID(activityThread, "currentActivityThread", "()Landroid/app/ActivityThread;");
   auto at = env->CallStaticObjectMethod(activityThread, currentActivityThread);
   if (at == NULL) {
       LOGE("Unable to locate the global ActivityThread");
+      env->PopLocalFrame(NULL);
       return NULL;
   }
 
@@ -8096,102 +8196,483 @@ static jobject androidGetContext(JNIEnv *env) {
       LOGE("Application context was NULL");
   }
 
-  return context;
+  return env->PopLocalFrame(context);
+}
+
+// The listener class.  When JNI_OnLoad could not find it, it is loaded through
+// the app's class loader, which works on any thread.  NULL if it is not bundled.
+static jclass androidGetListenerClass(JNIEnv *env) {
+  std::lock_guard<std::mutex> lock(androidListenerMutex);
+  if (androidListenerClass) return androidListenerClass;
+
+  if (env->PushLocalFrame(8) != JNI_OK) {
+    env->ExceptionClear();
+    return NULL;
+  }
+  auto context = androidGetContext(env);
+  jobject loader = NULL;
+  if (context) {
+    auto contextClass = env->FindClass("android/content/Context");
+    auto getClassLoader = env->GetMethodID(contextClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+    loader = env->CallObjectMethod(context, getClassLoader);
+  }
+  if (loader && !env->ExceptionCheck()) {
+    auto loaderClass = env->FindClass("java/lang/ClassLoader");
+    auto loadClass = env->GetMethodID(loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    auto name = env->NewStringUTF("com.yellowlab.rtmidi.MidiDeviceOpenedListener");
+    auto listenerClass = env->CallObjectMethod(loader, loadClass, name);
+    if (listenerClass && !env->ExceptionCheck())
+      androidListenerClass = (jclass) env->NewGlobalRef(listenerClass);
+  }
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+  }
+  env->PopLocalFrame(NULL);
+  return androidListenerClass;
 }
 
 static jobject androidGetMidiManager(JNIEnv *env, jobject context) {
   // MidiManager midiManager = (MidiManager) getSystemService(Context.MIDI_SERVICE);
+  if (env->PushLocalFrame(8) != JNI_OK) {
+    env->ExceptionClear();
+    return NULL;
+  }
   auto contextClass = env->FindClass("android/content/Context");
   auto getServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-  return env->CallObjectMethod(context, getServiceMethod, env->NewStringUTF("midi"));
+  auto manager = env->CallObjectMethod(context, getServiceMethod, env->NewStringUTF("midi"));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    manager = NULL;
+  }
+  return env->PopLocalFrame(manager);
 }
 
-static void androidRefreshMidiDevices(JNIEnv *env, jobject context, bool isOutput) {
-  // Remove all midi devices
-  for (jobject jMidiDevice : androidMidiDevices) {
-    env->DeleteGlobalRef(jMidiDevice);
+// Entries of one device share its global ref, so release each ref once.
+static void androidReleasePorts(JNIEnv *env, std::vector<AndroidMidiPort> &ports) {
+  jobject previous = NULL;
+  for (const AndroidMidiPort &entry : ports) {
+    if (entry.device != previous) {
+      env->DeleteGlobalRef(entry.device);
+      previous = entry.device;
+    }
   }
-  androidMidiDevices.clear();
+  ports.clear();
+}
+
+// Lists a USB MIDI 1.0 device's ports per direction from its configuration
+// descriptors, as the iJack string index of each port (0 when unnamed).
+//
+// Ports are the embedded jacks of each MIDI Streaming endpoint, in descriptor
+// order, which is how Linux numbers its substreams and how Android 13 counts
+// ports.  An input port (device->host) belongs to an IN endpoint, whose jacks
+// are embedded OUT jacks; an output port belongs to an OUT endpoint, whose
+// jacks are embedded IN jacks.  Linux names them the same way.  Alternate
+// setting 0 only, since a MIDI 2.0 device's UMP interface is alternate setting 1.
+static void androidParseUsbMidiJacks(const uint8_t *d, size_t n,
+                                     std::vector<int> &inputs, std::vector<int> &outputs) {
+  std::map<int, int> inJackString, outJackString;  // jack id -> iJack
+  std::vector<int> inEndpointJacks, outEndpointJacks;
+  bool midiStreaming = false, endpointIsIn = false;
+  for (size_t i = 0; i + 1 < n; ) {
+    const size_t len = d[i];
+    if (len < 2 || i + len > n) break;
+    const uint8_t *x = d + i;
+    switch (x[1]) {
+      case 0x04:  // INTERFACE: audio class, MIDI Streaming subclass
+        midiStreaming = len >= 9 && x[5] == 1 && x[6] == 3 && x[3] == 0;
+        break;
+      case 0x05:  // ENDPOINT
+        if (midiStreaming && len >= 3) endpointIsIn = (x[2] & 0x80) != 0;
+        break;
+      case 0x24:  // CS_INTERFACE
+        if (!midiStreaming || len < 6) break;
+        if (x[2] == 0x02)       // MIDI_IN_JACK: iJack follows bJackID
+          inJackString[x[4]] = x[5];
+        else if (x[2] == 0x03)  // MIDI_OUT_JACK: iJack follows bNrInputPins source pairs
+          outJackString[x[4]] = 6 + 2 * (size_t) x[5] < len ? x[6 + 2 * x[5]] : 0;
+        break;
+      case 0x25:  // CS_ENDPOINT, MS_GENERAL: bNumEmbMIDIJack, baAssocJackID
+        if (!midiStreaming || len < 4 || x[2] != 0x01) break;
+        for (size_t j = 0; j < x[3] && 4 + j < len; j++)
+          (endpointIsIn ? inEndpointJacks : outEndpointJacks).push_back(x[4 + j]);
+        break;
+    }
+    i += len;
+  }
+  inputs.clear();
+  outputs.clear();
+  for (int jack : inEndpointJacks)
+    inputs.push_back(outJackString.count(jack) ? outJackString[jack] : 0);
+  for (int jack : outEndpointJacks)
+    outputs.push_back(inJackString.count(jack) ? inJackString[jack] : 0);
+}
+
+// What a USB MIDI device's own descriptors say about its ports: one name per
+// port, "<product> <jack name>", or for an unnamed jack "<product> MIDI <n>",
+// the same as Linux, or just "<product>" when it is the only port in its
+// direction.  Names are empty when not requested.
+struct AndroidUsbPorts {
+  std::vector<std::string> inputs;
+  std::vector<std::string> outputs;
+};
+
+// Reads a USB string descriptor, or "" when there is none.
+static std::string androidUsbString(JNIEnv *env, jobject connection, jmethodID controlTransfer,
+                                    int index, int language) {
+  if (index == 0) return "";
+  jbyteArray buffer = env->NewByteArray(255);
+  // GET_DESCRIPTOR (6), device-to-host standard request (0x80), type STRING (3).
+  jint n = env->CallIntMethod(connection, controlTransfer, 0x80, 0x06, 0x0300 | index,
+                              language, buffer, 255, 1000);
+  std::string result;
+  if (n >= 2) {
+    jbyte bytes[255];
+    env->GetByteArrayRegion(buffer, 0, n, bytes);
+    jsize length = std::min<jsize>(n, (uint8_t) bytes[0]);
+    std::vector<jchar> utf16;
+    for (jsize i = 2; i + 1 < length; i += 2)
+      utf16.push_back((jchar) ((uint8_t) bytes[i] | ((uint8_t) bytes[i + 1] << 8)));
+    jstring text = env->NewString(utf16.data(), (jsize) utf16.size());
+    const char *chars = text ? env->GetStringUTFChars(text, NULL) : NULL;
+    if (chars) {
+      result = chars;
+      env->ReleaseStringUTFChars(text, chars);
+    }
+    if (text) env->DeleteLocalRef(text);
+  }
+  env->DeleteLocalRef(buffer);
+  return result;
+}
+
+// Reads a USB MIDI device's ports from its descriptors.  Only with USB
+// permission the application already holds: this never prompts.  Returns false
+// when the device is not USB or its descriptors cannot be read.
+static bool androidReadUsbPorts(JNIEnv *env, jobject context, jobject deviceInfo,
+                                bool withNames, AndroidUsbPorts &ports) {
+  if (env->PushLocalFrame(32) != JNI_OK) return false;
+  bool found = false;
+
+  auto infoClass = env->FindClass("android/media/midi/MidiDeviceInfo");
+  auto bundleClass = env->FindClass("android/os/Bundle");
+  auto contextClass = env->FindClass("android/content/Context");
+  auto managerClass = env->FindClass("android/hardware/usb/UsbManager");
+  auto deviceClass = env->FindClass("android/hardware/usb/UsbDevice");
+  auto connectionClass = env->FindClass("android/hardware/usb/UsbDeviceConnection");
+
+  // MidiDeviceInfo.TYPE_USB is 1; PROPERTY_USB_DEVICE is "usb_device".
+  if (env->CallIntMethod(deviceInfo, env->GetMethodID(infoClass, "getType", "()I")) == 1) {
+    auto props = env->CallObjectMethod(deviceInfo,
+        env->GetMethodID(infoClass, "getProperties", "()Landroid/os/Bundle;"));
+    auto usbDevice = props ? env->CallObjectMethod(props,
+        env->GetMethodID(bundleClass, "getParcelable", "(Ljava/lang/String;)Landroid/os/Parcelable;"),
+        env->NewStringUTF("usb_device")) : NULL;
+    auto manager = usbDevice ? env->CallObjectMethod(context,
+        env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
+        env->NewStringUTF("usb")) : NULL;
+    if (manager && env->CallBooleanMethod(manager,
+          env->GetMethodID(managerClass, "hasPermission", "(Landroid/hardware/usb/UsbDevice;)Z"), usbDevice)) {
+      // Claims no interface, so the MIDI service's use of the device is undisturbed.
+      auto connection = env->CallObjectMethod(manager,
+          env->GetMethodID(managerClass, "openDevice",
+                           "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/UsbDeviceConnection;"),
+          usbDevice);
+      if (connection) {
+        auto raw = (jbyteArray) env->CallObjectMethod(connection,
+            env->GetMethodID(connectionClass, "getRawDescriptors", "()[B"));
+        if (raw) {
+          jsize n = env->GetArrayLength(raw);
+          std::vector<uint8_t> bytes(n);
+          env->GetByteArrayRegion(raw, 0, n, (jbyte*) bytes.data());
+          std::vector<int> inputJacks, outputJacks;
+          androidParseUsbMidiJacks(bytes.data(), bytes.size(), inputJacks, outputJacks);
+          found = !inputJacks.empty() || !outputJacks.empty();
+
+          std::string product;
+          int language = 0x0409;  // US English, if the device lists no languages
+          auto controlTransfer = env->GetMethodID(connectionClass, "controlTransfer", "(IIII[BII)I");
+          if (found && withNames) {
+            auto jProduct = (jstring) env->CallObjectMethod(usbDevice,
+                env->GetMethodID(deviceClass, "getProductName", "()Ljava/lang/String;"));
+            const char *chars = jProduct ? env->GetStringUTFChars(jProduct, NULL) : NULL;
+            if (chars) {
+              product = chars;
+              env->ReleaseStringUTFChars(jProduct, chars);
+            }
+            // String descriptor 0 lists the supported language IDs.
+            jbyteArray buffer = env->NewByteArray(4);
+            if (env->CallIntMethod(connection, controlTransfer, 0x80, 0x06, 0x0300, 0,
+                                   buffer, 4, 1000) >= 4) {
+              jbyte id[4];
+              env->GetByteArrayRegion(buffer, 0, 4, id);
+              language = (uint8_t) id[2] | ((uint8_t) id[3] << 8);
+            }
+          }
+          for (int pass = 0; pass < 2; pass++) {
+            const std::vector<int> &jacks = pass == 0 ? inputJacks : outputJacks;
+            std::vector<std::string> &names = pass == 0 ? ports.inputs : ports.outputs;
+            names.clear();
+            for (size_t p = 0; p < jacks.size(); p++) {
+              std::string name;
+              if (withNames) {
+                std::string jack = androidUsbString(env, connection, controlTransfer,
+                                                    jacks[p], language);
+                if (!jack.empty()) name = product + " " + jack;
+                else if (jacks.size() == 1) name = product;  // a lone port needs no number
+                else name = product + " MIDI " + std::to_string(p + 1);
+              }
+              names.push_back(name);
+            }
+          }
+        }
+        env->CallVoidMethod(connection, env->GetMethodID(connectionClass, "close", "()V"));
+      }
+    }
+  }
+
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    found = false;
+  }
+  env->PopLocalFrame(NULL);
+  return found;
+}
+
+// Devices (by MidiDeviceInfo id) whose open timed out.  The framework thread
+// opening one may never return, so each further attempt would park another
+// Binder thread: refuse them until the open completes or the id is unlisted.
+static std::mutex androidTimedOutMutex;
+static std::set<int> androidTimedOut;
+
+static bool androidOpenTimedOut(int deviceId) {
+  std::lock_guard<std::mutex> lock(androidTimedOutMutex);
+  return androidTimedOut.count(deviceId) != 0;
+}
+
+static void androidSetOpenTimedOut(int deviceId, bool timedOut) {
+  std::lock_guard<std::mutex> lock(androidTimedOutMutex);
+  if (timedOut) androidTimedOut.insert(deviceId);
+  else androidTimedOut.erase(deviceId);
+}
+
+// Forgets devices that are no longer listed: a replugged device gets a new id.
+static void androidForgetUnlistedDevices(const std::set<int> &listed) {
+  std::lock_guard<std::mutex> lock(androidTimedOutMutex);
+  for (auto it = androidTimedOut.begin(); it != androidTimedOut.end(); )
+    it = listed.count(*it) ? std::next(it) : androidTimedOut.erase(it);
+}
+
+static void androidRefreshMidiDevices(JNIEnv *env, jobject context, bool isOutput,
+                                      std::vector<AndroidMidiPort> &ports) {
+  androidReleasePorts(env, ports);
+  if (env->PushLocalFrame(16) != JNI_OK) {
+    env->ExceptionClear();
+    return;
+  }
 
   auto midiService = androidGetMidiManager(env, context);
 
   // MidiDeviceInfo[] devInfos = mMidiManager.getDevices();
   auto midiMgrClass = env->FindClass("android/media/midi/MidiManager");
   auto getDevicesMethod = env->GetMethodID(midiMgrClass, "getDevices", "()[Landroid/media/midi/MidiDeviceInfo;");
-  auto jDevices = (jobjectArray) env->CallObjectMethod(midiService, getDevicesMethod);
+  auto jDevices = midiService ? (jobjectArray) env->CallObjectMethod(midiService, getDevicesMethod) : NULL;
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    jDevices = NULL;
+  }
+  if (jDevices == NULL) {
+    LOGE("androidRefreshMidiDevices: no MIDI service or device list");
+    env->PopLocalFrame(NULL);
+    return;
+  }
 
   auto deviceInfoClass = env->FindClass("android/media/midi/MidiDeviceInfo");
+  auto getIdMethod = env->GetMethodID(deviceInfoClass, "getId", "()I");
   auto getInputPortCountMethod = env->GetMethodID(deviceInfoClass, "getInputPortCount", "()I");
   auto getOutputPortCountMethod = env->GetMethodID(deviceInfoClass, "getOutputPortCount", "()I");
+  std::set<int> listed;
+
+  // Android 12 and earlier count a USB device's output ports and report that
+  // number for both directions.  Android 13 counts each direction.
+  const bool countsBothDirections = android_get_device_api_level() < 33;
 
   jsize len = env->GetArrayLength((jarray)jDevices);
   for (int i=0; i<len; i++) {
       auto jDeviceInfo = env->GetObjectArrayElement(jDevices, i);
+      int deviceId = env->CallIntMethod(jDeviceInfo, getIdMethod);
+      listed.insert(deviceId);
 
-      int numPorts = env->CallIntMethod(jDeviceInfo, isOutput ? getOutputPortCountMethod : getInputPortCountMethod);
-      if (numPorts > 0) {
-          androidMidiDevices.push_back(env->NewGlobalRef(jDeviceInfo));
+      // An output port (host->device) is one of the device's input ports.
+      int numPorts = env->CallIntMethod(jDeviceInfo, isOutput ? getInputPortCountMethod : getOutputPortCountMethod);
+      int usbInputs = -1, usbOutputs = -1;
+      AndroidUsbPorts usb;
+      if (numPorts > 0 && (countsBothDirections || kAndroidPortNames) &&
+          androidReadUsbPorts(env, context, jDeviceInfo, kAndroidPortNames, usb)) {
+          usbInputs = (int) usb.inputs.size();
+          usbOutputs = (int) usb.outputs.size();
+          if (countsBothDirections && !isOutput && usbInputs < numPorts)
+              numPorts = usbInputs;
       }
+      const std::vector<std::string> &usbNames = isOutput ? usb.outputs : usb.inputs;
+      if (numPorts > 0) {
+          auto ref = env->NewGlobalRef(jDeviceInfo);
+          for (int p=0; p<numPorts; p++) {
+              AndroidMidiPort entry = { ref, deviceId, p, isOutput, usbInputs, usbOutputs,
+                                        p < (int) usbNames.size() ? usbNames[p] : "" };
+              ports.push_back(entry);
+          }
+      }
+      env->DeleteLocalRef(jDeviceInfo);
+  }
+  androidForgetUnlistedDevices(listed);
+  env->PopLocalFrame(NULL);
+}
+
+// Calls MidiDevice.close(), after AMidiDevice_release(), so that the MIDI
+// service drops its connection now rather than when the object is collected.
+static void androidCloseJavaDevice(JNIEnv *env, jobject device) {
+  if (env == NULL || device == NULL) return;
+  auto deviceClass = env->GetObjectClass(device);
+  env->CallVoidMethod(device, env->GetMethodID(deviceClass, "close", "()V"));
+  if (env->ExceptionCheck()) env->ExceptionClear();
+  env->DeleteLocalRef(deviceClass);
+}
+
+// Releases an open device and its Java MidiDevice (a global ref).
+static void androidReleaseDevice(JNIEnv *env, AMidiDevice *device, jobject javaDevice) {
+  if (device) AMidiDevice_release(device);
+  if (javaDevice && env) {
+    androidCloseJavaDevice(env, javaDevice);
+    env->DeleteGlobalRef(javaDevice);
   }
 }
 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_yellowlab_rtmidi_MidiDeviceOpenedListener_midiDeviceOpened(JNIEnv *env, jclass clazz,
-                                                                    jobject midi_device, jlong targetPtr, jboolean isOutput) {
-  if (isOutput) {
-    auto midiOut = reinterpret_cast<MidiOutAndroid*>(targetPtr);
-    AMidiDevice_fromJava(env, midi_device, &midiOut->sendDevice);
-    AMidiInputPort_open(midiOut->sendDevice, 0, &midiOut->midiInputPort);
+Java_com_yellowlab_rtmidi_MidiDeviceOpenedListener_midiDeviceOpened(JNIEnv *env, jclass /*clazz*/,
+                                                                    jobject midi_device, jlong targetPtr, jboolean /*isOutput*/) {
+  // Runs on a Binder thread.  It must not throw and must not touch the RtMidi
+  // object, which may be gone; it fills in the request and wakes openPort().
+  std::unique_ptr< std::shared_ptr<AndroidOpenRequest> > holder(
+      reinterpret_cast< std::shared_ptr<AndroidOpenRequest>* >(targetPtr));
+  std::shared_ptr<AndroidOpenRequest> req = *holder;
+
+  AMidiDevice *device = NULL;
+  AMidiInputPort *inputPort = NULL;
+  AMidiOutputPort *outputPort = NULL;
+  std::string failure;
+
+  if (midi_device == NULL) {
+    failure = "Android could not open the device";
+  } else if (AMidiDevice_fromJava(env, midi_device, &device) != AMEDIA_OK || device == NULL) {
+    failure = "AMidiDevice_fromJava() failed";
+  } else if (req->isOutput) {
+    media_status_t st = AMidiInputPort_open(device, req->portIndex, &inputPort);
+    if (st != AMEDIA_OK) failure = "AMidiInputPort_open() failed (" + std::to_string((int) st) + ")";
   } else {
-    auto midiIn = reinterpret_cast<MidiInAndroid*>(targetPtr);
-    AMidiDevice_fromJava(env, midi_device, &midiIn->receiveDevice);
-    AMidiOutputPort_open(midiIn->receiveDevice, 0, &midiIn->midiOutputPort);
-    pthread_create(&midiIn->readThread, NULL, MidiInAndroid::pollMidi, midiIn);
+    media_status_t st = AMidiOutputPort_open(device, req->portIndex, &outputPort);
+    if (st != AMEDIA_OK) failure = "AMidiOutputPort_open() failed (" + std::to_string((int) st) + ")";
   }
+
+  std::lock_guard<std::mutex> lock(req->mutex);
+  if (req->abandoned || !failure.empty()) {
+    // Nobody will use these: openPort() timed out, or the open failed part way.
+    if (inputPort) AMidiInputPort_close(inputPort);
+    if (outputPort) AMidiOutputPort_close(outputPort);
+    if (device) AMidiDevice_release(device);
+    androidCloseJavaDevice(env, midi_device);
+    // A late answer: the device can be tried again.
+    if (req->abandoned) androidSetOpenTimedOut(req->deviceId, false);
+  } else {
+    req->device = device;
+    req->inputPort = inputPort;
+    req->outputPort = outputPort;
+    req->javaDevice = env->NewGlobalRef(midi_device);
+  }
+  req->failure = failure;
+  req->done = true;
+  req->cond.notify_all();
 }
 
-static void androidOpenDevice(jobject deviceInfo, void* target, bool isOutput) {
+// Asks MidiManager to open a device.  Returns false, with the reason in
+// errorText, when the request could not be made and no answer will come.
+static bool androidOpenDevice(jobject deviceInfo, jlong target, bool isOutput,
+                              std::string &errorText) {
     auto env = androidGetThreadEnv();
+    if (env == NULL) {
+      errorText = "no JNI environment";
+      return false;
+    }
+    if (env->PushLocalFrame(8) != JNI_OK) {
+      env->ExceptionClear();
+      errorText = "out of JNI local references";
+      return false;
+    }
     auto context = androidGetContext(env);
-    auto midiMgr = androidGetMidiManager(env, context);
-
-    auto looperClass = env->FindClass("android/os/Looper");
-    auto getMyLooperMethod = env->GetStaticMethodID(looperClass, "myLooper", "()Landroid/os/Looper;");
-    auto looperObj = env->CallStaticObjectMethod(looperClass, getMyLooperMethod);
-    auto getLooperPrepareMethod = env->GetStaticMethodID(looperClass, "prepare", "()V");
-    auto getLooperQuitMethod = env->GetMethodID(looperClass, "quit", "()V");
-
-    if (!looperObj)
-        env->CallStaticVoidMethod(looperClass, getLooperPrepareMethod);
+    auto midiMgr = context ? androidGetMidiManager(env, context) : NULL;
+    if (midiMgr == NULL) {
+      errorText = "the MIDI service is not available";
+      env->PopLocalFrame(NULL);
+      return false;
+    }
 
     // openDevice(MidiDeviceInfo deviceInfo, OnDeviceOpenedListener listener, Handler handler)
     auto midiMgrClass = env->GetObjectClass(midiMgr);
     auto openDevicesMethod = env->GetMethodID(midiMgrClass, "openDevice", "(Landroid/media/midi/MidiDeviceInfo;Landroid/media/midi/MidiManager$OnDeviceOpenedListener;Landroid/os/Handler;)V");
 
-    auto handlerClass = env->FindClass("android/os/Handler");
-    auto getMainLooperMethod = env->GetStaticMethodID(looperClass, "getMainLooper", "()Landroid/os/Looper;");
-    auto mainLooperObj = env->CallStaticObjectMethod(looperClass, getMainLooperMethod);
-    auto handlerCtor = env->GetMethodID(handlerClass, "<init>", "(Landroid/os/Looper;)V");
-    auto handler = env->NewObject(handlerClass, handlerCtor, mainLooperObj);
+    // A null Handler makes MidiManager call onDeviceOpened() on the Binder
+    // thread that delivers the result.  It must not be the main looper: the
+    // callback calls AMidiDevice_fromJava() and AMidi*Port_open(), which block,
+    // so on the main looper the UI freezes, and an application that calls
+    // openPort() from the UI thread deadlocks.  Google's MIDI samples do the
+    // same.
+    jobject handler = NULL;
 
-    jclass listenerClass = env->FindClass("com/yellowlab/rtmidi/MidiDeviceOpenedListener");
+    jclass listenerClass = androidGetListenerClass(env);
     if (!listenerClass) {
-      LOGE("Midi listener class not found com.yellowlab.rtmidi.MidiDeviceOpenedListener. Did you forget to add it to your APK?");
-      return;
+      errorText = "class com.yellowlab.rtmidi.MidiDeviceOpenedListener not found (it must be "
+                  "bundled in the APK, from contrib/java)";
+      LOGE("%s", errorText.c_str());
+      env->PopLocalFrame(NULL);
+      return false;
     }
 
-    auto targetPtr = reinterpret_cast<jlong>(target);
     auto listenerCtor = env->GetMethodID(listenerClass, "<init>", "(JZ)V");
-    auto listener = env->NewObject(listenerClass, listenerCtor, targetPtr, isOutput);
+    auto listener = env->NewObject(listenerClass, listenerCtor, target, isOutput);
 
-    env->CallVoidMethod(midiMgr, openDevicesMethod, deviceInfo, listener, handler);
-    env->DeleteLocalRef(handler);
+    if (listener) env->CallVoidMethod(midiMgr, openDevicesMethod, deviceInfo, listener, handler);
+    bool requested = listener && !env->ExceptionCheck();
+    if (!requested) {
+      // Thrown before MidiManager registered the callback, so no answer will come.
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+      errorText = "MidiManager.openDevice() failed (see logcat)";
+      LOGE("%s", errorText.c_str());
+    }
+    env->PopLocalFrame(NULL);
+    return requested;
 }
 
-static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
-  if (portNumber >= androidMidiDevices.size()) {
+// True when opening this port would hang: Android 12 and earlier cannot open a
+// USB MIDI device with fewer inputs than outputs (see androidOpenPort()).
+// Known only when the device's descriptors could be read.
+static bool androidOpenWouldHang(const AndroidMidiPort &port) {
+  return port.usbInputs >= 0 && port.usbInputs < port.usbOutputs &&
+         android_get_device_api_level() < 33;
+}
+
+#if !defined(RTMIDI_ANDROID_LEGACY_PORT_NAMES)
+// A port RtMidi refuses to open is named in parentheses, so that a user can
+// see it is unavailable before choosing it.
+static std::string androidMarkUnopenable(const AndroidMidiPort &port, const std::string &name) {
+  return androidOpenWouldHang(port) ? "(" + name + ")" : name;
+}
+#endif
+
+static std::string androidPortNameInFrame(JNIEnv *env, const std::vector<AndroidMidiPort> &entries,
+                                          unsigned int portNumber) {
+  if (portNumber >= entries.size()) {
     LOGE("androidPortName: Invalid port number");
     return "";
   }
@@ -8199,7 +8680,7 @@ static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
   // String deviceName = devInfo.getProperties().getString(MidiDeviceInfo.PROPERTY_NAME);
   auto deviceInfoClass = env->FindClass("android/media/midi/MidiDeviceInfo");
   auto getPropsMethod = env->GetMethodID(deviceInfoClass, "getProperties", "()Landroid/os/Bundle;");
-  auto bundle = env->CallObjectMethod(androidMidiDevices[portNumber], getPropsMethod);
+  auto bundle = env->CallObjectMethod(entries[portNumber].device, getPropsMethod);
 
   auto bundleClass = env->FindClass("android/os/Bundle");
   auto getStringMethod = env->GetMethodID(bundleClass, "getString", "(Ljava/lang/String;)Ljava/lang/String;");
@@ -8216,6 +8697,67 @@ static std::string androidPortName(JNIEnv *env, unsigned int portNumber) {
   auto name = std::string(portNameChars);
   env->ReleaseStringUTFChars(jPortName, portNameChars);
 
+  // The bundle names the DEVICE, not the port: Android composes it as
+  // manufacturer + " " + product, and passes no port names for USB devices on
+  // any version.  With RTMIDI_ANDROID_LEGACY_PORT_NAMES every port keeps exactly
+  // that name, as in RtMidi 6.0 and earlier.
+#if !defined(RTMIDI_ANDROID_LEGACY_PORT_NAMES)
+  const AndroidMidiPort &entry = entries[portNumber];
+  if (!entry.usbName.empty()) return androidMarkUnopenable(entry, entry.usbName);
+
+  // The port's own name, which only applications' virtual devices publish.
+  auto getPortsMethod = env->GetMethodID(deviceInfoClass, "getPorts",
+                                         "()[Landroid/media/midi/MidiDeviceInfo$PortInfo;");
+  auto ports = (jobjectArray) env->CallObjectMethod(entry.device, getPortsMethod);
+  if (ports) {
+    auto portInfoClass = env->FindClass("android/media/midi/MidiDeviceInfo$PortInfo");
+    auto getTypeMethod = env->GetMethodID(portInfoClass, "getType", "()I");
+    auto getNumberMethod = env->GetMethodID(portInfoClass, "getPortNumber", "()I");
+    auto getNameMethod = env->GetMethodID(portInfoClass, "getName", "()Ljava/lang/String;");
+    // PortInfo.TYPE_OUTPUT is 2: a port we read from, which is what an input
+    // port is from the application's point of view.
+    const jint wantType = entry.isOutput ? 1 : 2;
+    jsize n = env->GetArrayLength(ports);
+    for (jsize i = 0; i < n; i++) {
+      auto pi = env->GetObjectArrayElement(ports, i);
+      if (env->CallIntMethod(pi, getTypeMethod) != wantType ||
+          env->CallIntMethod(pi, getNumberMethod) != entry.portIndex) {
+        env->DeleteLocalRef(pi);
+        continue;
+      }
+      auto jn = (jstring) env->CallObjectMethod(pi, getNameMethod);
+      env->DeleteLocalRef(pi);
+      if (jn) {
+        auto c = env->GetStringUTFChars(jn, NULL);
+        std::string portName = c ? c : "";
+        if (c) env->ReleaseStringUTFChars(jn, c);
+        if (!portName.empty()) return androidMarkUnopenable(entry, name + " " + portName);
+      }
+      break;
+    }
+  }
+
+  // Nothing names the port, typically a USB device without permission: number
+  // it as Linux numbers unnamed ports, unless it is the device's only port in
+  // this direction.
+  int devicePorts = 0;
+  for (const AndroidMidiPort &other : entries)
+    if (other.device == entry.device) devicePorts++;
+  if (devicePorts > 1) name += " MIDI " + std::to_string(entry.portIndex + 1);
+  return androidMarkUnopenable(entry, name);
+#endif
+  return name;
+}
+
+static std::string androidPortName(JNIEnv *env, const std::vector<AndroidMidiPort> &entries,
+                                   unsigned int portNumber) {
+  if (env->PushLocalFrame(16) != JNI_OK) {
+    env->ExceptionClear();
+    return "";
+  }
+  std::string name = androidPortNameInFrame(env, entries, portNumber);
+  if (env->ExceptionCheck()) env->ExceptionClear();
+  env->PopLocalFrame(NULL);
   return name;
 }
 
@@ -8229,6 +8771,60 @@ void MidiInAndroid :: initialize( const std::string& clientName ) {
   connect();
 }
 
+// Opens one port of a device and waits for the result.  Returns the request on
+// success, or NULL after putting the reason in errorText.  Called on the
+// caller's thread, so an error raised from openPort() reaches the caller as an
+// ordinary RtMidiError rather than escaping from a Binder thread.
+static std::shared_ptr<AndroidOpenRequest> androidOpenPort(const AndroidMidiPort &port,
+                                                           std::string &errorText) {
+  static const char *const kAsymmetric =
+      "Android 12 and earlier cannot open a USB MIDI device that has fewer input "
+      "ports than output ports: the system hangs opening it, and the device stays "
+      "unusable by every application until it is unplugged.  Fixed in Android 13";
+
+  // The descriptors say this device would hang the system: do not try.
+  if (androidOpenWouldHang(port)) {
+    errorText = "the device has " + std::to_string(port.usbInputs) + " input and " +
+                std::to_string(port.usbOutputs) + " output ports.  " + kAsymmetric;
+    return NULL;
+  }
+
+  const std::string timeout = std::to_string(kAndroidOpenTimeout.count()) + " ms";
+  const std::string explanation = android_get_device_api_level() < 33 ?
+                                  std::string(".  ") + kAsymmetric : std::string();
+
+  // An earlier open never answered: another would only park another thread.
+  if (androidOpenTimedOut(port.deviceId)) {
+    errorText = "the device did not answer an earlier attempt to open it within " + timeout +
+                ", and is not tried again until it answers or is reconnected" + explanation;
+    return NULL;
+  }
+
+  auto req = std::make_shared<AndroidOpenRequest>();
+  req->isOutput = port.isOutput;
+  req->portIndex = port.portIndex;
+  req->deviceId = port.deviceId;
+
+  auto holder = new std::shared_ptr<AndroidOpenRequest>(req);
+  if (!androidOpenDevice(port.device, reinterpret_cast<jlong>(holder), port.isOutput, errorText)) {
+    delete holder;
+    return NULL;
+  }
+
+  std::unique_lock<std::mutex> lock(req->mutex);
+  if (!req->cond.wait_for(lock, kAndroidOpenTimeout, [&]{ return req->done; })) {
+    req->abandoned = true;
+    androidSetOpenTimedOut(port.deviceId, true);
+    errorText = "the device did not open within " + timeout + explanation;
+    return NULL;
+  }
+  if (!req->failure.empty()) {
+    errorText = req->failure;
+    return NULL;
+  }
+  return req;
+}
+
 void MidiInAndroid :: connect() {
   auto env = androidGetThreadEnv();
   if (env == NULL) return;
@@ -8236,40 +8832,71 @@ void MidiInAndroid :: connect() {
   auto context = androidGetContext(env);
   if (context == NULL) return;
 
-  androidRefreshMidiDevices(env, context, true);
+  androidRefreshMidiDevices(env, context, false, ports_);
 
   env->DeleteLocalRef(context);
 }
 
 MidiInAndroid :: ~MidiInAndroid() {
+  // Attach first: releasing a device on a thread unknown to the JVM aborts.
   auto env = androidGetThreadEnv();
+
+  // Close a connection if it exists.  An open input port's thread would
+  // otherwise go on using this object after it is deleted.
+  MidiInAndroid::closePort();
+
   if (env == NULL) return;
 
-  // Remove all midi devices
-  for (jobject jMidiDevice : androidMidiDevices) {
-    env->DeleteGlobalRef(jMidiDevice);
-  }
-  androidMidiDevices.clear();
+  androidReleasePorts(env, ports_);
 
   androidClientName = "";
 }
 
 void MidiInAndroid :: openPort(unsigned int portNumber, const std::string &portName) {
-  if (portNumber >= androidMidiDevices.size()) {
+  if (portNumber >= ports_.size()) {
     errorString_ = "MidiInAndroid::openPort: Invalid port number";
     error( RtMidiError::INVALID_PARAMETER, errorString_ );
 
     return;
   }
 
-  if (reading) {
+  if (connected_) {
     errorString_ = "MidiInAndroid::openPort: A port is already open";
     error( RtMidiError::INVALID_USE, errorString_ );
 
     return;
   }
 
-  androidOpenDevice(androidMidiDevices[portNumber], this, false);
+  std::string why;
+  auto req = androidOpenPort(ports_[portNumber], why);
+  if (!req) {
+    errorString_ = "MidiInAndroid::openPort: " + why + ".";
+    error( RtMidiError::DRIVER_ERROR, errorString_ );
+    return;
+  }
+  receiveDevice = req->device;
+  midiOutputPort = req->outputPort;
+  javaDevice = req->javaDevice;
+
+  // Set before the thread starts, so a closePort() straight after this sees an
+  // open port and tears it down.
+  inputData_.message.bytes.clear();
+  inputData_.continueSysex = false;
+  inputData_.firstMessage = true;
+  runningStatus_ = 0;
+  reading = true;
+  if (pthread_create(&readThread, NULL, MidiInAndroid::pollMidi, this) != 0) {
+    reading = false;
+    AMidiOutputPort_close(midiOutputPort);
+    androidReleaseDevice(androidGetThreadEnv(), receiveDevice, javaDevice);
+    midiOutputPort = NULL;
+    receiveDevice = NULL;
+    javaDevice = NULL;
+    errorString_ = "MidiInAndroid::openPort: could not start the input thread.";
+    error( RtMidiError::THREAD_ERROR, errorString_ );
+    return;
+  }
+  connected_ = true;
 }
 
 void MidiInAndroid :: openVirtualPort(const std::string &portName) {
@@ -8279,27 +8906,35 @@ void MidiInAndroid :: openVirtualPort(const std::string &portName) {
 
 unsigned int MidiInAndroid :: getPortCount() {
   connect();
-  return androidMidiDevices.size();
+  return ports_.size();
 }
 
 std::string MidiInAndroid :: getPortName(unsigned int portNumber) {
   auto env = androidGetThreadEnv();
   if (env == NULL) return "";
-  return androidPortName(env, portNumber);
+  return androidPortName(env, ports_, portNumber);
 }
 
 void MidiInAndroid :: closePort() {
   // Don't try to close a port before it was open
-  if (!reading) {
+  if (!connected_) {
     return;
   }
 
+  // The input thread may already have stopped by itself, when the device went
+  // away (see pollMidi()).  The port is still open until here, and the thread
+  // still has to be joined.
   reading = false;
   pthread_join(readThread, NULL);
 
-  AMidiDevice_release(receiveDevice);
+  // AMidiDevice_release() aborts on a thread not attached to the JVM.
+  auto env = androidGetThreadEnv();
+  if (midiOutputPort) AMidiOutputPort_close(midiOutputPort);
+  androidReleaseDevice(env, receiveDevice, javaDevice);
   receiveDevice = NULL;
   midiOutputPort = NULL;
+  javaDevice = NULL;
+  connected_ = false;
 }
 
 void MidiInAndroid:: setClientName(const std::string& clientName) {
@@ -8313,85 +8948,138 @@ void MidiInAndroid :: setPortName(const std::string &portName) {
 
 void* MidiInAndroid :: pollMidi(void* context) {
   auto self = (MidiInAndroid*) context;
-  self->reading = true;
 
-  const size_t MAX_BYTES_TO_RECEIVE = 128;
-  uint8_t incomingMessage[MAX_BYTES_TO_RECEIVE];
+  // An AMidi packet carries up to 1015 bytes, and AMidiOutputPort_receive()
+  // silently truncates it to the buffer it is given.  A smaller buffer loses
+  // the rest of every larger packet, including a SysEx message's closing F7.
+  uint8_t incoming[1024];
 
   while (self->reading) {
-    // AMidiOutputPort_receive is non-blocking, must poll with some sleep
-    usleep(2000);
-    auto ignoreFlags = self->inputData_.ignoreFlags;
-    bool& continueSysex = self->inputData_.continueSysex;
-
-    int32_t opcode;
-    size_t numBytesReceived;
-    int64_t timestamp;
+    int32_t opcode = 0;
+    size_t numBytesReceived = 0;
+    int64_t timestamp = 0;
     ssize_t numMessagesReceived = AMidiOutputPort_receive(
-        self->midiOutputPort, &opcode, incomingMessage, MAX_BYTES_TO_RECEIVE,
+        self->midiOutputPort, &opcode, incoming, sizeof(incoming),
         &numBytesReceived, &timestamp);
 
     if (numMessagesReceived < 0) {
+      // WARNING, not SYSTEM_ERROR: this runs on the input thread, and error()
+      // throws for any type above DEBUG_WARNING when no error callback is set.
+      // An exception leaving a pthread terminates the process, which no caller
+      // can catch.  The other backends' input threads do not report at all.
+      // Typically the device was disconnected.  The port stays open, with no
+      // input, until closePort().
+      LOGE("MidiInAndroid::pollMidi: input stopped, AMidiOutputPort_receive() returned %d",
+           (int) numMessagesReceived);
       self->errorString_ = "MidiInAndroid::pollMidi: error receiving MIDI data";
-      self->error( RtMidiError::SYSTEM_ERROR, self->errorString_ );
+      self->error( RtMidiError::WARNING, self->errorString_ );
       self->reading = false;
       break;
     }
 
-    switch (incomingMessage[0]) {
-      case 0xF0:
-        // Start of a SysEx message
-        continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
-            if (ignoreFlags & 0x01) continue;
-            break;
-      case 0xF1:
-      case 0xF8:
-        // MIDI Time Code or Timing Clock message
-        if (ignoreFlags & 0x02) continue;
-            break;
-      case 0xFE:
-        // Active Sensing message
-        if (ignoreFlags & 0x04) continue;
-            break;
-      default:
-        if (continueSysex) {
-          // Continuation of a SysEx message
-          continueSysex = incomingMessage[numBytesReceived - 1] != 0xF7;
-          if (ignoreFlags & 0x01) continue;
-        }
-            // All other MIDI messages
+    if (numMessagesReceived == 0) {
+      // AMidiOutputPort_receive() does not block.  Sleep only when there is
+      // nothing queued, so a burst is drained at once.
+      usleep(2000);
+      continue;
     }
 
-    if (numMessagesReceived > 0 && numBytesReceived >= 0) {
-      auto message = self->inputData_.message;
-
-      if (self->inputData_.firstMessage == true) {
-        message.timeStamp = 0.0;
-        self->inputData_.firstMessage = false;
-      } else {
-        message.timeStamp = (timestamp * 0.000001) - self->lastTime;
-      }
-      self->lastTime = (timestamp * 0.000001);
-
-      if (!continueSysex) message.bytes.clear();
-
-      if ( !( ( continueSysex || incomingMessage[0] == 0xF0 ) && ( ignoreFlags & 0x01 ) ) ) {
-        // Unless this is a (possibly continued) SysEx message and we're ignoring SysEx,
-        // copy the event buffer into the MIDI message struct.
-        for (unsigned int i=0; i<numBytesReceived; i++)
-          message.bytes.push_back(incomingMessage[i]);
-      }
-
-      if (!continueSysex) {
-        if (!self->inputData_.callUserCallback(message.timeStamp, &message.bytes)) {
-          if (!self->inputData_.queue.push(message))
-            std::cerr << "\nMidiInAndroid: message queue limit reached!!\n\n";
-        }
-      }
-    }
+    // AMidi timestamps are nanoseconds; RtMidi reports seconds.
+    if (opcode == AMIDI_OPCODE_DATA && numBytesReceived > 0)
+      self->parse( incoming, numBytesReceived, timestamp * 1e-9 );
   }
 
   return NULL;
+}
+
+// Length of a message from its status byte, or 0 for SysEx, which ends at F7.
+static size_t androidMessageLength( unsigned char status ) {
+  if ( status < 0xF0 ) return ( status & 0xE0 ) == 0xC0 ? 2 : 3;
+  switch ( status ) {
+    case 0xF0: return 0;
+    case 0xF1: case 0xF3: return 2;
+    case 0xF2: return 3;
+    default: return 1;
+  }
+}
+
+// AMidi delivers a byte stream, not messages: one packet can hold part of a
+// SysEx message, or several short messages back to back, with or without
+// running status.  Rebuild whole messages, as the other backends' drivers do.
+void MidiInAndroid :: parse( const uint8_t *data, size_t count, double time )
+{
+  std::vector<unsigned char> &message = inputData_.message.bytes;
+  const unsigned char ignore = inputData_.ignoreFlags;
+
+  for ( size_t i = 0; i < count; i++ ) {
+    const unsigned char byte = data[i];
+
+    // Real-time messages are one byte and may appear inside any other message.
+    if ( byte >= 0xF8 ) {
+      if ( !rtmidiIgnoredRealtime( byte, ignore ) ) {
+        std::vector<unsigned char> realtime( 1, byte );
+        deliver( realtime, time );
+      }
+      continue;
+    }
+
+    if ( inputData_.continueSysex ) {
+      if ( byte < 0x80 || byte == 0xF7 ) {
+        if ( !( ignore & 0x01 ) ) message.push_back( byte );
+        if ( byte == 0xF7 ) {
+          inputData_.continueSysex = false;
+          if ( !( ignore & 0x01 ) ) deliver( message, time );
+          message.clear();
+        }
+        continue;
+      }
+      // Any other status byte ends an unterminated SysEx message: drop it.
+      inputData_.continueSysex = false;
+      message.clear();
+    }
+
+    if ( byte & 0x80 ) {
+      message.clear();
+      if ( byte == 0xF0 ) {
+        runningStatus_ = 0;  // SysEx cancels running status
+        inputData_.continueSysex = true;
+        if ( !( ignore & 0x01 ) ) message.push_back( byte );
+        continue;
+      }
+      if ( byte == 0xF7 ) continue;  // a stray end of SysEx
+      // System common messages cancel running status.
+      runningStatus_ = byte < 0xF0 ? byte : 0;
+      message.push_back( byte );
+    }
+    else {
+      if ( message.empty() ) {
+        if ( !runningStatus_ ) continue;  // data with no status to belong to
+        message.push_back( runningStatus_ );
+      }
+      message.push_back( byte );
+    }
+
+    if ( message.size() == androidMessageLength( message[0] ) ) {
+      if ( !( message[0] == 0xF1 && ( ignore & 0x02 ) ) ) deliver( message, time );
+      message.clear();
+    }
+  }
+}
+
+void MidiInAndroid :: deliver( std::vector<unsigned char> &bytes, double time )
+{
+  double delta = 0.0;
+  if ( inputData_.firstMessage ) inputData_.firstMessage = false;
+  else delta = time - lastTime;
+  lastTime = time;
+
+  if ( !inputData_.callUserCallback( delta, &bytes ) ) {
+    MidiInApi::MidiMessage queued;
+    queued.bytes = bytes;
+    queued.timeStamp = delta;
+    if ( !inputData_.queue.push( queued ) )
+      std::cerr << "\nMidiInAndroid: message queue limit reached!!\n\n";
+  }
 }
 
 
@@ -8417,33 +9105,51 @@ void MidiOutAndroid :: connect() {
   auto context = androidGetContext(env);
   if (context == NULL) return;
 
-  androidRefreshMidiDevices(env, context, false);
+  androidRefreshMidiDevices(env, context, true, ports_);
 
   env->DeleteLocalRef(context);
 }
 
 MidiOutAndroid :: ~MidiOutAndroid() {
+  // Attach first: releasing a device on a thread unknown to the JVM aborts.
   auto env = androidGetThreadEnv();
+
+  // Close a connection if it exists.
+  MidiOutAndroid::closePort();
+
   if (env == NULL) return;
 
-  // Remove all midi devices
-  for (jobject jMidiDevice : androidMidiDevices) {
-    env->DeleteGlobalRef(jMidiDevice);
-  }
-  androidMidiDevices.clear();
+  androidReleasePorts(env, ports_);
 
   androidClientName = "";
 }
 
 void MidiOutAndroid :: openPort( unsigned int portNumber, const std::string &portName ) {
-  if (portNumber >= androidMidiDevices.size()) {
+  if (portNumber >= ports_.size()) {
     errorString_ = "MidiOutAndroid::openPort: Invalid port number";
     error( RtMidiError::INVALID_PARAMETER, errorString_ );
 
     return;
   }
 
-  androidOpenDevice(androidMidiDevices[portNumber], this, true);
+  if (connected_) {
+    errorString_ = "MidiOutAndroid::openPort: A port is already open";
+    error( RtMidiError::INVALID_USE, errorString_ );
+
+    return;
+  }
+
+  std::string why;
+  auto req = androidOpenPort(ports_[portNumber], why);
+  if (!req) {
+    errorString_ = "MidiOutAndroid::openPort: " + why + ".";
+    error( RtMidiError::DRIVER_ERROR, errorString_ );
+    return;
+  }
+  sendDevice = req->device;
+  midiInputPort = req->inputPort;
+  javaDevice = req->javaDevice;
+  connected_ = true;
 }
 
 void MidiOutAndroid :: openVirtualPort( const std::string &portName ) {
@@ -8453,19 +9159,25 @@ void MidiOutAndroid :: openVirtualPort( const std::string &portName ) {
 
 unsigned int MidiOutAndroid :: getPortCount() {
   connect();
-  return androidMidiDevices.size();
+  return ports_.size();
 }
 
 std::string MidiOutAndroid :: getPortName( unsigned int portNumber ) {
   auto env = androidGetThreadEnv();
   if (env == NULL) return "";
-  return androidPortName(env, portNumber);
+  return androidPortName(env, ports_, portNumber);
 }
 
 void MidiOutAndroid :: closePort() {
-  AMidiDevice_release(sendDevice);
+  // AMidiDevice_release() aborts on a thread not attached to the JVM.
+  JNIEnv *env = sendDevice || javaDevice ? androidGetThreadEnv() : NULL;
+  if (midiInputPort) AMidiInputPort_close(midiInputPort);
+  androidReleaseDevice(env, sendDevice, javaDevice);
   sendDevice = NULL;
   midiInputPort = NULL;
+  javaDevice = NULL;
+  sysexOpen = false;
+  connected_ = false;
 }
 
 void MidiOutAndroid:: setClientName( const std::string& name ) {
@@ -8478,7 +9190,38 @@ void MidiOutAndroid :: setPortName( const std::string &portName ) {
 }
 
 void MidiOutAndroid :: sendMessage( const unsigned char *message, size_t size ) {
-  AMidiInputPort_send(midiInputPort, (uint8_t*)message, size);
+  if (midiInputPort == NULL) {
+    errorString_ = "MidiOutAndroid::sendMessage: no port is open.";
+    error( RtMidiError::WARNING, errorString_ );
+    return;
+  }
+
+  // A message that ends an open SysEx (anything but F0, F7 or real-time)
+  // closes the abandoned one first, so every receiver drops it the same way.
+  if (size > 0 && sysexOpen && rtmidiEndsSysex(message[0])) {
+    static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
+    sendMessage(closeSysex, 2);
+    // If the close failed (already reported), this message would land inside
+    // the still-open SysEx.
+    if (sysexOpen) return;
+  }
+
+  // The framing state this message leaves behind, committed only if it is sent.
+  bool nextSysexOpen = sysexOpen;
+  for (size_t i = 0; i < size; i++) {
+    if (message[i] == 0xF0) nextSysexOpen = true;
+    else if (message[i] >= 0x80 && message[i] < 0xF8) nextSysexOpen = false;
+  }
+
+  ssize_t sent = AMidiInputPort_send(midiInputPort, (uint8_t*)message, size);
+  if (sent != (ssize_t) size) {
+    errorString_ = "MidiOutAndroid::sendMessage: AMidiInputPort_send() sent " +
+                   std::to_string((long) sent) + " of " + std::to_string(size) + " bytes.";
+    LOGE("%s", errorString_.c_str());
+    error( RtMidiError::WARNING, errorString_ );
+    return;
+  }
+  sysexOpen = nextSysexOpen;
 }
 
 #endif  // RTMIDI_API_AMIDI

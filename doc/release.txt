@@ -2,7 +2,7 @@ RtMidi - a set of C++ classes that provides a common API for realtime MIDI input
 
 By Gary P. Scavone, 2003-2023 (with help from many others, especially Stephen Sinclair!)
 
-v.6.1.0: (unreleased)
+v.6.1.0: (15 October 2026)
 - run "git log 6.0.0..HEAD" to see commits since last release
 - new Windows MIDI Services API, opt-in, falling back to WinMM where unavailable (see WINDOWS.md)
 - new checkApiAvailability() function and DRIVER_NOT_INSTALLED error type

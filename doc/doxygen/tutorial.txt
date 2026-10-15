@@ -32,7 +32,7 @@ Version 6.1.0 adds the Windows MIDI Services API and makes SysEx behave the same
 
 \section download Download
 
-Latest Release (3 August 2023): <A href="https://caml.music.mcgill.ca/~gary/rtmidi/release/rtmidi-6.0.0.tar.gz">Version 6.0.0</A>
+Latest Release (15 October 2026): <A href="https://github.com/thestk/rtmidi/releases/download/6.1.0/rtmidi-6.1.0.tar.gz">Version 6.1.0</A>
 
 \section start Getting Started
 

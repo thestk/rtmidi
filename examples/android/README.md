@@ -42,6 +42,12 @@ remember, declare `android.hardware.usb.action.USB_DEVICE_ATTACHED` with a USB
 MIDI device filter, as this example's `AndroidManifest.xml` and
 `res/xml/usb_midi_filter.xml` do.
 
+**Port names changed in 6.1.0.** Each port is named "&lt;product&gt; &lt;port&gt;", for
+example "QuNexus Control Surface", where 6.0 gave every port of a device the
+same "&lt;manufacturer&gt; &lt;product&gt;" name. A USB device's names also change
+once the app gets USB access. If your app saved 6.0 names, define
+`RTMIDI_ANDROID_LEGACY_PORT_NAMES` when compiling `RtMidi.cpp` to keep them.
+
 **Do not construct an `RtMidiIn` or `RtMidiOut` in a static initializer.** A
 static initializer runs while `System.loadLibrary()` is still loading your
 library, before the JNI environment is usable. Construct on first use instead:

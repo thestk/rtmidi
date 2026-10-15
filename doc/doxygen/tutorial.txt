@@ -15,14 +15,19 @@ Where applicable, multiple API support can be compiled and a particular API spec
 
 MIDI input and output functionality are separated into two classes, RtMidiIn and RtMidiOut.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a \c double floating point type).  MIDI data is passed to the user as raw bytes using an std::vector<unsigned char>.
 
-\section whatsnew What's New (Version 6.0.0)
+\section whatsnew What's New (Version 6.1.0)
 
-The version number has been bumped to 6.0.0 because new APIs (Android and Windows UWP) were added.  Changes in this release include:
+Version 6.1.0 adds the Windows MIDI Services API and makes SysEx behave the same on every backend.  Changes in this release include:
 
-- run "git log 5.0.0..HEAD" to see commits since last release
-- new Android API (thanks to YellowLabrador!)
-- new Windows UWP API support (thanks to Masamichi Hosoda!)
-- various build system updates and code efficiencies
+- run "git log 6.0.0..HEAD" to see commits since last release
+- new Windows MIDI Services API
+- C++ classes now live in namespace rt::midi, with C++20 module support (thanks to mikomikotaishi!); existing code compiles unchanged, but the C++ ABI changed, so the shared library is now librtmidi.so.8
+- preprocessor definitions renamed to RTMIDI_API_ALSA, RTMIDI_API_JACK, RTMIDI_API_CORE, etc. and RTMIDI_DEBUG; the old names still work but will be removed in 7.0.0
+- a long SysEx arrives as one message on every backend, real-time bytes inside a SysEx are delivered on their own, and an abandoned SysEx is closed with F0 F7
+- ALSA input overruns reach the error callback, JACK no longer hangs or drops output, and the measured SysEx limits are documented in RtMidi.h
+- automatic reconnect of USB MIDI devices on ALSA (thanks to madbrain76!)
+- rtmidi_set_error_callback() in the C API, and a static default error callback
+- see doc/release.txt for the full list
 
 \section download Download
 

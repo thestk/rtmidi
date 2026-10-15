@@ -15,7 +15,7 @@ jobs:
             APIcmake: ALSA
             deps: libasound-dev
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: install dependencies
@@ -36,7 +36,7 @@ jobs:
   MacOS:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: install dependencies
@@ -59,7 +59,7 @@ jobs:
           - host: x86_64-w64-mingw32
             api: winmm
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: install dependencies
@@ -79,14 +79,14 @@ jobs:
       run:
         shell: bash
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Windows MIDI Services metadata
       # Not in any Windows SDK yet; Microsoft publishes it only as a release asset.
       shell: pwsh
       run: |
         $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest https://github.com/microsoft/MIDI/releases/download/inbox-preview-10/Windows.Devices.Midi2.0.99.88-preview.10.nupkg -OutFile midi2.nupkg
-        if ((Get-FileHash midi2.nupkg).Hash -ne '6DAF121A3F76A4A1E0D46521C5072AC576477448C9332048383BB58960A4CE69') { throw 'checksum mismatch' }
+        Invoke-WebRequest https://github.com/microsoft/MIDI/releases/download/inbox-preview-11/Windows.Devices.Midi2.0.99.92-preview.11.nupkg -OutFile midi2.nupkg
+        if ((Get-FileHash midi2.nupkg).Hash -ne '13AFC6E6DA2ADAC309AB8C174352F46F1C0EBE2D79E65475BD6274DEFB73DF74') { throw 'checksum mismatch' }
         New-Item -ItemType Directory wms | Out-Null
         C:\Windows\System32\tar.exe -xf midi2.nupkg -C wms ref/native
     - name: CMake

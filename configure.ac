@@ -1,9 +1,9 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(RtMidi, 6.0.0, gary.scavone@mcgill.ca, rtmidi)
+AC_INIT(RtMidi, 6.1.0, gary.scavone@mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile doc/doxygen/Doxyfile])
-AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects tar-pax])
 
 # libtool version: current:revision:age
 #
@@ -18,7 +18,7 @@ AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
 #
 # If any interfaces have been removed since the last public release, then set
 # age to 0.
-m4_define([lt_current], 7)
+m4_define([lt_current], 8)
 m4_define([lt_revision], 0)
 m4_define([lt_age], 0)
 
@@ -149,7 +149,6 @@ AS_IF([test "x$with_core"   = "xyes"], [systems="$systems core"])
 AS_IF([test "x$with_winmm"  = "xyes"], [systems="$systems winmm"])
 AS_IF([test "x$with_webmidi" = "xyes"], [systems="$systems webmidi"])
 AS_IF([test "x$with_android" = "xyes"], [systems="$systems android"])
-AS_IF([test "x$with_dummy"  = "xyes"], [systems="$systems dummy"])
 required=" $systems "
 
 # If none, assign defaults if any are known for this OS.
@@ -172,7 +171,6 @@ AS_IF([test "x$with_winmm"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep 
 AS_IF([test "x$with_core"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v core`])
 AS_IF([test "x$with_webmidi" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v webmidi`])
 AS_IF([test "x$with_android" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v android`])
-AS_IF([test "x$with_dummy"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v dummy`])
 systems=" `echo $systems|tr \\\\n ' '` "
 
 # For each MIDI system, check if it is selected and found.
@@ -245,7 +243,7 @@ AS_IF([test -n "$need_ole32"], [LIBS="-lole32 $LIBS"])
 AS_IF([test -n "$need_pthread"],[
   AC_MSG_CHECKING([for pthread])
   AC_CHECK_LIB(pthread, pthread_create, ,
-    AC_MSG_ERROR([RtAudio requires the pthread library!]))])
+    AC_MSG_ERROR([RtMidi requires the pthread library!]))])
 
 AC_MSG_CHECKING([for MIDI API])
 

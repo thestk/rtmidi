@@ -1,5 +1,5 @@
 /**********************************************************************/
-/*! \class RtMidi
+/*! \class rt::midi::RtMidi
     \brief An abstract base class for realtime MIDI input/output.
 
     This class implements some common functionality for the realtime
@@ -59,7 +59,7 @@
 #endif
 
 #define RTMIDI_VERSION_MAJOR 6
-#define RTMIDI_VERSION_MINOR 0
+#define RTMIDI_VERSION_MINOR 1
 #define RTMIDI_VERSION_PATCH 0
 #define RTMIDI_VERSION_BETA  0
 
@@ -81,7 +81,6 @@
 #include <exception>
 #include <iostream>
 #include <string>
-#include <atomic>
 #include <vector>
 
 namespace rt {
@@ -349,8 +348,10 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
     callback may pass 0 here, which also skips allocating the ring buffer.
 
     If no API argument is specified and multiple API support has been
-    compiled, the default order of use is ALSA, JACK (Linux) and CORE,
-    JACK (OS-X).
+    compiled, the first API with at least one port is used, trying them
+    in this order: CoreMIDI, ALSA, JACK, Windows MIDI Services, WinMM,
+    UWP, Web MIDI, Android.  If none has a port, the first that opens is
+    used.
 
     \param api        An optional API id can be specified.
     \param clientName An optional client name can be specified. This
@@ -382,8 +383,8 @@ class RTMIDI_DLL_PUBLIC RtMidiIn : public RtMidi
   /*!
     This function creates a virtual MIDI input port to which other
     software applications can connect.  This type of functionality
-    is currently only supported by the Macintosh OS-X, any JACK,
-    and Linux ALSA APIs (the function returns an error for the other APIs).
+    is currently only supported by the CoreMIDI (macOS and iOS), JACK
+    and ALSA APIs (the other APIs report a warning and open nothing).
 
     \param portName An optional name for the application port that is
                     used to connect to portId can be specified.
@@ -513,8 +514,10 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
     An exception will be thrown if a MIDI system initialization error occurs.
 
     If no API argument is specified and multiple API support has been
-    compiled, the default order of use is ALSA, JACK (Linux) and CORE,
-    JACK (OS-X).
+    compiled, the first API with at least one port is used, trying them
+    in this order: CoreMIDI, ALSA, JACK, Windows MIDI Services, WinMM,
+    UWP, Web MIDI, Android.  If none has a port, the first that opens is
+    used.
   */
   RtMidiOut( RtMidi::Api api=UNSPECIFIED,
              const std::string& clientName = "RtMidi Output Client" );
@@ -550,8 +553,8 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
   /*!
       This function creates a virtual MIDI output port to which other
       software applications can connect.  This type of functionality
-      is currently only supported by the Macintosh OS-X, Linux ALSA
-      and JACK APIs (the function does nothing with the other APIs).
+      is currently only supported by the CoreMIDI (macOS and iOS), ALSA
+      and JACK APIs (the other APIs report a warning and open nothing).
       An exception is thrown if an error occurs while attempting to
       create the virtual port.
   */

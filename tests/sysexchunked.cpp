@@ -254,13 +254,27 @@ int main( int argc, char *argv[] )
       }
 
       for ( int i = 0; i < 2000 && !complete; i++ ) SLEEP( 5 );
+      if ( resync ) SLEEP( 200 );   // let a second message arrive, see below
+
+      // With the October 2026 Windows 11 update (build 26200.9711) the Windows MIDI
+      // service, which carries WinMM and UWP output, closes the cut-off SysEx with
+      // F7 itself and delivers it before the whole one.
+      bool closedByWindows = false;
+      if ( resync && callbacks == 2 &&
+           ( midiout->getCurrentApi() == RtMidi::WINDOWS_MM || midiout->getCurrentApi() == RtMidi::WINDOWS_UWP ) ) {
+        std::vector<unsigned char> closed = { 0xF0, 0x7D, 0x7F, 0x7F, 0x7F, 0xF7 };
+        closed.insert( closed.end(), message.begin(), message.end() );
+        closedByWindows = ( received == closed );
+      }
 
       if ( received.empty() )
         std::cout << "Nothing received. Are the two ports connected?\n";
+      else if ( closedByWindows )
+        std::cout << "Received the cut-off SysEx, closed by Windows, then the whole one: accepted.\n";
       else
         std::cout << "Received " << received.size() << " bytes in " << callbacks << " callback(s): "
                   << ( received == message ? "identical." : "MISMATCH." ) << "\n";
-      result = ( received == message && callbacks == 1 ) ? 0 : 1;
+      result = ( ( received == message && callbacks == 1 ) || closedByWindows ) ? 0 : 1;
     }
   }
   catch ( RtMidiError &error ) {

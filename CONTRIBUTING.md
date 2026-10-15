@@ -43,9 +43,10 @@ library across all platforms. An application that works on Linux and silently
 misbehaves on Windows is worse than one that fails everywhere.
 
 If we change a public behaviour, it must change in **every** backend — ALSA,
-CoreMIDI, WinMM, UWP, JACK, Web MIDI, Android AMidi and Dummy — in the same
-commit. Not "the ones I can test." A backend you cannot build still needs its
-implementation, even if that implementation is a documented no-op.
+CoreMIDI, WinMM, Windows MIDI Services, UWP, JACK, Web MIDI, Android AMidi and
+Dummy — in the same commit. Not "the ones I can test." A backend you cannot
+build still needs its implementation, even if that implementation is a
+documented no-op.
 
 Concretely, when adding or changing a method, ask:
 
@@ -82,7 +83,9 @@ build, touch both. Autotools on Windows means MinGW, which constrains what a
 Windows backend can require.
 
 **The C API tracks the C++ API.** `rtmidi_c.h` / `rtmidi_c.cpp` and the
-`apinames` test must stay in step, including enum tables.
+`apinames` test must stay in step, including enum tables. Some C++ functions
+have no C equivalent yet (`checkApiAvailability()`, `setDefaultErrorCallback()`,
+the auto-reconnect functions and `setBufferSize()`); a new one should get one.
 
 **Exceptions and callbacks.** Destructors and callback paths must not throw:
 `closePort()` runs from destructors, and an escaping `RtMidiError` terminates the
@@ -132,7 +135,8 @@ first contribution.
 Include:
 
 - RtMidi version or commit, operating system and version, and the **backend**
-  (ALSA, CoreMIDI, WinMM, UWP, JACK, Web MIDI, AMidi).
+  (ALSA, CoreMIDI, WinMM, Windows MIDI Services, UWP, JACK, Web MIDI,
+  AMidi).
 - How it was built — CMake or Autotools, compiler and version, shared or static.
 - The MIDI hardware involved, if any. Device-specific behaviour is common, and
   the exact model matters more than you would expect.

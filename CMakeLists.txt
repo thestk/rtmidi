@@ -461,9 +461,10 @@ endif()
 include(CMakePackageConfigHelpers)
 
 # Write cmake package version file
+# The package version is the release (6.1.0), not the library's SO version.
 write_basic_package_version_file(
     rtmidi-config-version.cmake
-    VERSION ${FULL_VER}
+    VERSION ${PACKAGE_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 

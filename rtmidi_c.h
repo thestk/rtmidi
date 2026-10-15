@@ -35,7 +35,15 @@
 extern "C" {
 #endif
 
-//! \brief Wraps an RtMidi object for C function return statuses.
+/*! \brief Wraps an RtMidi object for C function return statuses.
+ *
+ * Every function taking a device clears \ref ok and \ref msg on entry, so they
+ * describe that call alone. Read them before calling anything else on the same
+ * device. An error delivered to a callback set with rtmidi_set_error_callback()
+ * is not cleared this way.
+ *
+ * Clearing frees the previous message, so a device belongs to one thread.
+ */
 struct RtMidiWrapper {
     //! The wrapped RtMidi object.
     void* ptr;
@@ -48,16 +56,6 @@ struct RtMidiWrapper {
     //! If an error occurred (ok != true), set to an error message.
     char* msg;
 };
-
-/*! \brief Error reporting.
- *
- * Every function taking a device clears \ref RtMidiWrapper::ok and
- * \ref RtMidiWrapper::msg on entry, so they describe that call alone. Read them
- * before calling anything else on the same device. An error delivered to a
- * callback set with rtmidi_set_error_callback() is not cleared this way.
- *
- * Clearing frees the previous message, so a device belongs to one thread.
- */
 
 //! \brief Typedef for a generic RtMidi pointer.
 typedef struct RtMidiWrapper* RtMidiPtr;

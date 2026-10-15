@@ -83,7 +83,9 @@ build, touch both. Autotools on Windows means MinGW, which constrains what a
 Windows backend can require.
 
 **The C API tracks the C++ API.** `rtmidi_c.h` / `rtmidi_c.cpp` and the
-`apinames` test must stay in step, including enum tables.
+`apinames` test must stay in step, including enum tables. Some C++ functions
+have no C equivalent yet (`checkApiAvailability()`, `setDefaultErrorCallback()`,
+the auto-reconnect functions and `setBufferSize()`); a new one should get one.
 
 **Exceptions and callbacks.** Destructors and callback paths must not throw:
 `closePort()` runs from destructors, and an escaping `RtMidiError` terminates the

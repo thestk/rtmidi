@@ -149,7 +149,6 @@ AS_IF([test "x$with_core"   = "xyes"], [systems="$systems core"])
 AS_IF([test "x$with_winmm"  = "xyes"], [systems="$systems winmm"])
 AS_IF([test "x$with_webmidi" = "xyes"], [systems="$systems webmidi"])
 AS_IF([test "x$with_android" = "xyes"], [systems="$systems android"])
-AS_IF([test "x$with_dummy"  = "xyes"], [systems="$systems dummy"])
 required=" $systems "
 
 # If none, assign defaults if any are known for this OS.
@@ -172,7 +171,6 @@ AS_IF([test "x$with_winmm"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep 
 AS_IF([test "x$with_core"   = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v core`])
 AS_IF([test "x$with_webmidi" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v webmidi`])
 AS_IF([test "x$with_android" = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v android`])
-AS_IF([test "x$with_dummy"  = "xno"], [systems=`echo $systems|tr ' ' \\\\n|grep -v dummy`])
 systems=" `echo $systems|tr \\\\n ' '` "
 
 # For each MIDI system, check if it is selected and found.
@@ -245,7 +243,7 @@ AS_IF([test -n "$need_ole32"], [LIBS="-lole32 $LIBS"])
 AS_IF([test -n "$need_pthread"],[
   AC_MSG_CHECKING([for pthread])
   AC_CHECK_LIB(pthread, pthread_create, ,
-    AC_MSG_ERROR([RtAudio requires the pthread library!]))])
+    AC_MSG_ERROR([RtMidi requires the pthread library!]))])
 
 AC_MSG_CHECKING([for MIDI API])
 

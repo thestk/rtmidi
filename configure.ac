@@ -3,7 +3,7 @@ AC_INIT(RtMidi, 6.1.0, gary.scavone@mcgill.ca, rtmidi)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(RtMidi.cpp)
 AC_CONFIG_FILES([rtmidi-config rtmidi.pc Makefile tests/Makefile doc/Makefile doc/doxygen/Doxyfile])
-AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.14 -Wall -Werror foreign subdir-objects tar-pax])
 
 # libtool version: current:revision:age
 #

@@ -36,7 +36,7 @@ RtMidi is a set of C++ classes (`RtMidiIn`, `RtMidiOut`, and API specific classe
 
 MIDI input and output functionality are separated into two classes, `RtMidiIn` and `RtMidiOut`.  Each class instance supports only a single MIDI connection.  RtMidi does not provide timing functionality (i.e., output messages are sent immediately).  Input messages are timestamped with delta times in seconds (via a `double` floating point type).  MIDI data is passed to the user as raw bytes using an `std::vector<unsigned char>`.
 
-RtMidi is also offered as a module, which is enabled with `RTMIDI_BUILD_MODULES`, and is accessed with `import rt.midi;`. Namespaces are implicitly imported (unless disabled with `RTMIDI_USE_NAMESPACE`), so classes can be accessed through namespace `rt::midi` or through the global namespace (for example, `rt::midi::MidiApi` and `::MidiApi` are both valid).
+RtMidi is also offered as a module, which is enabled with `RTMIDI_BUILD_MODULES`, and is accessed with `import rt.midi;`. The classes live in namespace `rt::midi`.  `RtMidi.h` ends with `using namespace rt::midi;` unless the preprocessor definition `RTMIDI_USE_NAMESPACE` is set, so with the header `rt::midi::MidiApi` and `::MidiApi` are both valid; the CMake option `RTMIDI_USE_NAMESPACE` (on by default) sets that definition for the module build.
 
 ## Windows
 

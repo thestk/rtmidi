@@ -50,8 +50,18 @@ nodist_EXTRA_cgetmessage_SOURCES = dummy.cxx
 sysexinterleaved_SOURCES = sysexinterleaved.cpp
 sysexinterleaved_LDADD = $(top_builddir)/librtmidi.la
 
-EXTRA_DIST = cmidiin.dsp midiout.dsp midiprobe.dsp qmidiin.dsp	\
-	sysextest.dsp RtMidi.dsw AlsaHotplug.cmake RunAlsaHotplug.cmake README-hotplug.md
+EXTRA_DIST = AlsaHotplug.cmake RunAlsaHotplug.cmake README-hotplug.md \
+	RtMidi.sln Directory.Build.props \
+	apinames.vcxproj apinames.vcxproj.filters \
+	cmidiin.vcxproj cmidiin.vcxproj.filters \
+	midiclock.vcxproj midiclock.vcxproj.filters \
+	midiout.vcxproj midiout.vcxproj.filters \
+	midiprobe.vcxproj midiprobe.vcxproj.filters \
+	qmidiin.vcxproj qmidiin.vcxproj.filters \
+	sysexchunked.vcxproj sysexchunked.vcxproj.filters \
+	sysexinterleaved.vcxproj sysexinterleaved.vcxproj.filters \
+	sysextest.vcxproj sysextest.vcxproj.filters \
+	testcapi.vcxproj testcapi.vcxproj.filters
 
 TESTS = apinames cgetmessage sysexinterleaved
 

@@ -273,7 +273,7 @@ int main()
 
 \subsection cmidiin MIDI Input with User Callback
 
-When set, a user-provided callback function will be invoked after the input of a complete MIDI message.  It is possible to provide a pointer to user data that can be accessed in the callback function (not shown here).  It is necessary to set the callback function immediately after opening the port to avoid having incoming messages written to the queue (which is not emptied when a callback function is set).  If you are worried about this happening, you can check the queue using the RtMidi::getMessage() function to verify it is empty (after the callback function is set).
+When set, a user-provided callback function will be invoked after the input of a complete MIDI message.  It is possible to provide a pointer to user data that can be accessed in the callback function (not shown here).  It is necessary to set the callback function immediately after opening the port to avoid having incoming messages written to the queue (which is not emptied when a callback function is set).  If you are worried about this happening, you can check the queue using the RtMidiIn::getMessage() function to verify it is empty (after the callback function is set).
 
 In the following example, we omit some necessary error checking.  For a more complete example, see the \c cmidiin.cpp program in the \c tests directory.
 
@@ -376,7 +376,7 @@ In order to compile RtMidi for a specific OS and API, it is necessary to supply 
 
 The example compiler statements above could be used to compile the <TT>midiprobe.cpp</TT> example file, assuming that <TT>midiprobe.cpp</TT>, <TT>RtMidi.h</TT> and <TT>RtMidi.cpp</TT> all exist in the same directory.
 
-The other backends are RTMIDI_API_WMS (Windows MIDI Services), RTMIDI_API_UWP (Windows UWP), RTMIDI_API_WEBMIDI (Web MIDI) and RTMIDI_API_AMIDI (Android). Before 6.1.0 these definitions were __LINUX_ALSA__, __UNIX_JACK__, __MACOSX_CORE__, __WINDOWS_MM__, __WINDOWS_MIDI_SERVICES__, __WINDOWS_UWP__, __WEB_MIDI_API__ and __AMIDI__, and __RTMIDI_DEBUG__ and JACK_HAS_PORT_RENAME became RTMIDI_DEBUG and RTMIDI_JACK_HAS_PORT_RENAME. Names starting with underscores are reserved in C++, so the old ones are deprecated: they still work in 6.x and will be removed in 7.0.0.  Windows MIDI Services and Android are built with CMake (see \ref apinotes).
+The other backends are RTMIDI_API_WMS (Windows MIDI Services), RTMIDI_API_UWP (Windows UWP), RTMIDI_API_WEBMIDI (Web MIDI) and RTMIDI_API_AMIDI (Android). Before 6.1.0 these definitions were __LINUX_ALSA__, __UNIX_JACK__, __MACOSX_CORE__, __WINDOWS_MM__, __WINDOWS_UWP__, __WEB_MIDI_API__ and __AMIDI__, and __RTMIDI_DEBUG__ and JACK_HAS_PORT_RENAME became RTMIDI_DEBUG and RTMIDI_JACK_HAS_PORT_RENAME. Names starting with underscores are reserved in C++, so the old ones are deprecated: they still work in 6.x and will be removed in 7.0.0.  Windows MIDI Services and Android are built with CMake (see \ref apinotes).
 
 \section debug Debugging
 
@@ -410,7 +410,7 @@ The \c configure script provides support for the MinGW compiler.
 
 The Windows Multimedia library MIDI calls used in RtMidi do not make use of streaming functionality.   Incoming system exclusive messages are received into buffers whose size and number can be set with RtMidiIn::setBufferSize() before the port is opened (the default is 4 buffers of 1024 bytes).  A longer message is received a buffer at a time and delivered as one message, so these settings do not limit its length.  There is no such limit for outgoing sysex messages via RtMidiOut.
 
-RtMidi was originally developed with Visual C++ version 6.0 but has been tested with Virtual Studio 2010.
+RtMidi was originally developed with Visual C++ version 6.0 but has been tested with Visual Studio 2010.
 
 \subsection wms Windows (Windows MIDI Services):
 

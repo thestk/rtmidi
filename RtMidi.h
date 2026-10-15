@@ -81,7 +81,6 @@
 #include <exception>
 #include <iostream>
 #include <string>
-#include <atomic>
 #include <vector>
 
 namespace rt {

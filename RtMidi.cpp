@@ -608,9 +608,6 @@ extern "C" const RtMidi::Api rtmidi_compiled_apis[] = {
 #if defined(RTMIDI_API_WEBMIDI)
   RtMidi::WEB_MIDI_API,
 #endif
-#if defined(RTMIDI_API_WEBMIDI)
-  RtMidi::WEB_MIDI_API,
-#endif
 #if defined(RTMIDI_API_AMIDI)
   RtMidi::ANDROID_AMIDI,
 #endif

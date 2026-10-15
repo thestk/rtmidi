@@ -11,6 +11,7 @@ This distribution of RtMidi contains the following:
 
 - `doc`:      RtMidi documentation (also online at https://caml.music.mcgill.ca/~gary/rtmidi/)
 - `tests`:    example RtMidi programs
+- `examples`: example apps for iOS and Android
 
 On Unix systems, run `./configure` and then `make` in the top level directory.  This builds both the library and the test programs in `tests/`.  For installation and building on Windows, refer to [WINDOWS.md](WINDOWS.md).
 
@@ -20,13 +21,13 @@ If you checked out the code from git, please run `./autogen.sh` before `./config
 
 On Linux, ALSA support needs its development files (`libasound2-dev` on Debian and Ubuntu, `alsa-lib-devel` on Fedora); without them both `./configure` and CMake build without ALSA, and `./configure` may find no MIDI API if no other backend is available.
 
-Android support uses the AMidi API and must be built with CMake.  See [examples/android/README.md](examples/android/README.md).
+Android support uses the AMidi API and must be built with CMake.  See [examples/android/README.md](examples/android/README.md).  Windows MIDI Services is also CMake only, and opt-in: configure with `-DRTMIDI_API_WMS=ON`.
 
 If you compile `RtMidi.cpp` yourself, define the backends you want: `RTMIDI_API_ALSA`, `RTMIDI_API_JACK`, `RTMIDI_API_CORE`, `RTMIDI_API_WINMM`, `RTMIDI_API_WMS`, `RTMIDI_API_UWP`, `RTMIDI_API_WEBMIDI` or `RTMIDI_API_AMIDI` (and `RTMIDI_DEBUG` for debug output).  These replace `__LINUX_ALSA__`, `__UNIX_JACK__`, `__MACOSX_CORE__`, `__WINDOWS_MM__` and the other names starting with underscores, which C++ reserves (#133).  The old names still work in 6.x but are deprecated and will be removed in 7.0.0.
 
 ## Overview
 
-RtMidi is a set of C++ classes (`RtMidiIn`, `RtMidiOut`, and API specific classes) that provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA, JACK), Macintosh OS X (CoreMIDI, JACK), and Windows (Multimedia Library) operating systems.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
+RtMidi is a set of C++ classes (`RtMidiIn`, `RtMidiOut`, and API specific classes) that provide a common API (Application Programming Interface) for realtime MIDI input/output across Linux (ALSA, JACK), Macintosh OS X (CoreMIDI, JACK), Windows (Multimedia Library, UWP, Windows MIDI Services), Web MIDI, iOS and Android.  RtMidi significantly simplifies the process of interacting with computer MIDI hardware and software.  It was designed with the following goals:
 
   - object oriented C++ design
   - simple, common API across all supported platforms

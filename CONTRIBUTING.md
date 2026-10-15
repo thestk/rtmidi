@@ -43,9 +43,10 @@ library across all platforms. An application that works on Linux and silently
 misbehaves on Windows is worse than one that fails everywhere.
 
 If we change a public behaviour, it must change in **every** backend — ALSA,
-CoreMIDI, WinMM, UWP, JACK, Web MIDI, Android AMidi and Dummy — in the same
-commit. Not "the ones I can test." A backend you cannot build still needs its
-implementation, even if that implementation is a documented no-op.
+CoreMIDI, WinMM, Windows MIDI Services, UWP, JACK, Web MIDI, Android AMidi and
+Dummy — in the same commit. Not "the ones I can test." A backend you cannot
+build still needs its implementation, even if that implementation is a
+documented no-op.
 
 Concretely, when adding or changing a method, ask:
 
@@ -132,7 +133,8 @@ first contribution.
 Include:
 
 - RtMidi version or commit, operating system and version, and the **backend**
-  (ALSA, CoreMIDI, WinMM, UWP, JACK, Web MIDI, AMidi).
+  (ALSA, CoreMIDI, WinMM, Windows MIDI Services, UWP, JACK, Web MIDI,
+  AMidi).
 - How it was built — CMake or Autotools, compiler and version, shared or static.
 - The MIDI hardware involved, if any. Device-specific behaviour is common, and
   the exact model matters more than you would expect.

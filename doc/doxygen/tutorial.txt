@@ -414,7 +414,21 @@ RtMidi was originally developed with Visual C++ version 6.0 but has been tested 
 
 \subsection wms Windows (Windows MIDI Services):
 
-The Windows MIDI Services backend uses the Windows.Devices.Midi2 API that is part of Windows 11 25H2 and later.  It is only compiled when requested (with CMake, <TT>-DRTMIDI_API_WMS=ON</TT>) and needs C++20.  On other versions of Windows, RtMidi::checkApiAvailability() reports it unavailable, and with no api argument RtMidi uses the Multimedia Library instead.  Port names are the ones Windows gives the device's MIDI 1.0 ports.  Virtual ports are not supported.
+The Windows MIDI Services backend uses the Windows.Devices.Midi2 API, which Microsoft is adding to Windows 11 25H2 and later.  Until it ships in Windows, it comes from Microsoft's preview releases; WINDOWS.md explains where to get it and how to build with it.  It is only compiled when requested (with CMake, <TT>-DRTMIDI_API_WMS=ON</TT>) and needs C++20.  Port names are the ones Windows gives the device's MIDI 1.0 ports.  Virtual ports are not supported.
+
+An application can be built with both Windows MIDI Services and the Multimedia Library and use whichever works.  With no api argument, RtMidi tries Windows MIDI Services first and uses it if it starts and has a port; on Windows without the API, or with Windows set to its legacy MIDI stack, it uses the Multimedia Library instead, with no extra code.  To choose explicitly, and tell the user why, ask RtMidi::checkApiAvailability() first:
+
+\code
+RtMidi::Api api = RtMidi::WINDOWS_MM;
+RtMidi::RtMidiApiAvailability wms = RtMidi::checkApiAvailability( RtMidi::WINDOWS_MIDI_SERVICES );
+if ( wms.available )
+  api = RtMidi::WINDOWS_MIDI_SERVICES;
+else
+  std::cout << "Using the Multimedia Library: " << wms.message << std::endl;
+RtMidiIn midiin( api );
+\endcode
+
+The midiprobe test program prints each compiled API's availability and the API chosen with no api argument.
 
 \subsection android Android:
 

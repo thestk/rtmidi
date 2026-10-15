@@ -120,7 +120,19 @@ static int run( RtMidi::Api api, const Case &c, int index )
 
   std::lock_guard<std::mutex> g( lock );
   bool ok = ( received == c.expect );
-  printf( "%s %s\n", ok ? "ok:  " : "FAIL:", c.name );
+  // With the October 2026 Windows 11 update (build 26200.9711) the Windows MIDI
+  // service, which carries WinMM and UWP output, closes a cut-off SysEx with F7
+  // itself when the next status byte arrives, ahead of the expected messages.
+  bool closedByWindows = false;
+  RtMidi::Api outApi = out.getCurrentApi();
+  if ( !ok && ( outApi == RtMidi::WINDOWS_MM || outApi == RtMidi::WINDOWS_UWP ) &&
+       !c.send.empty() && c.send[0].size() > 1 && c.send[0][0] == 0xF0 && c.send[0].back() != 0xF7 ) {
+    std::vector<Bytes> alt( 1, c.send[0] );
+    alt[0].push_back( 0xF7 );
+    alt.insert( alt.end(), c.expect.begin(), c.expect.end() );
+    ok = closedByWindows = ( received == alt );
+  }
+  printf( "%s %s%s\n", ok ? "ok:  " : "FAIL:", c.name, closedByWindows ? " (Windows closed the cut-off SysEx itself)" : "" );
   if ( !ok )
     printf( "      expected %s\n      received %s\n", hex( c.expect ).c_str(), hex( received ).c_str() );
   return ok ? 1 : 0;

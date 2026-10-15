@@ -741,6 +741,12 @@ RTMIDI_DLL_PUBLIC RtMidiIn :: RtMidiIn( RtMidi::Api api, const std::string &clie
   // from being constructed and announcing itself on a machine with no ports.
   if ( apis.size() > 1 )
     apis.erase( std::remove( apis.begin(), apis.end(), RTMIDI_DUMMY ), apis.end() );
+  // Likewise skip an API this system can't run (Windows MIDI Services on older
+  // Windows), so a machine with no ports yet doesn't end up on it.
+  std::vector< RtMidi::Api > usable;
+  for ( unsigned int i=0; i<apis.size(); i++ )
+    if ( checkApiAvailability( apis[i] ).available ) usable.push_back( apis[i] );
+  if ( !usable.empty() ) apis.swap( usable );
 
   // Keep the *first* API that opened, not the last: the compiled order is a
   // preference order, so a portless machine must still end up on the most
@@ -844,6 +850,12 @@ RTMIDI_DLL_PUBLIC RtMidiOut :: RtMidiOut( RtMidi::Api api, const std::string &cl
   // compiled preference order is honoured on a portless machine (#398).
   if ( apis.size() > 1 )
     apis.erase( std::remove( apis.begin(), apis.end(), RTMIDI_DUMMY ), apis.end() );
+  // Likewise skip an API this system can't run (Windows MIDI Services on older
+  // Windows), so a machine with no ports yet doesn't end up on it.
+  std::vector< RtMidi::Api > usable;
+  for ( unsigned int i=0; i<apis.size(); i++ )
+    if ( checkApiAvailability( apis[i] ).available ) usable.push_back( apis[i] );
+  if ( !usable.empty() ) apis.swap( usable );
 
   RtMidi::Api firstWorkingApi = RtMidi::UNSPECIFIED;
   for ( unsigned int i=0; i<apis.size(); i++ ) {
@@ -4122,8 +4134,9 @@ void MidiOutWinMM :: sendMessage( const unsigned char *message, size_t size )
   const unsigned char first = message[0];
   if ( data->sysexInProgress && rtmidiEndsSysex( first ) ) {
     // Close the abandoned SysEx first, so every receiver drops it the same way.
-    // The Windows MIDI service needs it too: while a SysEx is open on a handle
-    // it drops everything else sent on it, short or long, until F7 or F0.
+    // On Windows 11 build 26200.9457 the Windows MIDI service dropped everything sent
+    // on a handle while a SysEx was open on it; with the October 2026 update (26200.9711)
+    // it closes the SysEx with F7 itself, so receivers also get the cut-off part.
     static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
     sendMessage( closeSysex, 2 );
     // If the close failed (already reported), this message would land inside the open SysEx.
@@ -7036,7 +7049,7 @@ RtMidi::RtMidiApiAvailability RtMidi::checkApiAvailability( RtMidi::Api api )
         break;
     case WmsAvailability::NotPresent:
         result.available = false;
-        result.message   = "This version of Windows does not include the Windows MIDI Services API (Windows.Devices.Midi2).";
+        result.message   = "The Windows MIDI Services API (Windows.Devices.Midi2) is missing: this version of Windows does not include it, and the app does not carry its own copy.";
         break;
     case WmsAvailability::ServiceUnavailable:
         result.available = false;

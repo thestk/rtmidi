@@ -18,6 +18,11 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+
+        // Adds the dump-request rows for the PZ-Echo-4x4 test firmware (see README):
+        //   ./gradlew assembleDebug -PenableProtozoaEcho
+        buildConfigField "boolean", "ENABLE_PROTOZOA_4x4_ECHO",
+                         project.hasProperty('enableProtozoaEcho') ? 'true' : 'false'
     }
 
     buildTypes {
@@ -27,6 +32,17 @@ android {
         }
         debug {
             jniDebuggable true
+            // Without this the debug build splits into several dex files and
+            // MainActivity lands in a secondary one, which some devices do not
+            // load: the activity is in the APK but will not start.
+            multiDexEnabled false
+        }
+    }
+    sourceSets {
+        main {
+            // RtMidi's Java classes, used where they ship rather than copied or
+            // symlinked in (symlinks do not survive every git checkout).
+            java.srcDirs += '../../../contrib/java'
         }
     }
     compileOptions {
@@ -38,6 +54,7 @@ android {
     }
     buildFeatures {
         compose true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.4.8'

@@ -2493,6 +2493,7 @@ struct AlsaMidiData {
   // other terminating status byte) has arrived yet, so a later call carrying
   // a bare continuation span can be recognized as part of the same message.
   bool sysexInProgress = false;
+  MidiInApi *in = nullptr; // input: the object, so the input thread can report errors
 };
 
 } // namespace
@@ -2601,7 +2602,8 @@ static void *alsaMidiHandler( void *ptr )
 
   while ( data->doInput ) {
 
-    if ( snd_seq_event_input_pending( apiData->seq, 1 ) == 0 ) {
+    int pending = snd_seq_event_input_pending( apiData->seq, 1 );
+    if ( pending == 0 ) {
       // No data pending
       if ( poll( poll_fds, poll_fd_count, -1) >= 0 ) {
         if ( poll_fds[0].revents & POLLIN ) {
@@ -2613,10 +2615,13 @@ static void *alsaMidiHandler( void *ptr )
       continue;
     }
 
-    // If here, there should be data.
-    result = snd_seq_event_input( apiData->seq, &ev );
+    // If here, there should be data. An overrun can show up in either call,
+    // since input_pending reads from the kernel too.
+    result = pending == -ENOSPC ? pending : snd_seq_event_input( apiData->seq, &ev );
     if ( result == -ENOSPC ) {
-      std::cerr << "\nMidiInAlsa::alsaMidiHandler: MIDI input buffer overrun!\n\n";
+      // The kernel dropped the queued input, so a SysEx being assembled lost a piece.
+      continueSysex = false;
+      apiData->in->error( RtMidiError::WARNING, "MidiInAlsa::alsaMidiHandler: MIDI input buffer overrun, messages were lost!" );
       continue;
     }
     else if ( result <= 0 ) {
@@ -2671,6 +2676,11 @@ static void *alsaMidiHandler( void *ptr )
 
     case SND_SEQ_EVENT_SYSEX:
       if ( (data->ignoreFlags & 0x01) ) break;
+      // A piece of a SysEx whose start was lost (an overrun, or a sender that never sent
+      // the F0) has nothing to join: drop it rather than deliver it as a message.
+      if ( !continueSysex && ( ev->data.ext.len == 0 ||
+                               static_cast<unsigned char *>( ev->data.ext.ptr )[0] != 0xF0 ) )
+        break;
       if ( ev->data.ext.len > apiData->bufferSize ) {
         apiData->bufferSize = ev->data.ext.len;
         free( buffer );
@@ -2806,6 +2816,7 @@ void MidiInAlsa :: initialize( const std::string& clientName )
   data->trigger_fds[0] = -1;
   data->trigger_fds[1] = -1;
   data->bufferSize = inputData_.bufferSize;
+  data->in = this;
   apiData_ = (void *) data;
   inputData_.apiData = (void *) data;
 
@@ -7084,6 +7095,7 @@ RtMidi::RtMidiApiAvailability RtMidi::checkApiAvailability( RtMidi::Api api )
 #include <jack/jack.h>
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
+#include <chrono>
 #include <pthread.h>
 #include <sched.h>
 #ifdef HAVE_SEMAPHORE
@@ -7104,6 +7116,9 @@ struct JackMidiData {
   sem_t sem_needpost;
 #endif
   MidiInApi :: RtMidiInData *rtMidiIn;
+  std::atomic<bool> serverGone{ false }; // output: set by jackShutdown()
+  bool serverGoneReported = false;
+  bool noPortReported = false;
   };
 
 //*********************************************************************//
@@ -7156,6 +7171,10 @@ static int jackProcessIn( jack_nframes_t nframes, void *arg )
     if ( continueSysex && event.size > 0 && event.buffer[0] >= 0x80 &&
          event.buffer[0] < 0xF8 && event.buffer[0] != 0xF7 )
       continueSysex = false;
+
+    // A data byte with no SysEx in progress is a piece of one whose start was lost: drop it.
+    if ( !continueSysex && event.size > 0 && event.buffer[0] < 0x80 )
+      continue;
 
     if ( !continueSysex )
       message.bytes.clear();
@@ -7364,8 +7383,11 @@ void MidiInJack :: closePort()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
   if ( data->port == NULL ) return;
+  // libjack can crash when a port is unregistered while the client runs, so stop it first.
+  jack_deactivate( data->client );
   jack_port_unregister( data->client, data->port );
   data->port = NULL;
+  jack_activate( data->client );
 
   connected_ = false;
 }
@@ -7408,21 +7430,35 @@ static int jackProcessOut( jack_nframes_t nframes, void *arg )
 
   while ( jack_ringbuffer_peek( data->buff, (char *) &space, sizeof( space ) ) == sizeof(space) &&
           jack_ringbuffer_read_space( data->buff ) >= sizeof(space) + space ) {
-    jack_ringbuffer_read_advance( data->buff, sizeof(space) );
-
     midiData = jack_midi_event_reserve( buff, 0, space );
-    if ( midiData )
-        jack_ringbuffer_read( data->buff, (char *) midiData, (size_t) space );
-    else
-        jack_ringbuffer_read_advance( data->buff, (size_t) space );
+    if ( midiData == NULL ) {
+      // The port buffer is full: leave the rest for the next period.
+      if ( jack_midi_get_event_count( buff ) > 0 ) break;
+      // Too big even for an empty buffer, so it would never go out.
+      jack_ringbuffer_read_advance( data->buff, sizeof(space) + (size_t) space );
+      continue;
+    }
+    jack_ringbuffer_read_advance( data->buff, sizeof(space) );
+    jack_ringbuffer_read( data->buff, (char *) midiData, (size_t) space );
   }
 
 #ifdef HAVE_SEMAPHORE
-  if ( !sem_trywait( &data->sem_needpost ) )
-    sem_post( &data->sem_cleanup );
+  // closePort() is waiting: tell it once everything queued has gone out.
+  if ( !sem_trywait( &data->sem_needpost ) ) {
+    if ( jack_ringbuffer_read_space( data->buff ) == 0 )
+      sem_post( &data->sem_cleanup );
+    else
+      sem_post( &data->sem_needpost );
+  }
 #endif
 
   return 0;
+}
+
+// The server has shut down or dropped the client; nothing will read the ringbuffer again.
+static void jackShutdown( void *arg )
+{
+  static_cast<JackMidiData *>( arg )->serverGone = true;
 }
 
 MidiOutJack :: MidiOutJack( const std::string &clientName ) : MidiOutApi()
@@ -7437,6 +7473,7 @@ void MidiOutJack :: initialize( const std::string& clientName )
 
   data->port = NULL;
   data->client = NULL;
+  data->buff = NULL;
 #ifdef HAVE_SEMAPHORE
   sem_init( &data->sem_cleanup, 0, 0 );
   sem_init( &data->sem_needpost, 0, 0 );
@@ -7452,9 +7489,11 @@ void MidiOutJack :: connect()
   if ( data->client )
     return;
 
-  // Initialize output ringbuffers
-  data->buff = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
-  data->buffMaxWrite = (int) jack_ringbuffer_write_space( data->buff );
+  // Initialize output ringbuffers, once: connect() runs again while the server is down.
+  if ( data->buff == NULL ) {
+    data->buff = jack_ringbuffer_create( JACK_RINGBUFFER_SIZE );
+    data->buffMaxWrite = (int) jack_ringbuffer_write_space( data->buff );
+  }
 
   // Initialize JACK client
   if ( ( data->client = jack_client_open( clientName.c_str(), JackNoStartServer, NULL ) ) == 0 ) {
@@ -7464,6 +7503,7 @@ void MidiOutJack :: connect()
   }
 
   jack_set_process_callback( data->client, jackProcessOut, data );
+  jack_on_shutdown( data->client, jackShutdown, data );
   jack_activate( data->client );
 }
 
@@ -7472,11 +7512,11 @@ MidiOutJack :: ~MidiOutJack()
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
   MidiOutJack::closePort();
 
-  // Cleanup
-  jack_ringbuffer_free( data->buff );
+  // Close the client first: its process callback reads the ringbuffer until then.
   if ( data->client ) {
     jack_client_close( data->client );
   }
+  jack_ringbuffer_free( data->buff );
 
 #ifdef HAVE_SEMAPHORE
   sem_destroy( &data->sem_cleanup );
@@ -7489,6 +7529,7 @@ MidiOutJack :: ~MidiOutJack()
 void MidiOutJack :: openPort( unsigned int portNumber, const std::string &portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
+  data->noPortReported = false;
 
   connect();
   if ( !data->client ) {
@@ -7520,6 +7561,7 @@ void MidiOutJack :: openPort( unsigned int portNumber, const std::string &portNa
 void MidiOutJack :: openVirtualPort( const std::string &portName )
 {
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
+  data->noPortReported = false;
 
   connect();
   if ( !data->client ) {
@@ -7597,17 +7639,43 @@ void MidiOutJack :: closePort()
   if ( data->port == NULL ) return;
 
 #ifdef HAVE_SEMAPHORE
+  // Wait for queued output to go out, unless the server is gone and nothing will send it.
   struct timespec ts;
-  if ( clock_gettime( CLOCK_REALTIME, &ts ) != -1 ) {
+  if ( !data->serverGone && clock_gettime( CLOCK_REALTIME, &ts ) != -1 ) {
     ts.tv_sec += 1; // wait max one second
     sem_post( &data->sem_needpost );
     sem_timedwait( &data->sem_cleanup, &ts );
   }
 #endif
 
+  // libjack can crash when a port is unregistered while the client runs, so stop it first.
+  jack_deactivate( data->client );
+
+  // The callback is stopped, so clear what a timed-out wait left behind: the handshake, and
+  // output that never went out, which would otherwise go out on the next port opened.
+#ifdef HAVE_SEMAPHORE
+  while ( sem_trywait( &data->sem_needpost ) == 0 ) {}
+  while ( sem_trywait( &data->sem_cleanup ) == 0 ) {}
+#endif
+  size_t messages = 0, bytes = 0;
+  int length;
+  while ( jack_ringbuffer_read( data->buff, (char *) &length, sizeof( length ) ) == sizeof( length ) ) {
+    jack_ringbuffer_read_advance( data->buff, (size_t) length );
+    messages++;
+    bytes += (size_t) length;
+  }
+  if ( messages > 0 ) {
+    std::ostringstream ost;
+    ost << "MidiOutJack::closePort: " << messages << " message(s), " << bytes
+        << " bytes, never went out and were dropped.";
+    errorString_ = ost.str();
+    error( RtMidiError::WARNING, errorString_ );
+  }
+
   jack_port_unregister( data->client, data->port );
   data->port = NULL;
   data->sysexOpen = false;
+  jack_activate( data->client );
 
   connected_ = false;
 }
@@ -7635,27 +7703,59 @@ void MidiOutJack :: sendMessage( const unsigned char *message, size_t size )
   int nBytes = static_cast<int>(size);
   JackMidiData *data = static_cast<JackMidiData *> (apiData_);
 
-  if ( size + sizeof(nBytes) > (size_t) data->buffMaxWrite )
-      return;
-
-  if ( size > 0 ) {
-    if ( data->sysexOpen && rtmidiEndsSysex( message[0] ) ) {
-      // Close the abandoned SysEx first, so every receiver drops it the same way.
-      static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
-      sendMessage( closeSysex, 2 );
-    }
-    for ( size_t i = 0; i < size; i++ ) {
-      if ( message[i] == 0xF0 ) data->sysexOpen = true;
-      else if ( message[i] >= 0x80 && message[i] < 0xF8 ) data->sysexOpen = false;
-    }
+  if ( size + sizeof(nBytes) > (size_t) data->buffMaxWrite ) {
+    std::ostringstream ost;
+    ost << "MidiOutJack::sendMessage: a message over " << data->buffMaxWrite - sizeof(nBytes)
+        << " bytes doesn't fit RtMidi's output buffer; send a large SysEx in pieces. Message dropped.";
+    errorString_ = ost.str();
+    error( RtMidiError::WARNING, errorString_ );
+    return;
   }
 
-  while ( jack_ringbuffer_write_space(data->buff) < sizeof(nBytes) + size )
-      sched_yield();
+  // Only the process callback empties the ringbuffer, so don't queue what it won't send.
+  if ( data->port == NULL ) {
+    if ( !data->noPortReported ) {
+      data->noPortReported = true;
+      errorString_ = "MidiOutJack::sendMessage: no port is open; messages are being dropped.";
+      error( RtMidiError::WARNING, errorString_ );
+    }
+    return;
+  }
+  if ( data->serverGone ) {
+    if ( !data->serverGoneReported ) {
+      data->serverGoneReported = true;
+      errorString_ = "MidiOutJack::sendMessage: the JACK server has shut down; messages are being dropped.";
+      error( RtMidiError::WARNING, errorString_ );
+    }
+    return;
+  }
+
+  if ( size > 0 && data->sysexOpen && rtmidiEndsSysex( message[0] ) ) {
+    // Close the abandoned SysEx first, so every receiver drops it the same way.
+    static const unsigned char closeSysex[2] = { 0xF0, 0xF7 };
+    sendMessage( closeSysex, 2 );
+  }
+
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 1 );
+  while ( jack_ringbuffer_write_space(data->buff) < sizeof(nBytes) + size ) {
+    if ( data->serverGone ) return;  // reported on the next call
+    if ( std::chrono::steady_clock::now() > deadline ) {
+      errorString_ = "MidiOutJack::sendMessage: JACK took no data for a second; message dropped.";
+      error( RtMidiError::WARNING, errorString_ );
+      return;
+    }
+    sched_yield();
+  }
 
   // Write full message to buffer
   jack_ringbuffer_write( data->buff, ( char * ) &nBytes, sizeof( nBytes ) );
   jack_ringbuffer_write( data->buff, ( const char * ) message, nBytes );
+
+  // Only a message that was queued changes the SysEx state.
+  for ( size_t i = 0; i < size; i++ ) {
+    if ( message[i] == 0xF0 ) data->sysexOpen = true;
+    else if ( message[i] >= 0x80 && message[i] < 0xF8 ) data->sysexOpen = false;
+  }
 }
 
 #endif  // RTMIDI_API_JACK

@@ -8,8 +8,16 @@
 //  Exits 0 when the message comes back identical.
 //
 //  Measured limits on one sendMessage(), which sending in pieces avoids:
-//    ALSA seq   16355 bytes (alsa-lib's output buffer; snd_seq_set_output_buffer_size() raises it)
-//    JACK       16379 bytes (RtMidi's output ringbuffer), dropped silently past that
+//    ALSA seq   5572 bytes between two applications (the receiver's kernel pool): a larger
+//               SysEx is lost at the receiver, whose error callback reports an input overrun,
+//               and so can a message sent right behind one close to that size. The sender
+//               gets an error only from 16356 bytes (alsa-lib's output buffer).
+//               To a hardware port, 4096 bytes (snd-seq-midi's buffer), cut off with no
+//               error past that; pieces must also be paced to the device. The 512 B / 2 ms
+//               default here suits apps and USB; DIN (3125 B/s) needs about 512 B / 170 ms.
+//    JACK       16379 bytes (RtMidi's output ringbuffer), refused with a warning past that. JACK's
+//               own port buffer limits what goes out in one period: 32720 bytes on JACK2 at
+//               these settings; on JACK1 it depends on the period size and can be smaller
 //    CoreMIDI   about 117 MB on macOS, 19 MB on iOS, dropped silently past that;
 //               in pieces, about 650 to 760 pieces per message
 //    WinMM      none found (256 MB), but sendMessage() blocks until the data is sent
@@ -66,9 +74,23 @@ void usage( void )
   std::cout << "    --interrupt  send the start of a SysEx with no F7, then a note on,\n";
   std::cout << "              and check that the note arrives.\n";
   std::cout << "    out in    port numbers, on APIs without virtual ports (Windows, Android).\n";
+  std::cout << "              On ALSA and JACK the test connects to itself.\n";
   std::cout << "              The default is port 0, which is rarely a loopback.\n";
   std::cout << "    -l        list port numbers; they can change when devices are replugged.\n\n";
   exit( 0 );
+}
+
+// On ALSA and JACK an output can open our own virtual input, so the test needs no patching.
+static bool openOwnInput( RtMidiOut &midiout )
+{
+  if ( midiout.getCurrentApi() != RtMidi::LINUX_ALSA && midiout.getCurrentApi() != RtMidi::UNIX_JACK )
+    return false;
+  for ( unsigned int i = 0; i < midiout.getPortCount(); i++ )
+    if ( midiout.getPortName( i ).find( "sysexchunked in" ) != std::string::npos ) {
+      midiout.openPort( i );
+      return true;
+    }
+  return false;
 }
 
 void listPorts( void )
@@ -111,6 +133,7 @@ int main( int argc, char *argv[] )
   int seconds = 30;
   int result = 1;
   unsigned int outPort = 0, inPort = 0;
+  bool selfConnected = false;
 
   if ( listen ) {
     if ( argc > 2 ) seconds = atoi( argv[2] );
@@ -151,14 +174,19 @@ int main( int argc, char *argv[] )
       midiin->openPort( inPort );
     }
     else {
-      midiout->openVirtualPort( "sysexchunked out" );
       midiin->openVirtualPort( "sysexchunked in" );
       if ( listen )
         std::cout << "Opened virtual port \"sysexchunked in\".\n"
                   << "Connect a device or another application to it.\n";
-      else
+      else if ( openOwnInput( *midiout ) ) {
+        std::cout << "Sending to our own virtual port \"sysexchunked in\".\n";
+        selfConnected = true;
+      }
+      else {
+        midiout->openVirtualPort( "sysexchunked out" );
         std::cout << "Opened virtual ports \"sysexchunked out\" and\n"
                   << "\"sysexchunked in\". Connect them now";
+      }
     }
 
     midiin->ignoreTypes( false, true, true );   // do not ignore SysEx
@@ -185,8 +213,11 @@ int main( int argc, char *argv[] )
     }
     else {
       // Give the user a moment to patch the two ports together before sending.
-      for ( int i = 0; i < 10; i++ ) { std::cout << "." << std::flush; SLEEP( 500 ); }
-      std::cout << "\n";
+      if ( selfConnected ) SLEEP( 300 );
+      else {
+        for ( int i = 0; i < 10; i++ ) { std::cout << "." << std::flush; SLEEP( 500 ); }
+        std::cout << "\n";
+      }
 
       // F0 7D <data...> F7.  0x7D is the non-commercial manufacturer id.
       std::vector<unsigned char> message;

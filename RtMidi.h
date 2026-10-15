@@ -577,6 +577,15 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
       synchronously: this call does not return until the driver has finished
       with the data, which for a large dump over a slow link can take a
       noticeable amount of time. Avoid calling it from a user-interface thread.
+
+      A large SysEx may not survive one call; send it in pieces (see
+      tests/sysexchunked.cpp). Between two applications on ALSA, one larger
+      than 5572 bytes is lost at the receiver, while the sender only gets an
+      error from 16356 bytes. On JACK, one larger than 16379 bytes is not sent.
+      To a hardware port on ALSA, only 4096 bytes fit the kernel's buffer
+      (snd_seq_midi output_buffer_size) and the rest is cut off with no error:
+      send pieces of at most that, each once the last has drained at the
+      device's rate (3125 bytes per second for DIN MIDI).
   */
   void sendMessage( const std::vector<unsigned char> *message );
 
@@ -589,6 +598,15 @@ class RTMIDI_DLL_PUBLIC RtMidiOut : public RtMidi
       synchronously: this call does not return until the driver has finished
       with the data, which for a large dump over a slow link can take a
       noticeable amount of time. Avoid calling it from a user-interface thread.
+
+      A large SysEx may not survive one call; send it in pieces (see
+      tests/sysexchunked.cpp). Between two applications on ALSA, one larger
+      than 5572 bytes is lost at the receiver, while the sender only gets an
+      error from 16356 bytes. On JACK, one larger than 16379 bytes is not sent.
+      To a hardware port on ALSA, only 4096 bytes fit the kernel's buffer
+      (snd_seq_midi output_buffer_size) and the rest is cut off with no error:
+      send pieces of at most that, each once the last has drained at the
+      device's rate (3125 bytes per second for DIN MIDI).
 
       \param message A pointer to the MIDI message as raw bytes
       \param size    Length of the MIDI message in bytes

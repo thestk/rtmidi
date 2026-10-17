@@ -23,9 +23,12 @@ function(rtmidi_add_hotplug_test library source_dir)
   enable_testing()
   add_test(NAME rtmidi_alsahotplug COMMAND rtmidi_alsahotplug)
   set_tests_properties(rtmidi_alsahotplug PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
-  add_custom_target(rtmidi_hotplug_check ALL
+  # Deliberately not in ALL and not a dependency of the library: this runs the
+  # test against the real ALSA sequencer, which is not available in packaging
+  # sandboxes or CI. Run it on demand (`cmake --build . --target
+  # rtmidi_hotplug_check`) or through CTest.
+  add_custom_target(rtmidi_hotplug_check
     COMMAND "${CMAKE_COMMAND}" "-DTEST_EXECUTABLE=$<TARGET_FILE:rtmidi_alsahotplug>"
       -P "${source_dir}/tests/RunAlsaHotplug.cmake"
     DEPENDS rtmidi_alsahotplug VERBATIM)
-  add_dependencies(${library} rtmidi_hotplug_check)
 endfunction()

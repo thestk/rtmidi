@@ -362,12 +362,6 @@ if(RTMIDI_BUILD_MODULES)
   endif()
 endif()
 
-# Compile and run hotplug regression tests whenever the ALSA library is built.
-if("alsa" IN_LIST API_LIST)
-  include(tests/AlsaHotplug.cmake)
-  rtmidi_add_hotplug_test(rtmidi "${CMAKE_CURRENT_SOURCE_DIR}")
-endif()
-
 # Add tests if requested.
 option(RTMIDI_BUILD_TESTING "Build test programs" ON)
 if (NOT DEFINED RTMIDI_BUILD_TESTING OR RTMIDI_BUILD_TESTING STREQUAL "")
@@ -397,6 +391,14 @@ if(RTMIDI_BUILD_TESTING)
   set_tests_properties(cgetmessage PROPERTIES SKIP_RETURN_CODE 77)
   add_test(NAME sysexinterleaved COMMAND sysexinterleaved)
   set_tests_properties(sysexinterleaved PROPERTIES SKIP_RETURN_CODE 77)
+  # The ALSA hotplug regression test probes the real ALSA sequencer, so it
+  # builds with the other test programs and runs under CTest only - never
+  # as part of the default build or of 'install' (packaging sandboxes and
+  # CI have no usable /dev/snd/seq; Gentoo Portage aborts src_install on it).
+  if("alsa" IN_LIST API_LIST)
+    include(tests/AlsaHotplug.cmake)
+    rtmidi_add_hotplug_test(rtmidi "${CMAKE_CURRENT_SOURCE_DIR}")
+  endif()
 endif()
 
 # Set standard installation directories.

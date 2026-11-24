@@ -1293,6 +1293,18 @@ void RtMidi_disposeCoreMidiClientSingleton(){
   CoreMidiClientSingleton = 0;
 }
 
+// Client and port names are UTF-8, matching getPortName(), which reads them
+// back with kCFStringEncodingUTF8.  CFStringCreateWithCString() returns NULL
+// for bytes that are not valid in the requested encoding, so fall back to
+// MacRoman, which maps every byte, and never return NULL.
+static CFStringRef createCFStringFromName( const std::string &name )
+{
+  CFStringRef result = CFStringCreateWithCString( NULL, name.c_str(), kCFStringEncodingUTF8 );
+  if ( result == NULL )
+    result = CFStringCreateWithCString( NULL, name.c_str(), kCFStringEncodingMacRoman );
+  return result;
+}
+
 //*********************************************************************//
 //  API: OS-X
 //  Class Definitions: MidiInCore
@@ -1471,7 +1483,7 @@ MIDIClientRef MidiInCore::getCoreMidiClientSingleton(const std::string& clientNa
       // Set up our client.
       MIDIClientRef client;
 
-      CFStringRef name = CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII );
+      CFStringRef name = createCFStringFromName( clientName );
       OSStatus result = MIDIClientCreate(name, NULL, NULL, &client );
       CFRelease( name );
       if ( result != noErr ) {
@@ -1527,7 +1539,7 @@ void MidiInCore :: openPort( unsigned int portNumber, const std::string &portNam
 
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
+  CFStringRef portNameRef = createCFStringFromName( portName );
   OSStatus result = MIDIInputPortCreate( data->client,
                                          portNameRef,
                                          midiInputCallback, (void *)&inputData_, &port );
@@ -1569,7 +1581,7 @@ void MidiInCore :: openVirtualPort( const std::string &portName )
 
   // Create a virtual MIDI input destination.
   MIDIEndpointRef endpoint;
-  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
+  CFStringRef portNameRef = createCFStringFromName( portName );
   OSStatus result = MIDIDestinationCreate( data->client,
                                            portNameRef,
                                            midiInputCallback, (void *)&inputData_, &endpoint );
@@ -1810,7 +1822,7 @@ MIDIClientRef MidiOutCore::getCoreMidiClientSingleton(const std::string& clientN
       // Set up our client.
       MIDIClientRef client;
 
-      CFStringRef name = CFStringCreateWithCString( NULL, clientName.c_str(), kCFStringEncodingASCII );
+      CFStringRef name = createCFStringFromName( clientName );
       OSStatus result = MIDIClientCreate(name, NULL, NULL, &client );
       CFRelease( name );
       if ( result != noErr ) {
@@ -1895,7 +1907,7 @@ void MidiOutCore :: openPort( unsigned int portNumber, const std::string &portNa
 
   MIDIPortRef port;
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
-  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
+  CFStringRef portNameRef = createCFStringFromName( portName );
   OSStatus result = MIDIOutputPortCreate( data->client, portNameRef, &port );
   CFRelease( portNameRef );
   if ( result != noErr ) {
@@ -1965,7 +1977,7 @@ void MidiOutCore :: openVirtualPort( const std::string &portName )
 
   // Create a virtual MIDI output source.
   MIDIEndpointRef endpoint;
-  CFStringRef portNameRef = CFStringCreateWithCString( NULL, portName.c_str(), kCFStringEncodingASCII );
+  CFStringRef portNameRef = createCFStringFromName( portName );
   OSStatus result = MIDISourceCreate( data->client, portNameRef, &endpoint );
   CFRelease( portNameRef );
 
